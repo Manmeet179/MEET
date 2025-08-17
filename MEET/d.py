@@ -9,6 +9,7 @@ import json
 # -------------------- Streamlit Config --------------------
 st.set_page_config(
     page_title="MEET",
+    page_icon="images.png",
     layout="centered",
     initial_sidebar_state="expanded"
 )
@@ -118,6 +119,7 @@ st.sidebar.markdown("""
 """, unsafe_allow_html=True)
 
 st.sidebar.markdown("<div></div>", unsafe_allow_html=True)
+st.sidebar.image("images.png", use_container_width=True)
 
 # -------------------- Main App --------------------
 def app():
@@ -395,4 +397,3 @@ def app():
 # -------------------- Run App --------------------
 if __name__=="__main__":
     app()
-
