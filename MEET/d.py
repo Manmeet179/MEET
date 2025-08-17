@@ -8,6 +8,7 @@ import bcrypt
 import base64
 import json
 
+# -------------------- Streamlit Config --------------------
 st.set_page_config(
     page_title="MEET",
     page_icon="logo/images.png",
@@ -15,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.set_page_config(page_title="Footer Example", layout="wide")
+st.set_page_config(page_title="MEET", layout="wide")
 
 # ----- Footer -----
 st.markdown("""
@@ -41,68 +42,14 @@ st.markdown("""
 st.markdown(
     """
     <style>
-    /* Hide the hamburger menu and settings */
-    #MainMenu {visibility: hidden;}
-    /* Hide the "Made with Streamlit" footer */
-    footer {visibility: hidden;}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-st.markdown(
-    """
-    <style>
-    /* Force dark theme for app */
-    body, .block-container, .stApp {
-        background-color: #0e1117 !important;
-        color: #FFFFFF !important;
-        font-weight: bold !important;
-    }
-
-    /* Sidebar dark */
-    .css-1d391kg {background-color: #0e1117 !important;}
-
-    /* All text bold and white (exclude dropdowns) */
-    h1, h2, h3, h4, h5, h6, p, textarea, label {
-        color: #FFFFFF !important;
-        font-weight: bold !important;
-    }
-
-    /* Exclude dropdown text from global styling */
-    div.stSelectbox div[data-baseweb] {
-        background-color: #000000 !important;
-        color: #000000 !important;
-        font-weight: bold !important;
-    }
-
-    div.stSelectbox div[data-baseweb] ul > li {
-        background-color: #000000 !important;
-        color: #000000 !important;
-        font-weight: bold !important;
-    }
-
-    /* Tables */
-    .dataframe, table {
-        color: #FFFFFF !important;
-        background-color: #1c1f26 !important;
-        font-weight: bold !important;
-    }
-
-    /* Buttons */
-    div.stButton > button {
-        background-color: #FF4B4B !important;
-        color: white !important;
-        font-weight: bold !important;
-    }
-
-    /* Hide Streamlit menu & footer */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     </style>
     """,
     unsafe_allow_html=True
 )
-# -------------------- Styles --------------------
+
+# -------------------- Global Styles --------------------
 st.markdown("""
 <style>
 div.stButton > button {
@@ -128,10 +75,15 @@ h1, h2, h3, h4, h5, h6, p, textarea, label {color: #FFFFFF !important; font-weig
 # -------------------- Login --------------------
 load_dotenv()
 
-load_dotenv()
+user_env = os.getenv("LOGIN_USER")
+pass_env = os.getenv("LOGIN_PASS")
 
-LOGIN_USER_HASH = os.getenv("LOGIN_USER").encode()
-LOGIN_PASS_HASH = os.getenv("LOGIN_PASS").encode()
+if not user_env or not pass_env:
+    st.error("❌ LOGIN_USER or LOGIN_PASS not found in .env file")
+    st.stop()
+
+LOGIN_USER_HASH = user_env.encode()
+LOGIN_PASS_HASH = pass_env.encode()
 
 def login():
     st.title("🍱 Tiffin Tracker - Login")
@@ -144,7 +96,6 @@ def login():
             st.success("Logged in successfully!")
         else:
             st.error("Invalid credentials")
-
 
 # -------------------- Excel Setup --------------------
 EXCEL_FILE = r"C:\TIFIN SERVICE\TIFIN\t1.xlsx"
@@ -271,10 +222,7 @@ def app():
     elif menu == "Records":
         st.subheader("📄 All Records")
 
-        # Placeholder for table
         table_placeholder = st.empty()
-
-        # Load data
         df = get_data()
         if df.empty:
             st.info("No records available")
@@ -283,7 +231,6 @@ def app():
             df_reset = df.reset_index(drop=True)
             df_reset.index += 1
 
-            # Function to color Name column
             def color_name(val):
                 color_map = {
                     "MEET": "#FE7743",
@@ -293,7 +240,6 @@ def app():
                 }
                 return f"color: {color_map.get(val, 'black')}"
 
-            # Function to color Payment Status column
             def color_payment(val):
                 if str(val).strip().lower() == "payment pending":
                     return "color: #FFE100"
@@ -306,14 +252,12 @@ def app():
                 .style
                 .applymap(color_name, subset=["Name"])
                 .applymap(color_payment, subset=["Payment Status"])
-                .format(precision=1)  # 🔹 This makes 1 → 1.0 and 0.5 stays 0.5
+                .format(precision=1)
             )
-
             table_placeholder.dataframe(styled_df)
 
-        # -------------------- Refresh Button --------------------
         if st.button("🔄 Refresh Data"):
-            df = get_data()  # re-read Excel file
+            df = get_data()
             if df.empty:
                 st.info("No records available")
                 table_placeholder.dataframe(pd.DataFrame(columns=HEADERS))
@@ -325,7 +269,7 @@ def app():
                     .style
                     .applymap(color_name, subset=["Name"])
                     .applymap(color_payment, subset=["Payment Status"])
-                    .format(precision=1)  # 🔹 Keep same format after refresh
+                    .format(precision=1)
                 )
                 table_placeholder.dataframe(styled_df)
             st.success("Data refreshed ✅")
@@ -362,18 +306,11 @@ def app():
         if df.empty:
             st.info("No records to edit.")
         else:
-            # Reset index for display
             df_reset = df.reset_index(drop=True)
             df_reset.index += 1
 
-            # Color functions
             def color_name(val):
-                color_map = {
-                    "MEET": "#FE7743",
-                    "YASH": "#D76C82",
-                    "BIREN": "#FFD36E",
-                    "DHRUMIL": "#9EDE73"
-                }
+                color_map = {"MEET": "#FE7743","YASH": "#D76C82","BIREN": "#FFD36E","DHRUMIL": "#9EDE73"}
                 return f"color: {color_map.get(val, 'black')}"
 
             def color_payment(val):
@@ -383,32 +320,18 @@ def app():
                     return "color: #56DFCF"
                 return "color: black"
 
-            styled_df = (
-                df_reset
-                .style
-                .applymap(color_name, subset=["Name"])
-                .applymap(color_payment, subset=["Payment Status"])
-            )
-
-            # Show table
+            styled_df = df_reset.style.applymap(color_name, subset=["Name"]).applymap(color_payment, subset=["Payment Status"])
             table_placeholder = st.empty()
             table_placeholder.dataframe(styled_df)
 
-            # Refresh button
             if st.button("🔄 Refresh Data"):
                 df = get_data()
                 df_reset = df.reset_index(drop=True)
                 df_reset.index += 1
-                styled_df = (
-                    df_reset
-                    .style
-                    .applymap(color_name, subset=["Name"])
-                    .applymap(color_payment, subset=["Payment Status"])
-                )
+                styled_df = df_reset.style.applymap(color_name, subset=["Name"]).applymap(color_payment, subset=["Payment Status"])
                 table_placeholder.dataframe(styled_df)
                 st.success("Data refreshed ✅")
 
-            # -------------------- Select Record --------------------
             col1, col2, col3 = st.columns([1, 2, 2])
             sr_no = col1.number_input("Enter Sr No", min_value=1, max_value=len(df_reset), step=1)
             name_edit = col2.selectbox("Select Name", ["-- SELECT --"] + ["MEET", "YASH", "BIREN", "DHRUMIL"])
@@ -418,7 +341,6 @@ def app():
                 if name_edit == "-- SELECT --":
                     st.error("Please select Name")
                 else:
-                    # Match by Sr No, Name and Date
                     df_row = df_reset.iloc[sr_no - 1]
                     if pd.to_datetime(df_row['Date']).date() != date_edit or df_row['Name'] != name_edit:
                         st.error("Date or Name does not match the selected row")
@@ -427,7 +349,6 @@ def app():
                         st.session_state['edit_values'] = df_row.to_dict()
                         st.success("Record loaded. You can now edit fields below.")
 
-            # -------------------- Edit Fields --------------------
             if 'edit_values' in st.session_state:
                 values = st.session_state['edit_values']
                 edit_shift = st.selectbox("Shift", ["Day", "Night"], index=["Day", "Night"].index(values['Shift']))
@@ -449,8 +370,6 @@ def app():
                     st.success("Record updated successfully!")
                     del st.session_state['edit_values']
                     del st.session_state['edit_row_index']
-
-                    # Refresh table after save
                     df_reset = df.reset_index(drop=True)
                     df_reset.index += 1
                     table_placeholder.dataframe(df_reset)
