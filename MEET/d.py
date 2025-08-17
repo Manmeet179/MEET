@@ -87,7 +87,7 @@ def login():
             st.error("Invalid credentials")
 
 # -------------------- Excel Setup --------------------
-EXCEL_FILE = r"C:\TIFIN SERVICE\TIFIN\t1.xlsx"
+EXCEL_FILE = r"t1.xlsx"
 HEADERS = ["Date", "Time", "Name", "Shift", "Quantity", "Roti", "Roti Amount", "Amount", "Payment Status"]
 
 def get_data(file_path=EXCEL_FILE):
@@ -397,4 +397,5 @@ def app():
 # -------------------- Run App --------------------
 if __name__=="__main__":
     app()
+
 
