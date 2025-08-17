@@ -2,8 +2,6 @@ import streamlit as st
 import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
-import os
-from dotenv import load_dotenv
 import bcrypt
 import base64
 import json
@@ -36,7 +34,6 @@ st.markdown("""
         Made️ by MEET MEWADA
     </div>
 """, unsafe_allow_html=True)
-
 
 # -------------------- Hide Streamlit Menu & Settings --------------------
 st.markdown(
@@ -73,17 +70,9 @@ h1, h2, h3, h4, h5, h6, p, textarea, label {color: #FFFFFF !important; font-weig
 """, unsafe_allow_html=True)
 
 # -------------------- Login --------------------
-load_dotenv()
-
-user_env = os.getenv("LOGIN_USER")
-pass_env = os.getenv("LOGIN_PASS")
-
-if not user_env or not pass_env:
-    st.error("❌ LOGIN_USER or LOGIN_PASS not found in .env file")
-    st.stop()
-
-LOGIN_USER_HASH = user_env.encode()
-LOGIN_PASS_HASH = pass_env.encode()
+# Hashed credentials (no .env needed)
+LOGIN_USER_HASH = b"$2b$12$BLSiegHi9JZpmhFKKGnODu5SNS9Obqswd4GTcHiuUQ3iYZ0pzSlM2"
+LOGIN_PASS_HASH = b"$2b$12$xfVNu267cnWT0hjsrzoWQ.AOYvxcm9GdWjjAlmcSG8IFBGf3IuP62"
 
 def login():
     st.title("🍱 Tiffin Tracker - Login")
