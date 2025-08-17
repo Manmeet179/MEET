@@ -71,7 +71,7 @@ h1, h2, h3, h4, h5, h6, p, textarea, label {color: #FFFFFF !important; font-weig
 
 # -------------------- Login --------------------
 # Hashed credentials (no .env needed)
-LOGIN_USER_HASH = b"$2b$12$BLSiegHi9JZpmhFKKGnODu5SNS9Obqswd4GTcHiuUQ3iYZ0pzSlM2"
+LOGIN_USER_HASH = b"$2b$12$tAAm6RQ775w8WJBW9brlXuHDgiYuMn3UcKI5gKRm4CCIbNp9lHXfi"
 LOGIN_PASS_HASH = b"$2b$12$xfVNu267cnWT0hjsrzoWQ.AOYvxcm9GdWjjAlmcSG8IFBGf3IuP62"
 
 def login():
@@ -397,3 +397,4 @@ def app():
 # -------------------- Run App --------------------
 if __name__=="__main__":
     app()
+
