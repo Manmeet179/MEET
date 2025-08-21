@@ -50,11 +50,17 @@ HEADERS = ["Date", "Time", "Name", "Shift", "Quantity", "Roti", "Roti_Amount", "
 # -------------------- DB Functions --------------------
 
 
-DB_HOST = st.secrets["DB_HOST"]
-DB_NAME = st.secrets["DB_NAME"]
-DB_USER = st.secrets["DB_USER"]
-DB_PASS = st.secrets["DB_PASS"]
-DB_PORT = st.secrets["DB_PORT"]
+#DB_HOST = st.secrets["DB_HOST"]
+#DB_NAME = st.secrets["DB_NAME"]
+#DB_USER = st.secrets["DB_USER"]
+#DB_PASS = st.secrets["DB_PASS"]
+#DB_PORT = st.secrets["DB_PORT"]
+
+DB_HOST = "db.evxuzsawkfkfejqsifvu.supabase.co"
+DB_NAME = "tiffin_db"
+DB_USER = "postgres"
+DB_PASS = "u2?YLu*87&$9McK"
+DB_PORT = "5432"
 
 def get_connection():
     return psycopg2.connect(
@@ -592,6 +598,7 @@ def app():
 # -------------------- Run App --------------------
 if __name__=="__main__":
     app()
+
 
 
 
