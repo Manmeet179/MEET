@@ -44,12 +44,11 @@ st.markdown("""
 
 # -------------------- DB Config --------------------
 
-DB_HOST = st.secrets["DB_HOST"]
-DB_NAME = st.secrets["DB_NAME"]
-DB_USER = st.secrets["DB_USER"]
-DB_PASS = st.secrets["DB_PASS"]
-DB_PORT = st.secrets["DB_PORT"]
-
+DB_HOST = "db.fdqfmozjyotwruvvaeyn.supabase.co"
+DB_NAME = "postgres"
+DB_USER = "postgres"
+DB_PASS = "UmH%h5*THuLE5$q"
+DB_PORT = "5432"
 TABLE_NAME = "tiffin_records"
 
 HEADERS = ["Date", "Time", "Name", "Shift", "Quantity", "Roti", "Roti_Amount", "Amount", "Payment_Status"]
@@ -591,3 +590,4 @@ def app():
 # -------------------- Run App --------------------
 if __name__=="__main__":
     app()
+
