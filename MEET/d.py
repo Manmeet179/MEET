@@ -68,15 +68,14 @@ DB_HOST = "ep-polished-mud-a7na2kva-pooler.ap-southeast-2.aws.neon.tech"
 DB_NAME = "neondb"
 DB_PORT = "5432"
 
-def get_connection():
-    return psycopg2.connect(
-        host=DB_HOST,
-        database=DB_NAME,
-        user=DB_USER,
-        password=DB_PASS,
-        port=DB_PORT, 
-        sslmode="require"
-   )
+conn = psycopg2.connect(
+    host=DB_HOST,
+    database=DB_NAME,
+    user=DB_USER,
+    password=DB_PASS,
+    port=DB_PORT, 
+    sslmode="require"
+)
 
 
 
@@ -607,6 +606,7 @@ def app():
 # -------------------- Run App --------------------
 if __name__=="__main__":
     app()
+
 
 
 
