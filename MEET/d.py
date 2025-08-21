@@ -56,22 +56,59 @@ HEADERS = ["Date", "Time", "Name", "Shift", "Quantity", "Roti", "Roti_Amount", "
 #DB_PASS = st.secrets["DB_PASS"]
 #DB_PORT = st.secrets["DB_PORT"]
 
+#DB_HOST = "db.evxuzsawkfkfejqsifvu.supabase.co"
+#DB_NAME = "postgres"
+#DB_USER = "postgres"
+#DB_PASS = "u2?YLu*87&$9McK"
+#DB_PORT = "5432"
+
+#def get_connection():
+  #  return psycopg2.connect(
+     #   host=DB_HOST,
+     #   database=DB_NAME,
+     #   user=DB_USER,
+     #   password=DB_PASS,
+     #   port=DB_PORT, 
+      #  sslmode="require"
+  #  )
+
+
+import psycopg2
+from psycopg2 import sql
+
 DB_HOST = "db.evxuzsawkfkfejqsifvu.supabase.co"
-DB_NAME = "postgres"
+DB_PORT = "5432"
 DB_USER = "postgres"
 DB_PASS = "u2?YLu*87&$9McK"
-DB_PORT = "5432"
+DB_NAME = "tiffin_db"   # 👈 તમારું database નામ
 
-def get_connection():
-    return psycopg2.connect(
-        host=DB_HOST,
-        database=DB_NAME,
+def create_database_if_not_exists():
+    # 1. default postgres DB સાથે connect થવું
+    conn = psycopg2.connect(
+        dbname="postgres",
         user=DB_USER,
         password=DB_PASS,
-        port=DB_PORT, 
-        sslmode="require"
+        host=DB_HOST,
+        port=DB_PORT
     )
+    conn.autocommit = True
+    cur = conn.cursor()
 
+    # 2. ચેક કરવું કે DB exist કરે છે કે નહીં
+    cur.execute("SELECT 1 FROM pg_database WHERE datname=%s", (DB_NAME,))
+    exists = cur.fetchone()
+
+    # 3. જો ન હોય તો create કરવું
+    if not exists:
+        cur.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(DB_NAME)))
+        print(f"✅ Database '{DB_NAME}' created successfully!")
+    else:
+        print(f"ℹ️ Database '{DB_NAME}' already exists.")
+
+    cur.close()
+    conn.close()
+
+create_database_if_not_exists()
 def create_table():
     conn = get_connection()
     cursor = conn.cursor()
@@ -599,6 +636,7 @@ def app():
 # -------------------- Run App --------------------
 if __name__=="__main__":
     app()
+
 
 
 
