@@ -1,6 +1,6 @@
 streamlit
 pandas
 matplotlib
-python-dotenv
 bcrypt
-openpyxl
+psycopg2-binary
+cryptography
