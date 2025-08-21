@@ -50,13 +50,19 @@ HEADERS = ["Date", "Time", "Name", "Shift", "Quantity", "Roti", "Roti_Amount", "
 # -------------------- DB Functions --------------------
 
 
+DB_HOST = st.secrets["DB_HOST"]
+DB_NAME = st.secrets["DB_NAME"]
+DB_USER = st.secrets["DB_USER"]
+DB_PASS = st.secrets["DB_PASS"]
+DB_PORT = st.secrets["DB_PORT"]
+
 def get_connection():
     return psycopg2.connect(
-        host=st.secrets["DB_HOST"],
-        dbname=st.secrets["DB_NAME"],
-        user=st.secrets["DB_USER"],
-        password=st.secrets["DB_PASS"],
-        port=st.secrets["DB_PORT"]
+        host=DB_HOST,
+        database=DB_NAME,
+        user=DB_USER,
+        password=DB_PASS,
+        port=DB_PORT
     )
 
 def create_table():
@@ -586,5 +592,6 @@ def app():
 # -------------------- Run App --------------------
 if __name__=="__main__":
     app()
+
 
 
