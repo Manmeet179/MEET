@@ -68,7 +68,8 @@ def get_connection():
         database=DB_NAME,
         user=DB_USER,
         password=DB_PASS,
-        port=DB_PORT
+        port=DB_PORT, 
+        sslmode="require"
     )
 
 def create_table():
@@ -598,6 +599,7 @@ def app():
 # -------------------- Run App --------------------
 if __name__=="__main__":
     app()
+
 
 
 
