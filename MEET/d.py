@@ -57,7 +57,7 @@ HEADERS = ["Date", "Time", "Name", "Shift", "Quantity", "Roti", "Roti_Amount", "
 #DB_PORT = st.secrets["DB_PORT"]
 
 DB_HOST = "db.evxuzsawkfkfejqsifvu.supabase.co"
-DB_NAME = "tiffin_db"
+DB_NAME = "postgres"
 DB_USER = "postgres"
 DB_PASS = "u2?YLu*87&$9McK"
 DB_PORT = "5432"
@@ -598,6 +598,7 @@ def app():
 # -------------------- Run App --------------------
 if __name__=="__main__":
     app()
+
 
 
 
