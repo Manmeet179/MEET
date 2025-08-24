@@ -46,6 +46,709 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
+st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    div.stDownloadButton > button {
+        background-color: red !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1em;
+        font-weight: bold;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 
 # -------------------- Footer --------------------
@@ -686,6 +1389,7 @@ def app():
 # -------------------- Run App --------------------
 if __name__=="__main__":
     app()
+
 
 
 
