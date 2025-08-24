@@ -77,11 +77,18 @@ st.markdown("""
 
 # -------------------- DB Config --------------------
 
-DB_NAME = "tifin_db"
-DB_USER = "avnadmin"
-DB_PASS = "AVNS_sULyoOO-Tc37Z1v4cU2"  
-DB_HOST = "pg-19531148-mevadameet916-4098.b.aivencloud.com"
-DB_PORT = 10003
+from dotenv import load_dotenv
+import os
+
+# Load .env file
+load_dotenv()
+
+DB_NAME = os.getenv("DB_NAME")
+DB_USER = os.getenv("DB_USER")
+DB_PASS = os.getenv("DB_PASS")
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = int(os.getenv("DB_PORT"))
+
 
 TABLE_NAME = "tiffin_records"
 
@@ -684,6 +691,7 @@ def app():
 # -------------------- Run App --------------------
 if __name__=="__main__":
     app()
+
 
 
 
