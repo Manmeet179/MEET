@@ -20,12 +20,7 @@ from io import BytesIO
   
 # -------------------- Streamlit Config --------------------
   
-st.set_page_config(
-    page_title="MEET",
-    page_icon="images.png",
-    layout="centered",
-    initial_sidebar_state="expanded"
-    )
+
 
 
 
@@ -1365,6 +1360,7 @@ def app():
 if __name__=="__main__":
   
     app()
+
 
 
 
