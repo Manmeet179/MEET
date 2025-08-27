@@ -22,9 +22,7 @@ from io import BytesIO
   
 st.set_page_config(
     page_title="MEET",
-    st.set_page_config(
-    page_title="MEET",
-    page_icon="logo/images.png",
+    page_icon="images.png",
     layout="centered",
     initial_sidebar_state="expanded"
     )
@@ -1367,6 +1365,7 @@ def app():
 if __name__=="__main__":
   
     app()
+
 
 
 
