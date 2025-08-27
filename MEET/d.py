@@ -720,7 +720,7 @@ def edit_account_page():
 
   
 
-  st.sidebar.image("images.png", use_container_width=True)
+ 
 
 # -------------------- Sidebar Logo --------------------
 
@@ -1348,6 +1348,7 @@ def app():
 if __name__=="__main__":
   
     app()
+
 
 
 
