@@ -728,7 +728,21 @@ def edit_account_page():
   
 # -------------------- Sidebar Logo --------------------
   
-st.sidebar.markdown("<div></div>", unsafe_allow_html=True)
+# -------------------- Sidebar Logo --------------------
+st.sidebar.markdown("""
+<style>
+.sidebar .sidebar-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100vh;
+}
+.sidebar .sidebar-content div:last-child { margin-top: auto; }
+</style>
+""", unsafe_allow_html=True)
+
+st.sidebar.image("logo/images.png", use_container_width=True)
+
   
 
   
@@ -1353,6 +1367,7 @@ def app():
 if __name__=="__main__":
   
     app()
+
 
 
 
