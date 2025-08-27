@@ -71,7 +71,7 @@ st.markdown("""
 
 # -------------------- DB Config --------------------
 DB_HOST = "https://pg-205335e4-dhrumilacmegrp-3c1a.i.aivencloud.com"
-DB_NAME = "defaultdb"
+DB_NAME = "tifin_db"
 DB_USER = "avnadmin"
 DB_PASS = "AVNS_5ijYH2y3EAXHi9_bTCK"
 DB_PORT = "15413"
@@ -676,6 +676,7 @@ def app():
 # -------------------- Run App --------------------
 if __name__=="__main__":
     app()
+
 
 
 
