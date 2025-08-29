@@ -671,6 +671,8 @@ def app():
 
     st.title("📊 Tiffin Tracker System")
 
+    st.sidebar.image('images.png') 
+
     menu = st.sidebar.selectbox("Menu", ["Add Record", "Records", "Chart", "Edit",
 
                                          "Payment Method", "Download", "Delete",
@@ -1184,3 +1186,4 @@ def app():
 
 if __name__ == "__main__":
     app()
+
