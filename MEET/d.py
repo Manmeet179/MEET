@@ -669,9 +669,7 @@ def app():
 
         return
 
-    st.title("📊 Tiffin Tracker System")
-
-    st.sidebar.image('images.png') 
+    st.title("📊 Tiffin Tracker System") 
 
     menu = st.sidebar.selectbox("Menu", ["Add Record", "Records", "Chart", "Edit",
 
@@ -1186,4 +1184,5 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
