@@ -11,9 +11,11 @@ import bcrypt
 import psycopg2
 
 from io import BytesIO
+import os
+st.write(os.getcwd()) 
 
 # -------------------- Streamlit Config --------------------
-st.sidebar.image('images.png', caption='Welcome!', use_container_width=True)
+st.sidebar.image('./images.png', caption='Welcome!', use_container_width=True)
 st.set_page_config(
     page_title="MEET_MEWADA",
     layout="centered",
@@ -1184,6 +1186,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
