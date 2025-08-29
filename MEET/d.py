@@ -916,65 +916,62 @@ def app():
     # -------------------- Edit --------------------
 
     elif menu == "Edit":
+elif menu == "Edit":
+    st.subheader("✏️ Edit Existing Record")
 
-        st.subheader("✏️ Edit Existing Record")
+    df = fetch_all()
+    if df.empty:
+        st.info("No records to edit.")
+    else:
+        # Convert date column properly
+        df['date'] = pd.to_datetime(df['date'], errors='coerce').dt.date
 
-        df = fetch_all()
+        # --- Filters ---
+        names = df['name'].unique().tolist()
+        selected_name = st.selectbox("Select Name", ["-- SELECT NAME --"] + names)
 
-        if df.empty:
+        min_date = df['date'].min()
+        max_date = df['date'].max()
+        selected_date = st.date_input("Select Date", value=min_date, min_value=min_date, max_value=max_date)
 
-            st.info("No records to edit.")
+        record_ids = df['id'].unique().tolist()
+        selected_id = st.selectbox("Select Record ID", ["-- SELECT ID --"] + [str(rid) for rid in record_ids])
 
-        else:
+        # --- Filter dataframe ---
+        if selected_name != "-- SELECT NAME --" and selected_id != "-- SELECT ID --":
+            filtered_df = df[
+                (df['name'] == selected_name) &
+                (df['id'] == int(selected_id)) &
+                (df['date'] == selected_date)
+            ]
 
-            df_reset = df.copy()
+            if filtered_df.empty:
+                st.warning("⚠️ No record found for the given Name, Date and ID.")
+            else:
+                st.write("### 📋 Selected Record")
+                st.dataframe(filtered_df)
 
-            st.dataframe(df_reset)
+                record = filtered_df.iloc[0]
 
-            # Select record to edit
-
-            sr_no = st.number_input("Enter Sr No to Edit", min_value=1, max_value=len(df_reset), step=1)
-
-            if st.button("Load Record"):
-                record = df_reset.iloc[sr_no - 1]
-
-                st.session_state['edit_record_id'] = record['id']
-
-                st.session_state['edit_values'] = record
-
-            if 'edit_values' in st.session_state:
-
-                values = st.session_state['edit_values']
-
-                # Convert string date to datetime.date object if needed
-                if isinstance(values['date'], str):
-                    current_date = datetime.datetime.strptime(values['date'], "%Y-%m-%d").date()
-                else:
-                    current_date = values['date']
-
-                edit_date = st.date_input("📅 Edit Date", current_date)
-
-                edit_shift = st.selectbox("Shift", ["Day", "Night"], index=["Day", "Night"].index(values['shift']))
-
-                edit_qty = st.number_input("Quantity", min_value=0.0, value=float(values['quantity']))
-
-                edit_roti = st.number_input("Roti Quantity", min_value=0, value=int(values['roti']))
+                # --- Pre-fill values ---
+                edit_date = st.date_input("📅 Edit Date", record['date'])
+                edit_shift = st.selectbox("Shift", ["Day", "Night"], index=["Day", "Night"].index(record['shift']))
+                edit_qty = st.number_input("Quantity", min_value=0.0, value=float(record['quantity']))
+                edit_roti = st.number_input("Roti Quantity", min_value=0, value=int(record['roti']))
 
                 roti_amount = edit_roti * 5
-
                 tiffin_amount = round(85 * edit_qty, 2)
-
                 final_amount = tiffin_amount + roti_amount if edit_shift == "Day" else tiffin_amount
-
                 st.info(f"💰 Final Amount: ₹{final_amount}")
 
-                payment_status = st.selectbox("Payment Status", ["Payment Pending", "Payment Done"],
+                payment_status = st.selectbox("Payment Status",
+                                              ["Payment Pending", "Payment Done", "Paid"],
+                                              index=["Payment Pending", "Payment Done", "Paid"].index(record['payment_status']))
 
-                                              index=["Payment Pending", "Payment Done"].index(values['payment_status']))
-
+                # --- Save Changes ---
                 if st.button("Save Changes"):
                     update_record(
-                        record_id=int(st.session_state['edit_record_id']),
+                        record_id=int(record['id']),
                         date=edit_date,
                         shift=edit_shift,
                         qty=float(edit_qty),
@@ -983,12 +980,7 @@ def app():
                         roti_amount=float(roti_amount),
                         payment_status=payment_status
                     )
-
-                    st.success("Record updated successfully!")
-
-                    del st.session_state['edit_values']
-
-                    del st.session_state['edit_record_id']
+                    st.success("✅ Record updated successfully!")
 
 
 
@@ -1184,6 +1176,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
