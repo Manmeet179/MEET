@@ -135,10 +135,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 # -------------------- DB Config --------------------
 DB_NAME = "tifin_db"
-DB_USER = "avnadmin"
-DB_PASS = "AVNS_sULyoOO-Tc37Z1v4cU2"  # Aiven માંથી regenerate કરો
-DB_HOST = "pg-19531148-mevadameet916-4098.b.aivencloud.com"
-DB_PORT = 10003
+DB_USER = ""
+DB_PASS = ""  # Aiven માંથી regenerate કરો
+DB_HOST = ""
+DB_PORT = 
 TABLE_NAME = "tiffin"
 HEADERS = ["Date", "Time", "Name", "Shift", "Quantity", "Roti", "Roti_Amount", "Amount", "Payment_Status"]
 
@@ -1184,3 +1184,4 @@ def app():
 
 if __name__ == "__main__":
     app()
+
