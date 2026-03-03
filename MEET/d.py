@@ -13,14 +13,14 @@ import bcrypt
 import psycopg2
 
 from io import BytesIO
-
+import os
 
 
 # -------------------- Streamlit Config --------------------
 
 st.set_page_config(
-    page_title="Tiffin Tracker",
-    # page_icon="logo/d.png",   # ✅ correct path
+    page_title="LunchLogix",     
+    page_icon="logo/d.png",     
     layout="centered",
     initial_sidebar_state="collapsed",
     menu_items={
@@ -29,7 +29,6 @@ st.set_page_config(
         'About': None
     }
 )
-
 # baki nu code yahan lakhvo
 # -------------------- Custom Button CSS --------------------
 
@@ -744,8 +743,10 @@ def edit_account_page():
 
 # -------------------- Sidebar Logo --------------------
 
-# st.sidebar.image("logo/me.png", use_container_width=True)
+logo_path = os.path.join("logo", "me.png")
 
+# Display in sidebar
+st.sidebar.image(logo_path, use_container_width=True)
 
 
 # -------------------- Run App --------------------
