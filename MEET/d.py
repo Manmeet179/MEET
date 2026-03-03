@@ -20,7 +20,7 @@ from io import BytesIO
 
 st.set_page_config(
     page_title="Tiffin Tracker",
-    page_icon="images/d.png",   # ✅ correct path
+    page_icon="logo/d.png",   # ✅ correct path
     layout="centered",
     initial_sidebar_state="collapsed",
     menu_items={
@@ -144,7 +144,7 @@ st.markdown("""
 # lemox = "postgres"
 # ternak = "1234"
 # owert = "localhost"
-# xoper = 5432  
+# xoper = 5432
 
 
 TABLE_NAME = "tiffin"
@@ -744,7 +744,7 @@ def edit_account_page():
 
 # -------------------- Sidebar Logo --------------------
 
-st.sidebar.image("images/me.png", use_container_width=True)
+st.sidebar.image("logo/me.png", use_container_width=True)
 
 
 
