@@ -13,14 +13,13 @@ import bcrypt
 import psycopg2
 
 from io import BytesIO
-
-
+import base64
 
 # -------------------- Streamlit Config --------------------
 
 st.set_page_config(
     page_title="Tiffin Tracker",
-    page_icon="images/d.png",  
+    # page_icon="d.png",
     layout="centered",
     initial_sidebar_state="collapsed",
     menu_items={
@@ -91,38 +90,46 @@ st.markdown("""
 
 # -------------------- Footer --------------------
 
-st.markdown("""
+with open("images/icons8-monzo-48.png", "rb") as f:
+    img_bytes = f.read()
+    img_base64 = base64.b64encode(img_bytes).decode()
 
-<style>
-.footer {
-    position: fixed;
-    left: 0;
-    bottom: 0;
-    width: 100%;
-    background-color: transparent;
-    text-align: center;
-    padding: 10px;
-    font-size: 22px;
-    font-weight: bold;
+# Footer with left and right icons
+st.markdown(
+    f"""
+    <style>
+    .footer {{
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        background-color: transparent;
+        text-align: center;
+        padding: 10px;
+        font-size: 22px;
+        font-weight: bold;
+        color: red;
+        animation: rainbow 8s linear infinite;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 15px;
+    }}
 
-    /* Rainbow base color */
-    color: red;
+    @keyframes rainbow {{
+        0% {{ filter: hue-rotate(0deg); }}
+        100% {{ filter: hue-rotate(360deg); }}
+    }}
+    </style>
 
-    /* Smooth infinite color change */
-    animation: rainbow 8s linear infinite;
-}
-
-@keyframes rainbow {
-    0% { filter: hue-rotate(0deg); }
-    100% { filter: hue-rotate(360deg); }
-}
-</style>
-
-<div class="footer">
-    Made by MEET MEWADA
-</div>
-
-""", unsafe_allow_html=True)
+    <div class="footer">
+        <img src="data:image/png;base64,{img_base64}" width="30" />
+        Made by MEET MEWADA
+        <img src="data:image/png;base64,{img_base64}" width="30" />
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 
 
@@ -356,8 +363,21 @@ def update_payment(start_date, end_date, payment_status):
 
 
 def delete_tiffin_page():
-    st.subheader("🗑️ Delete Tiffin Records")
+    # PNG file load & encode
+    with open("images/icons8-delete-50.png", "rb") as f:
+        img_bytes = f.read()
+        img_base64 = base64.b64encode(img_bytes).decode()
 
+    # Display icon + text side by side
+    st.markdown(
+        f"""
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+            <img src="data:image/png;base64,{img_base64}" width="30" />
+            <span>Delete Tiffin Records</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     df = fetch_all()
     if df.empty:
         st.info("No Tiffin records available to delete.")
@@ -408,8 +428,21 @@ def delete_tiffin_page():
 
 
 def delete_account_page():
-    st.subheader("🗑️ Delete Account Records")
+    # PNG file load & encode
+    with open("images/icons8-delete-100.png", "rb") as f:
+        img_bytes = f.read()
+        img_base64 = base64.b64encode(img_bytes).decode()
 
+    # Display icon + text side by side
+    st.markdown(
+        f"""
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+            <img src="data:image/png;base64,{img_base64}" width="30" />
+            <span>Delete Account Records</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     conn = get_connection()
     df = pd.read_sql("SELECT * FROM account_records ORDER BY date DESC, time DESC", conn)
     names = df['name'].unique().tolist() if not df.empty else []
@@ -468,9 +501,34 @@ LOGIN_PASS_HASH = b"$2b$12$xfVNu267cnWT0hjsrzoWQ.AOYvxcm9GdWjjAlmcSG8IFBGf3IuP62
 
 
 def login():
-    st.title("🍱 LUNCHLOGIX - Login")
-  
+    with open("images/icons8-dinner-64.png", "rb") as f:
+        img_bytes = f.read()
+        img_base64 = base64.b64encode(img_bytes).decode()
 
+    # Display icon + heading centered
+    st.markdown(
+        f"""
+        <div style="text-align: center; display: flex; justify-content: center; align-items: center; gap: 10px;">
+            <img src="data:image/png;base64,{img_base64}" width="50" />
+            <h2 style="margin: 0;">LUNCHLOGIX SYSTEM</h2>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        """
+        <div style="display: flex; 
+                    justify-content: center; 
+                    align-items: center; 
+                    gap: 8px;">
+            <img src="data:image/mt.png;base64,{}" width="35">
+            <h3 style="margin:0;">LOGIN</h3>
+        </div>
+        """.format(
+            base64.b64encode(open("images/icons8-login-50.png", "rb").read()).decode()
+        ),
+        unsafe_allow_html=True
+    )
     username = st.text_input("Username", key="user")
 
     password = st.text_input("Password", type="password", key="pass")
@@ -491,58 +549,102 @@ def login():
 # -------------------- Account Page --------------------
 
 def account_page():
-    st.subheader("💳 Add Monthly Expense")
+    with open("images/icons8-expense-100.png", "rb") as f:
+        img_bytes = f.read()
+        img_base64 = base64.b64encode(img_bytes).decode()
 
+    # Display icon + text side by side
+    st.markdown(
+        f"""
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+            <img src="data:image/png;base64,{img_base64}" width="30" />
+            <span>Add Monthly Expense</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     names = ["MEET", "YASH", "DHRUMIL"]
 
     paid_by = st.selectbox("Who Paid?", names)
 
     date = st.date_input("Date", value=datetime.date.today())
-
     time = st.time_input("Time", value=datetime.datetime.now().time())
 
     product_name = st.text_input("Product Name")
-
     place_name = st.text_input("Place Name")
 
     total_amount = st.number_input("Total Amount", min_value=0.0, value=0.0, step=0.01)
 
-    if st.button("Save Expense"):
+    st.write("Select who was present (including payer):")
+    participants = []
 
-        per_person_amount = round(total_amount / 3, 2)
+    for name in names:
+        # Payer checkbox is always checked by default
+        default_checked = True if name == paid_by else False
+        if st.checkbox(name, value=default_checked):
+            participants.append(name)
+
+    if st.button("Save Expense"):
+        # Split only among participants
+        if len(participants) == 0:
+            st.warning("Select at least one participant.")
+            return
+
+        per_person_amount = round(total_amount / len(participants), 2)
 
         conn = get_connection()
-
         cursor = conn.cursor()
 
         for name in names:
-            payment_status = "Paid" if name == paid_by else "Pending"
+            if name in participants:
+                # Participant – check if payer or not
+                payment_status = "Paid" if name == paid_by else "Pending"
+                person_amount = per_person_amount
+            else:
+                # Not participated
+                payment_status = "Not Involved"
+                person_amount = 0
 
             cursor.execute("""
-
-                           INSERT INTO account_records (date, time, name, product_name, place_name, total_amount,
-                                                        per_person_amount, payment_status)
-
-                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-
-                           """, (date, time, name, product_name, place_name, total_amount, per_person_amount,
-
-                                 payment_status))
+                INSERT INTO account_records 
+                (date, time, name, product_name, place_name, total_amount,
+                 per_person_amount, payment_status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                date,
+                time,
+                name,
+                product_name,
+                place_name,
+                total_amount,
+                person_amount,
+                payment_status
+            ))
 
         conn.commit()
-
         cursor.close()
-
         conn.close()
 
-        st.success(f"Expense added successfully! Each person owes ₹{per_person_amount}")
-
+        st.success(f"Expense added successfully! Each participant owes ₹{per_person_amount}")
 
 # -------------------- Account Records Page --------------------
 
 def account_records_page():
-    st.subheader("📄 Account Records")
+    # PNG file load & encode
+    with open("images/icons8-google-sheets-100.png", "rb") as f:
+        img_bytes = f.read()
+        img_base64 = base64.b64encode(img_bytes).decode()
 
+    # Display icon + text side by side
+    st.markdown(
+        f"""
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+            <img src="data:image/png;base64,{img_base64}" width="30" />
+            <span>Account Records</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     conn = get_connection()
 
     df = pd.read_sql("SELECT * FROM account_records ORDER BY date DESC, time DESC", conn)
@@ -608,8 +710,21 @@ def account_records_page():
 
 
 def edit_account_page():
-    st.subheader("✏️ Edit Account Details")
+    # PNG file load & encode
+    with open("images/icons8-edit-property-100.png", "rb") as f:
+        img_bytes = f.read()
+        img_base64 = base64.b64encode(img_bytes).decode()
 
+    # Display icon + text side by side
+    st.markdown(
+        f"""
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+            <img src="data:image/png;base64,{img_base64}" width="30" />
+            <span>✏️ Edit Account Details</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     # ---------------- Fetch account records ----------------
 
     conn = get_connection()
@@ -745,8 +860,7 @@ def edit_account_page():
 
 # -------------------- Sidebar Logo --------------------
 
-st.sidebar.image("images/me.png", use_container_width=True)
-
+st.sidebar.image("IMAGES/me.png", use_container_width=True)
 
 
 # -------------------- Run App --------------------
@@ -764,7 +878,21 @@ def app():
 
         return
 
-    st.title("🧃🍴 LunchLogix System")
+    # PNG file load & encode
+    with open("images/icons8-dinner-64.png", "rb") as f:
+        img_bytes = f.read()
+        img_base64 = base64.b64encode(img_bytes).decode()
+
+    # Display icon + heading centered
+    st.markdown(
+        f"""
+        <div style="text-align: center; display: flex; justify-content: center; align-items: center; gap: 10px;">
+            <img src="data:image/png;base64,{img_base64}" width="50" />
+            <h2 style="margin: 0;">LUNCHLOGIX SYSTEM</h2>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     menu = st.sidebar.selectbox("Navigation", [
         "➕ Add Tiffin Entry",
@@ -790,7 +918,20 @@ def app():
 
     if menu == "➕ Add Tiffin Entry":
 
-        st.subheader("➕ Add New Record")
+        with open("images/icons8-edit-property-100.png", "rb") as f:
+            img_bytes = f.read()
+            img_base64 = base64.b64encode(img_bytes).decode()
+
+        # Display icon + text side by side
+        st.markdown(
+            f"""
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+                <img src="data:image/png;base64,{img_base64}" width="30" />
+                <span>Add New Record</span>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
         current_time = datetime.datetime.now().strftime("%H:%M:%S")
 
@@ -912,8 +1053,21 @@ def app():
 
     elif menu == "🔎 View Tiffin Records":
 
-        st.subheader("📄 All Records")
+        # PNG file load & encode
+        with open("images/icons8-view-50.png", "rb") as f:
+            img_bytes = f.read()
+            img_base64 = base64.b64encode(img_bytes).decode()
 
+        # Display icon + text side by side (similar to st.subheader)
+        st.markdown(
+            f"""
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+                <img src="data:image/png;base64,{img_base64}" width="30" />
+                <span>All Records</span>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
         df = fetch_all()
 
         if df.empty:
@@ -976,8 +1130,21 @@ def app():
 
     elif menu == "🗃️ Analytics Dashboard":
 
-        st.subheader("📊 Monthly Tiffin Orders Chart")
+        # PNG file load & encode
+        with open("images/icons8-statistics-100.png", "rb") as f:
+            img_bytes = f.read()
+            img_base64 = base64.b64encode(img_bytes).decode()
 
+        # Display icon + text side by side
+        st.markdown(
+            f"""
+                  <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+                      <img src="data:image/png;base64,{img_base64}" width="30" />
+                      <span>Analytics Dashboard</span>
+                  </div>
+                  """,
+            unsafe_allow_html=True
+        )
         df = fetch_all()  # fetch from DB
 
         if df.empty:
@@ -1024,8 +1191,20 @@ def app():
 
     elif menu == "🛠️ Edit Tiffin Records":
 
-        st.subheader("✏️ Edit Existing Record")
+        with open("images/icons8-edit-property-100.png", "rb") as f:
+            img_bytes = f.read()
+            img_base64 = base64.b64encode(img_bytes).decode()
 
+        # Display icon + text side by side
+        st.markdown(
+            f"""
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+                <img src="data:image/png;base64,{img_base64}" width="30" />
+                <span>✏️ Edit Existing Record</span>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
         df = fetch_all()
 
         if df.empty:
@@ -1103,8 +1282,21 @@ def app():
 
     elif menu == "💳 Update Payment Status":
 
-        st.subheader("💳 Update Payment Status")
+        # PNG file load & encode
+        with open("images/icons8-payment-history-48.png", "rb") as f:
+            img_bytes = f.read()
+            img_base64 = base64.b64encode(img_bytes).decode()
 
+        # Display icon + text side by side
+        st.markdown(
+            f"""
+                  <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+                      <img src="data:image/png;base64,{img_base64}" width="30" />
+                      <span>Update Payment Status</span>
+                  </div>
+                  """,
+            unsafe_allow_html=True
+        )
         df = fetch_all()
 
         if df.empty:
@@ -1158,8 +1350,21 @@ def app():
 
     elif menu == "⬇️ Export Data":
 
-        st.subheader("📥 Download Records")
+        # PNG file load & encode
+        with open("images/icons8-microsoft-excel-2025-48.png", "rb") as f:
+            img_bytes = f.read()
+            img_base64 = base64.b64encode(img_bytes).decode()
 
+        # Display icon + text side by side
+        st.markdown(
+            f"""
+                        <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+                            <img src="data:image/png;base64,{img_base64}" width="30" />
+                            <span>Dowanload Tifffin Exces</span>
+                        </div>
+                        """,
+            unsafe_allow_html=True
+        )
         df = fetch_all()
 
         if df.empty:
@@ -1278,5 +1483,3 @@ def app():
 
 if __name__ == "__main__":
     app()
-
-
