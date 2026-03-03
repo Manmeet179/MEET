@@ -1,3 +1,5 @@
+# C:\Users\MEET\AppData\Local\Programs\Python\Python314\python.exe - m streamlit run T.py
+
 import streamlit as st
 
 import datetime
@@ -12,10 +14,13 @@ import psycopg2
 
 from io import BytesIO
 
+
+
 # -------------------- Streamlit Config --------------------
 
 st.set_page_config(
-    page_title="MEET_MEWADA",
+    page_title="Tiffin Tracker",
+    page_icon="images/d.png",   # ✅ correct path
     layout="centered",
     initial_sidebar_state="collapsed",
     menu_items={
@@ -88,37 +93,38 @@ st.markdown("""
 
 st.markdown("""
 
-    <style>
+<style>
+.footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    background-color: transparent;
+    text-align: center;
+    padding: 10px;
+    font-size: 22px;
+    font-weight: bold;
 
-    .footer {
+    /* Rainbow base color */
+    color: red;
 
-        position: fixed;
+    /* Smooth infinite color change */
+    animation: rainbow 8s linear infinite;
+}
 
-        left: 0;
+@keyframes rainbow {
+    0% { filter: hue-rotate(0deg); }
+    100% { filter: hue-rotate(360deg); }
+}
+</style>
 
-        bottom: 0;
-
-        width: 100%;
-
-        background-color: transparent;
-
-        color: white;
-
-        text-align: center;
-
-        padding: 10px;
-
-    }
-
-    </style>
-
-    <div class="footer">
-
-        Made️ by MEET MEWADA
-
-    </div>
+<div class="footer">
+    Made by MEET MEWADA
+</div>
 
 """, unsafe_allow_html=True)
+
+
 
 # -------------------- Hide Streamlit Menu & Settings --------------------
 
@@ -134,32 +140,38 @@ st.markdown("""
 
 """, unsafe_allow_html=True)
 # -------------------- DB Config --------------------
-DB_NAME = "tifin_db"
-DB_USER = ""
-DB_PASS = ""  # Aiven માંથી regenerate કરો
-DB_HOST = ""
-DB_PORT = 
-TABLE_NAME = "tiffin"
-HEADERS = ["Date", "Time", "Name", "Shift", "Quantity", "Roti", "Roti_Amount", "Amount", "Payment_Status"]
+# petoc = "tiffin_db"
+# lemox = "postgres"
+# ternak = "1234"
+# owert = "localhost"
+# xoper = 5432  
 
+
+TABLE_NAME = "tiffin"
+
+
+petoc = "defaultdb"
+lemox = "avnadmin"
+ternak = "AVNS_LovPCygG-7HQB0xs0Su"
+owert = "pg-e6a0b32-manmeet2756-50e1.d.aivencloud.com"
+xoper = 19632
 
 # -------------------- DB Functions --------------------
 
 def get_connection():
-    return psycopg2.connect(
-
-        host=DB_HOST,
-
-        database=DB_NAME,
-
-        user=DB_USER,
-
-        password=DB_PASS,
-
-        port=DB_PORT
-
-    )
-
+    try:
+        conn = psycopg2.connect(
+            host=owert,
+            database=petoc,
+            user=lemox,
+            password=ternak,
+            port=int(xoper),
+            sslmode="require"   # ✅ VERY IMPORTANT
+        )
+        return conn
+    except Exception as e:
+        st.error(f"Database connection failed: {e}")
+        return None
 
 def create_table():
     conn = get_connection()
@@ -343,30 +355,111 @@ def update_payment(start_date, end_date, payment_status):
     conn.close()
 
 
-def delete_records(start_date, end_date):
-    conn = get_connection()
+def delete_tiffin_page():
+    st.subheader("🗑️ Delete Tiffin Records")
 
+    df = fetch_all()
+    if df.empty:
+        st.info("No Tiffin records available to delete.")
+        return
+
+    df['date'] = pd.to_datetime(df['date'], errors='coerce')
+    min_date = df['date'].min().date()
+    max_date = df['date'].max().date()
+    names = df['name'].unique().tolist()
+
+    option = st.radio("Delete by:", ["Date Range", "Name"], index=0)
+
+    conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute(f"""
+    if option == "Date Range":
+        from_date = st.date_input("From Date", value=min_date, min_value=min_date, max_value=max_date)
+        to_date = st.date_input("To Date", value=max_date, min_value=min_date, max_value=max_date)
 
-        DELETE FROM {TABLE_NAME}
+        if st.button("Delete Tiffin Records by Date"):
+            if from_date > to_date:
+                st.error("❎ Start Date cannot be after End Date.")
+            else:
+                cursor.execute("""
+                    DELETE FROM tiffin
+                    WHERE date BETWEEN %s AND %s
+                """, (from_date, to_date))
+                deleted_count = cursor.rowcount
+                conn.commit()
+                st.success(f"✅ Deleted {deleted_count} Tiffin record(s) from {from_date} to {to_date}.")
 
-        WHERE Date BETWEEN %s AND %s
-
-    """, (start_date, end_date))
-
-    deleted_count = cursor.rowcount
-
-    conn.commit()
+    else:  # Delete by Name
+        selected_name = st.selectbox("Select Name", ["-- SELECT --"] + names)
+        if st.button("Delete Tiffin Records by Name"):
+            if selected_name == "-- SELECT --":
+                st.warning("⚠️ Please select a name.")
+            else:
+                cursor.execute("""
+                    DELETE FROM tiffin
+                    WHERE name = %s
+                """, (selected_name,))
+                deleted_count = cursor.rowcount
+                conn.commit()
+                st.success(f"✅ Deleted {deleted_count} Tiffin record(s) for {selected_name}.")
 
     cursor.close()
-
     conn.close()
 
-    return deleted_count
 
+def delete_account_page():
+    st.subheader("🗑️ Delete Account Records")
 
+    conn = get_connection()
+    df = pd.read_sql("SELECT * FROM account_records ORDER BY date DESC, time DESC", conn)
+    names = df['name'].unique().tolist() if not df.empty else []
+    conn.close()
+
+    if df.empty:
+        st.info("No Account records available to delete.")
+        return
+
+    df['date'] = pd.to_datetime(df['date'], errors='coerce')
+    min_date = df['date'].min().date()
+    max_date = df['date'].max().date()
+
+    option = st.radio("Delete by:", ["Date Range", "Name"], index=0)
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    if option == "Date Range":
+        from_date = st.date_input("From Date", value=min_date, min_value=min_date, max_value=max_date, key="acc_from")
+        to_date = st.date_input("To Date", value=max_date, min_value=min_date, max_value=max_date, key="acc_to")
+
+        if st.button("Delete Account Records by Date"):
+            if from_date > to_date:
+                st.error("❎ Start Date cannot be after End Date.")
+            else:
+                cursor.execute("""
+                    DELETE FROM account_records
+                    WHERE date BETWEEN %s AND %s
+                """, (from_date, to_date))
+                deleted_count = cursor.rowcount
+                conn.commit()
+                st.success(f"✅ Deleted {deleted_count} Account record(s) from {from_date} to {to_date}.")
+
+    else:  # Delete by Name
+        selected_name = st.selectbox("Select Name", ["-- SELECT --"] + names, key="acc_name")
+        if st.button("Delete Account Records by Name"):
+            if selected_name == "-- SELECT --":
+                st.warning("⚠️ Please select a name.")
+            else:
+                cursor.execute("""
+                    DELETE FROM account_records
+                    WHERE name = %s
+                """, (selected_name,))
+                deleted_count = cursor.rowcount
+                conn.commit()
+                st.success(f"✅ Deleted {deleted_count} Account record(s) for {selected_name}.")
+
+    cursor.close()
+    conn.close()
 # -------------------- Login --------------------
 
 LOGIN_USER_HASH = b"$2b$12$tAAm6RQ775w8WJBW9brlXuHDgiYuMn3UcKI5gKRm4CCIbNp9lHXfi"
@@ -399,7 +492,7 @@ def login():
 def account_page():
     st.subheader("💳 Add Monthly Expense")
 
-    names = ["MEET", "YASH", "BIREN", "DHRUMIL"]
+    names = ["MEET", "YASH", "DHRUMIL"]
 
     paid_by = st.selectbox("Who Paid?", names)
 
@@ -415,7 +508,7 @@ def account_page():
 
     if st.button("Save Expense"):
 
-        per_person_amount = round(total_amount / 4, 2)
+        per_person_amount = round(total_amount / 3, 2)
 
         conn = get_connection()
 
@@ -470,8 +563,6 @@ def account_records_page():
                 "MEET": "#FF0033",
 
                 "YASH": "#bfff00",
-
-                "BIREN": "#00ff80",
 
                 "DHRUMIL": "#00bfff"
 
@@ -653,6 +744,9 @@ def edit_account_page():
 
 # -------------------- Sidebar Logo --------------------
 
+st.sidebar.image("images/me.png", use_container_width=True)
+
+
 
 # -------------------- Run App --------------------
 
@@ -669,17 +763,31 @@ def app():
 
         return
 
-    st.title("📊 Tiffin Tracker System") 
+    st.title("🧃🍴 LunchLogix System")
 
-    menu = st.sidebar.selectbox("Menu", ["Add Record", "Records", "Chart", "Edit",
+    menu = st.sidebar.selectbox("Navigation", [
+        "➕ Add Tiffin Entry",
+        "🔎 View Tiffin Records",
+        "❎ Remove Tiffin Records",
+        "🛠️ Edit Tiffin Records",
+        "💳 Add Expense Entry",
+        "🔍 View Expense Records",
+        "❎ Remove Expense Records",
+        "✏️ Edit Expense Details",
+        "🗃️ Analytics Dashboard",
+        "💳 Update Payment Status",
+        "⬇️ Export Data",
+    ])
 
-                                         "Payment Method", "Download", "Delete",
+    if menu == "🗑️ Remove Tiffin Records":
+        delete_tiffin_page()
 
-                                         "Account", "Account Records", "Edit Account Details"])
+    elif menu == "❎ Remove Expense Records":
+        delete_account_page()
 
     # -------------------- Add Record --------------------
 
-    if menu == "Add Record":
+    if menu == "➕ Add Tiffin Entry":
 
         st.subheader("➕ Add New Record")
 
@@ -702,7 +810,7 @@ def app():
 
         st.markdown("### Select Name(s)")
 
-        names = ["MEET", "YASH", "BIREN", "DHRUMIL"]
+        names = ["MEET", "YASH", "DHRUMIL"]
 
         cols = st.columns(len(names))
 
@@ -736,7 +844,7 @@ def app():
 
         per_person_qty = round(float(tiffin_qty) / len(selected_names), 2)
 
-        per_person_amount = round(85 * per_person_qty, 2)
+        per_person_amount = round(90 * per_person_qty, 2)
 
         st.markdown("### Tiffin Amount per Person")
 
@@ -801,7 +909,7 @@ def app():
 
     # -------------------- Records --------------------
 
-    elif menu == "Records":
+    elif menu == "🔎 View Tiffin Records":
 
         st.subheader("📄 All Records")
 
@@ -841,8 +949,6 @@ def app():
 
                     "YASH": "#bfff00",
 
-                    "BIREN": "#00ff80",
-
                     "DHRUMIL": "#00bfff"
 
                 }
@@ -867,7 +973,7 @@ def app():
 
     # -------------------- Chart --------------------
 
-    elif menu == "Chart":
+    elif menu == "🗃️ Analytics Dashboard":
 
         st.subheader("📊 Monthly Tiffin Orders Chart")
 
@@ -899,7 +1005,7 @@ def app():
 
                 summary = summary_df.set_index('name')['quantity']
 
-                colors = {"MEET": "#6B0848", "YASH": "#856C8B", "BIREN": "#C499F3", "DHRUMIL": "#DD5353"}
+                colors = {"MEET": "#6B0848", "YASH": "#906C8B", "DHRUMIL": "#DD5353"}
 
                 color_list = [colors.get(name, "gray") for name in summary.index]
 
@@ -915,7 +1021,7 @@ def app():
 
     # -------------------- Edit --------------------
 
-    elif menu == "Edit":
+    elif menu == "🛠️ Edit Tiffin Records":
 
         st.subheader("✏️ Edit Existing Record")
 
@@ -962,7 +1068,7 @@ def app():
 
                 roti_amount = edit_roti * 5
 
-                tiffin_amount = round(85 * edit_qty, 2)
+                tiffin_amount = round(90 * edit_qty, 2)
 
                 final_amount = tiffin_amount + roti_amount if edit_shift == "Day" else tiffin_amount
 
@@ -994,7 +1100,7 @@ def app():
 
     # -------------------- Payment Method --------------------
 
-    elif menu == "Payment Method":
+    elif menu == "💳 Update Payment Status":
 
         st.subheader("💳 Update Payment Status")
 
@@ -1024,7 +1130,7 @@ def app():
 
                 if start_date > end_date:
 
-                    st.error("❌ Start Date cannot be after End Date.")
+                    st.error("❎ Start Date cannot be after End Date.")
 
                 else:
 
@@ -1049,7 +1155,7 @@ def app():
 
     # -------------------- Download --------------------
 
-    elif menu == "Download":
+    elif menu == "⬇️ Export Data":
 
         st.subheader("📥 Download Records")
 
@@ -1073,7 +1179,7 @@ def app():
 
             if from_date > to_date:
 
-                st.error("❌ Start Date cannot be after End Date.")
+                st.error("❎ Start Date cannot be after End Date.")
 
             else:
 
@@ -1117,65 +1223,52 @@ def app():
 
                 # -------------------- Delete --------------------
 
-    elif menu == "Delete":
+    # st.markdown("""
+    # <style>
+    # .custom-header {
+    #     position: fixed;
+    #     top: 0;
+    #     left: 0;
+    #     width: 100%;
+    #     background: black;
+    #     color: white;
+    #     text-align: center;
+    #     padding: 10px;
+    #     z-index: 9999;
+    # }
+    # .main-container {
+    #     margin-top: 80px;  /* Push content below header */
+    # }
+    # </style>
+    #
+    #
+    # """, unsafe_allow_html=True)
+    #
+    # # --- Place the menu as a normal selectbox (not sidebar) ---
+    # menu = st.selectbox("Menu", [
+    #     "Add Record", "Records", "Delete Tiffin",
+    #     "Account", "Account Records", "Delete Account", "Edit Account Details",
+    #     "Chart", "Edit",
+    #     "Payment Method", "Download",
+    # ])
+    #
+    # # --- Handle menu options ---
+    # if menu == "Delete Tiffin":
+    #     st.write("Delete Tiffin Page")  # replace with delete_tiffin_page()
+    # elif menu == "Delete Account":
+    #     st.write("Delete Account Page")  # replace with delete_account_page()
+    # else:
+    #     st.write(f"Selected: {menu}")
 
-        st.subheader("🗑️ Delete Records by Date")
-
-        df = fetch_all()
-
-        if df.empty:
-
-            st.info("No records available to delete.")
-
-        else:
-
-            df['date'] = pd.to_datetime(df['date'], errors='coerce')
-
-            min_date = df['date'].min().date() if not df['date'].isna().all() else datetime.date.today()
-
-            max_date = df['date'].max().date() if not df['date'].isna().all() else datetime.date.today()
-
-            from_date = st.date_input("From Date", value=min_date, key="delete_from")
-
-            to_date = st.date_input("To Date", value=max_date, key="delete_to")
-
-            if st.button("Delete Records"):
-
-                if from_date > to_date:
-
-                    st.error("❌ Start Date cannot be after End Date.")
-
-                else:
-
-                    # Generate all dates in range
-
-                    date_range = pd.date_range(start=from_date, end=to_date).date
-
-                    db_dates = set(df['date'].dropna().dt.date)
-
-                    # Check if all dates in range exist in DB
-
-                    if all(d in db_dates for d in date_range):
-
-                        deleted_count = delete_records(from_date, to_date)
-
-                        st.success(f"✅ {deleted_count} record(s) deleted from {from_date} to {to_date}.")
-
-                    else:
-
-                        st.warning("⚠️ Cannot delete: Some dates in the range do not exist in the records.")
-
-
-
-    elif menu == "Account":
+    elif menu == "💳 Add Expense Entry":
 
         account_page()
 
-    elif menu == "Account Records":
+    elif menu == "🔍 View Expense Records":
 
         account_records_page()
 
-    elif menu == "Edit Account Details":
+    elif menu == "✏️ Edit Expense Details":
 
         edit_account_page()
 
@@ -1184,4 +1277,3 @@ def app():
 
 if __name__ == "__main__":
     app()
-
