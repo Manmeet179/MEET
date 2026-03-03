@@ -20,7 +20,7 @@ from io import BytesIO
 
 st.set_page_config(
     page_title="Tiffin Tracker",
-    page_icon="logo/d.png",   # ✅ correct path
+    # page_icon="logo/d.png",   # ✅ correct path
     layout="centered",
     initial_sidebar_state="collapsed",
     menu_items={
@@ -744,7 +744,7 @@ def edit_account_page():
 
 # -------------------- Sidebar Logo --------------------
 
-st.sidebar.image("logo/me.png", use_container_width=True)
+# st.sidebar.image("logo/me.png", use_container_width=True)
 
 
 
