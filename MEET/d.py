@@ -860,7 +860,7 @@ def edit_account_page():
 
 # -------------------- Sidebar Logo --------------------
 
-st.sidebar.image("IMAGES/me.png", use_container_width=True)
+st.sidebar.image("images/me.png", use_container_width=True)
 
 
 # -------------------- Run App --------------------
@@ -1483,3 +1483,4 @@ def app():
 
 if __name__ == "__main__":
     app()
+
