@@ -4,3 +4,4 @@ matplotlib
 bcrypt
 psycopg2-binary
 cryptography
+XlsxWriter
