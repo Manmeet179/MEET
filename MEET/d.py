@@ -779,7 +779,7 @@ def app():
         "⬇️ Export Data",
     ])
 
-    if menu == "🗑️ Remove Tiffin Records":
+    if menu == "❎ Remove Tiffin Records":
         delete_tiffin_page()
 
     elif menu == "❎ Remove Expense Records":
