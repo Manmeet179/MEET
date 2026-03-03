@@ -468,7 +468,10 @@ LOGIN_PASS_HASH = b"$2b$12$xfVNu267cnWT0hjsrzoWQ.AOYvxcm9GdWjjAlmcSG8IFBGf3IuP62
 
 
 def login():
-    st.title("🍱 Tiffin Tracker - Login")
+   #st.title("🍱 Tiffin Tracker - Login")
+   st.markdown("<h3>🍱 Tiffin Tracker - Login</h3>",
+
+    unsafe_allow_html=True)
 
     username = st.text_input("Username", key="user")
 
