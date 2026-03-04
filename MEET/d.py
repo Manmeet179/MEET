@@ -19,7 +19,7 @@ import base64
 
 st.set_page_config(
     page_title="Tiffin Tracker",
-    # page_icon="d.png",
+    page_icon="images/d.png",
     layout="centered",
     initial_sidebar_state="collapsed",
     menu_items={
