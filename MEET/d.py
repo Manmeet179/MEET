@@ -165,16 +165,16 @@ xoper = 19632
 
 # -------------------- DB Functions --------------------
 
+@st.cache_resource
 def get_connection():
-    try:
-        conn = psycopg2.connect(
-            host=owert,
-            database=petoc,
-            user=lemox,
-            password=ternak,
-            port=int(xoper),
-            sslmode="require"   # ✅ VERY IMPORTANT
-        )
+    return psycopg2.connect(
+        host=owert,
+        database=petoc,
+        user=lemox,
+        password=ternak,
+        port=int(xoper),
+        sslmode="require"
+    )
         return conn
     except Exception as e:
         st.error(f"Database connection failed: {e}")
