@@ -266,7 +266,7 @@ def create_account_table():
     conn.commit()
     cursor.close()
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=05)
 def fetch_all():
     conn = get_db()
 
