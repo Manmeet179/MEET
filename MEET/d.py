@@ -873,7 +873,7 @@ def app():
 
             st.stop()
         roti_qty = {}
-        roti_rate = 5
+        roti_rate = 7
         if shift == "Day":
             st.markdown("### Enter Roti Quantity per Person")
             for name in selected_names:
