@@ -1280,20 +1280,16 @@ def app():
         val_lower = str(val).lower()
 
         if val_lower == "payment done":
-
-            return "#059212; font-weight:bold;"  # greenish
+            return "#059212"
 
         elif val_lower in ["pending", "payment pending"]:
-
-            return "#76153C; font-weight:bold;"  # pink/purple
+            return "#76153C"
 
         elif val_lower == "paid":
+            return "goldenrod"
 
-            return "goldenrod; font-weight:bold;"
-
-        elif val_lower == "not involved" :
-
-            return "#FCDC2A; "  # yellow-green
+        elif val_lower == "not involved":
+            return "#FCDC2A"
 
         return None
 
