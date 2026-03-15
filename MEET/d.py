@@ -1021,7 +1021,7 @@ def app():
 
                 st.dataframe(styled_df)
                 summary = summary_df[summary_df["name"] != "TOTAL"].set_index('name')['quantity']
-                colors = {"MEET": "#6B0848", "YASH": "#906C8B", "DHRUMIL": "#DD5353"}
+                colors = {"MEET": "#FF0033", "YASH": "#bfff00", "DHRUMIL": "#00bfff"}
                 color_list = [colors.get(name, "gray") for name in summary.index]
                 fig, ax = plt.subplots()
                 ax.pie(summary, labels=summary.index, autopct='%1.1f%%', colors=color_list, startangle=90)
