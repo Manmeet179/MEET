@@ -169,9 +169,8 @@ ternak = "AVNS_LovPCygG-7HQB0xs0Su"
 owert = "pg-e6a0b32-manmeet2756-50e1.d.aivencloud.com"
 xoper = 19632
 
-# -------------------- DB Functions --------------------
-@st.cache_resource
-def get_connection():
+
+def get_db():
     conn = psycopg2.connect(
         host=owert,
         database=petoc,
@@ -180,24 +179,6 @@ def get_connection():
         port=int(xoper),
         sslmode="require"
     )
-    return conn
-
-
-def get_db():
-    conn = get_connection()
-
-    try:
-        conn.cursor().execute("SELECT 1")
-    except:
-        # connection closed → create new
-        conn = psycopg2.connect(
-            host=owert,
-            database=petoc,
-            user=lemox,
-            password=ternak,
-            port=int(xoper),
-            sslmode="require"
-        )
     return conn
 
 def create_table():
