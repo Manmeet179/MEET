@@ -961,7 +961,7 @@ def app():
 
             styled_df = (
                 df.style
-                .applymap(color_payment, subset=["payment_status"])
+                .applymap(color_payment,subset=["payment_status"])
                 .applymap(color_name, subset=["name"])
             )
             st.dataframe(styled_df, use_container_width=True)
