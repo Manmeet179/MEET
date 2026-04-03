@@ -1017,7 +1017,7 @@ def app():
                 st.markdown("### 📝 Summary of This Month")
 
                 # ➜ Apply styling
-                styled_df = summary_df.style.applymap(color_name, subset=["name"])
+                styled_df = (df.style.map(color_payment, subset=["payment_status"]).map(color_name, subset=["name"]))
 
                 st.dataframe(styled_df)
                 summary = summary_df[summary_df["name"] != "TOTAL"].set_index('name')['quantity']
