@@ -987,13 +987,10 @@ def app():
     if df.empty:
         st.info("No records to plot.")
     else:
-
         df['date'] = pd.to_datetime(df['date'], errors='coerce')
 
-        # ✅ Only rows where quantity > 0
         df = df[df["quantity"] > 0]
 
-        # ✅ Optional Month Filter (current month only)
         today_dt = datetime.date.today()
         df = df[
             (df['date'].dt.month == today_dt.month) &
@@ -1003,8 +1000,6 @@ def app():
         if df.empty:
             st.info("No orders found for this month.")
         else:
-
-            # ✅ Proper Aggregation
             summary_df = (
                 df.groupby("name", as_index=False)
                   .agg(
@@ -1013,7 +1008,6 @@ def app():
                   )
             )
 
-            # ✅ Add TOTAL Row
             total_row = pd.DataFrame({
                 "name": ["TOTAL"],
                 "total_tiffin": [summary_df["total_tiffin"].sum()],
@@ -1022,32 +1016,14 @@ def app():
 
             summary_df = pd.concat([summary_df, total_row], ignore_index=True)
 
-            # ✅ Name Color
-            def color_name(val):
-                colors = {
-                    "MEET": "#FF0033",
-                    "YASH": "#bfff00",
-                    "DHRUMIL": "#00bfff",
-                    "TOTAL": "#9929EA"
-                }
-                return f"color: {colors[val.upper()]}; font-weight: bold;" if str(val).upper() in colors else ""
-
-            st.markdown("### 📝 Summary of This Month")
-
-            styled_df = summary_df.style.applymap(color_name, subset=["name"])
-            st.dataframe(styled_df, use_container_width=True)
-
-            # ✅ Pie Chart Fix
-            pie_data = summary_df[summary_df["name"] != "TOTAL"]
+            st.dataframe(summary_df)
 
             fig, ax = plt.subplots()
             ax.pie(
-                pie_data["total_tiffin"],
-                labels=pie_data["name"],
-                autopct='%1.1f%%',
-                startangle=90
+                summary_df[summary_df["name"] != "TOTAL"]["total_tiffin"],
+                labels=summary_df[summary_df["name"] != "TOTAL"]["name"],
+                autopct='%1.1f%%'
             )
-            ax.set_title("📊 Monthly Tiffin Orders by User")
             st.pyplot(fig)
 
     # -------------------- Edit --------------------
