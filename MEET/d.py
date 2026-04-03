@@ -970,84 +970,63 @@ def app():
 
   elif menu == "🗃️ Analytics Dashboard":
 
-    with open("images/chart.png", "rb") as f:
-        img_bytes = f.read()
-        img_base64 = base64.b64encode(img_bytes).decode()
+        # PNG file load & encode
+        with open("images/chart.png", "rb") as f:
+            img_bytes = f.read()
+            img_base64 = base64.b64encode(img_bytes).decode()
 
-    st.markdown(
-        f"""
-        <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
-            <img src="data:image/png;base64,{img_base64}" width="30" />
-            <span>Analytics Dashboard</span>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    df = fetch_all()
-
-    if df.empty:
-        st.info("No records to plot.")
-    else:
-
-        df['date'] = pd.to_datetime(df['date'], errors='coerce')
-
-        df = df[df["quantity"] > 0]
-
-        today_dt = datetime.date.today()
-        df = df[
-            (df['date'].dt.month == today_dt.month) &
-            (df['date'].dt.year == today_dt.year)
-        ]
+        # Display icon + text side by side
+        st.markdown(
+            f"""
+                  <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+                      <img src="data:image/png;base64,{img_base64}" width="30" />
+                      <span>Analytics Dashboard</span>
+                  </div>
+                  """,
+            unsafe_allow_html=True
+        )
+        df = fetch_all()  # fetch from DB
 
         if df.empty:
-            st.info("No orders found for this month.")
+            st.info("No records to plot.")
         else:
 
-            summary_df = (
-                df.groupby("name", as_index=False)
-                .agg(
-                    total_tiffin=("quantity", "sum"),
-                    total_amount=("amount", "sum")
-                )
-            )
+            df['date'] = pd.to_datetime(df['date'], errors='coerce')
+            today_dt = datetime.date.today()
+            current_month_df = df[(df['date'].dt.month == today_dt.month) & (df['date'].dt.year == today_dt.year)]
+            if current_month_df.empty:
+                st.info("No orders found for this month.")
+            else:
 
-            total_row = pd.DataFrame({
-                "name": ["TOTAL"],
-                "total_tiffin": [summary_df["total_tiffin"].sum()],
-                "total_amount": [summary_df["total_amount"].sum()]
-            })
+                summary_df = current_month_df.groupby('name').agg({"quantity": "sum", "amount": "sum"}).reset_index()
 
-            summary_df = pd.concat([summary_df, total_row], ignore_index=True)
+                # ➜ Total row add
+                total_row = pd.DataFrame({
+                    "name": ["TOTAL"],
+                    "quantity": [summary_df["quantity"].sum()],
+                    "amount": [summary_df["amount"].sum()]
+                })
 
-            def color_name(val):
-                colors = {
-                    "MEET": "#FF0033",
-                    "YASH": "#bfff00",
-                    "DHRUMIL": "#00bfff",
-                    "TOTAL": "#9929EA"
-                }
-                return f"color: {colors.get(str(val).upper(), '')}; font-weight: bold;" if str(val).upper() in colors else ""
+                summary_df = pd.concat([summary_df, total_row], ignore_index=True)
 
-            st.markdown("### 📝 Summary of This Month")
+                # ➜ Name color function
+                def color_name(val):
+                    colors = {"MEET": "#FF0033", "YASH": "#bfff00", "DHRUMIL": "#00bfff", "TOTAL": "#9929EA"}
+                    return f"color: {colors[val.upper()]}; font-weight: bold;" if str(val).upper() in colors else ""
 
-            # ✅ FIXED LINE
-            styled_df = summary_df.style.map(color_name, subset=["name"])
+                st.markdown("### 📝 Summary of This Month")
 
-            st.dataframe(styled_df, use_container_width=True)
+                # ➜ Apply styling
+                styled_df = summary_df.style.map(color_name, subset=["name"])
 
-            pie_data = summary_df[summary_df["name"] != "TOTAL"]
-
-            fig, ax = plt.subplots()
-            ax.pie(
-                pie_data["total_tiffin"],
-                labels=pie_data["name"],
-                autopct='%1.1f%%',
-                startangle=90
-            )
-            ax.set_title("📊 Monthly Tiffin Orders by User")
-
-            st.pyplot(fig)
+                st.dataframe(styled_df)
+                summary = summary_df[summary_df["name"] != "TOTAL"].set_index('name')['quantity']
+                colors = {"MEET": "#FF0033", "YASH": "#bfff00", "DHRUMIL": "#00bfff"}
+                color_list = [colors.get(name, "gray") for name in summary.index]
+                fig, ax = plt.subplots()
+                ax.pie(summary, labels=summary.index, autopct='%1.1f%%', colors=color_list, startangle=90)
+                ax.set_title("📊 Monthly Tiffin Orders by User")
+                st.pyplot(fig)
 
     # -------------------- Edit --------------------
 
