@@ -1,5 +1,3 @@
-# C:\Users\MEET\AppData\Local\Programs\Python\Python314\python.exe - m streamlit run T.py
-
 import streamlit as st
 import datetime
 import pandas as pd
@@ -960,15 +958,15 @@ def app():
                 return f"color: {colors[val.upper()]}; font-weight: bold;" if str(val).upper() in colors else ""
 
             styled_df = (
-    df.style
-    .map(color_payment, subset=["payment_status"])
-    .map(color_name, subset=["name"])
-                 )
+                df.style
+                .applymap(color_payment, subset=["payment_status"])
+                .applymap(color_name, subset=["name"])
+            )
             st.dataframe(styled_df, use_container_width=True)
 
     # -------------------- Chart --------------------
 
-  elif menu == "🗃️ Analytics Dashboard":
+    elif menu == "🗃️ Analytics Dashboard":
 
         # PNG file load & encode
         with open("images/chart.png", "rb") as f:
@@ -1090,7 +1088,8 @@ def app():
 
             # --- Display styled dataframe ---
 
-            styled_df = (df.style.map(color_payment, subset=["payment_status"]).map(color_name, subset=["name"]))
+            styled_df = df_reset.style.applymap(color_name, subset=["name"]).applymap(color_payment,
+                                                                                      subset=["payment_status"])
 
             st.dataframe(styled_df, use_container_width=True)
 
