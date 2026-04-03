@@ -1090,8 +1090,7 @@ def app():
 
             # --- Display styled dataframe ---
 
-            styled_df = df_reset.style.applymap(color_name, subset=["name"]).applymap(color_payment,
-                                                                                      subset=["payment_status"])
+            styled_df = (df.style.map(color_payment, subset=["payment_status"]).map(color_name, subset=["name"]))
 
             st.dataframe(styled_df, use_container_width=True)
 
