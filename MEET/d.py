@@ -959,10 +959,11 @@ def app():
                 }
                 return f"color: {colors[val.upper()]}; font-weight: bold;" if str(val).upper() in colors else ""
 
-            styled_df = df.style
-                  styled_df = styled_df.map(color_payment, subset=["payment_status"])
-                  styled_df = styled_df.map(color_name, subset=["name"])
-            )
+            styled_df = (
+    df.style
+    .map(color_payment, subset=["payment_status"])
+    .map(color_name, subset=["name"])
+                 )
             st.dataframe(styled_df, use_container_width=True)
 
     # -------------------- Chart --------------------
