@@ -968,7 +968,7 @@ def app():
 
     # -------------------- Chart --------------------
 
-    elif menu == "🗃️ Analytics Dashboard":
+  elif menu == "🗃️ Analytics Dashboard":
 
     with open("images/chart.png", "rb") as f:
         img_bytes = f.read()
