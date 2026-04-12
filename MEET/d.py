@@ -58,9 +58,6 @@ st.markdown("""
 
 # -------------------- Footer --------------------
 
-import streamlit as st
-import base64
-
 with open("images/icons8-monzo-48.png", "rb") as f:
     img_bytes = f.read()
     img_base64 = base64.b64encode(img_bytes).decode()
@@ -86,47 +83,8 @@ st.markdown(
     }}
 
     @keyframes colorchange {{
-        0%   {{ color: #ff0000; }}
-        2.5% {{ color: #ff3300; }}
-        5%   {{ color: #ff6600; }}
-        7.5% {{ color: #ff9900; }}
-        10%  {{ color: #ffcc00; }}
-        12.5%{{ color: #ffff00; }}
-        15%  {{ color: #ccff00; }}
-        17.5%{{ color: #99ff00; }}
-        20%  {{ color: #66ff00; }}
-        22.5%{{ color: #33ff00; }}
-        25%  {{ color: #00ff00; }}
-        27.5%{{ color: #00ff33; }}
-        30%  {{ color: #00ff66; }}
-        32.5%{{ color: #00ff99; }}
-        35%  {{ color: #00ffcc; }}
-        37.5%{{ color: #00ffff; }}
-        40%  {{ color: #00ccff; }}
-        42.5%{{ color: #0099ff; }}
-        45%  {{ color: #0066ff; }}
-        47.5%{{ color: #0033ff; }}
-        50%  {{ color: #0000ff; }}
-        52.5%{{ color: #3300ff; }}
-        55%  {{ color: #6600ff; }}
-        57.5%{{ color: #9900ff; }}
-        60%  {{ color: #cc00ff; }}
-        62.5%{{ color: #ff00ff; }}
-        65%  {{ color: #ff00cc; }}
-        67.5%{{ color: #ff0099; }}
-        70%  {{ color: #ff0066; }}
-        72.5%{{ color: #ff0033; }}
-        75%  {{ color: #ff1493; }}
-        77.5%{{ color: #ff4500; }}
-        80%  {{ color: #ff6347; }}
-        82.5%{{ color: #ffa500; }}
-        85%  {{ color: #ffd700; }}
-        87.5%{{ color: #adff2f; }}
-        90%  {{ color: #7fff00; }}
-        92.5%{{ color: #00fa9a; }}
-        95%  {{ color: #00ced1; }}
-        97.5%{{ color: #1e90ff; }}
-        100% {{ color: #8a2be2; }}
+        2.5% {{ color: #3498DB; }}
+
     }}
     </style>
 
@@ -978,11 +936,7 @@ def app():
 
             f"""
 
-            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
-
-                <img src="data:image/png;base64,{img_base64}" width="30" />
-
-                <span>Analytics Dashboard</span>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;"><img src="data:image/png;base64,{img_base64}" width="30" /><span>Analytics Dashboard</span>
 
             </div>
 
