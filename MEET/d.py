@@ -1012,13 +1012,6 @@ def app():
                     return f"color: {colors.get(str(val).upper(), 'white')}; font-weight: bold;"
 
                 st.markdown("### 📝 Summary of This Month")
-                color_map = {
-    "MEET": "#FF0033",
-    "YASH": "#bfff00",
-    "DHRUMIL": "#00bfff"
-}
-
-colors = [color_map.get(name, "#ffffff") for name in pie_data["Name"]]
 
                 try:
                     styled_df = summary_df.style.map(color_name, subset=["Name"])
@@ -1036,8 +1029,7 @@ colors = [color_map.get(name, "#ffffff") for name in pie_data["Name"]]
                         pie_data["Tiffin Qty"],
                         labels=pie_data["Name"],
                         autopct='%1.1f%%',
-                        startangle=90,
-                        colors=colors
+                        startangle=90
                     )
 
                     ax.set_title("📊 Monthly Tiffin Orders by User")
