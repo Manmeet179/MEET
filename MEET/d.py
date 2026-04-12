@@ -966,65 +966,66 @@ def app():
 
     # -------------------- Chart --------------------
 
-  elif menu == "🗃️ Analytics Dashboard":
+    elif menu == "🗃️ Analytics Dashboard":
 
-    with open("images/chart.png", "rb") as f:
-        img_bytes = f.read()
-        img_base64 = base64.b64encode(img_bytes).decode()
+        with open("images/chart.png", "rb") as f:
+            img_bytes = f.read()
+            img_base64 = base64.b64encode(img_bytes).decode()
 
-    st.markdown(
-        f"""
-        <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
-            <img src="data:image/png;base64,{img_base64}" width="30" />
-            <span>Analytics Dashboard</span>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+        st.markdown(
+            f"""
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+              <img src="data:image/png;base64,{img_base64}" width="30" />
+              <span>Analytics Dashboard</span>
+          </div>
+          """,
+            unsafe_allow_html=True
+        )
 
-    df = fetch_all()
-
-    if df.empty:
-        st.info("No records to plot.")
-    else:
-        df['date'] = pd.to_datetime(df['date'], errors='coerce')
-
-        df = df[df["quantity"] > 0]
-
-        today_dt = datetime.date.today()
-        df = df[
-            (df['date'].dt.month == today_dt.month) &
-            (df['date'].dt.year == today_dt.year)
-        ]
+        df = fetch_all()
 
         if df.empty:
-            st.info("No orders found for this month.")
+            st.info("No records to plot.")
         else:
-            summary_df = (
-                df.groupby("name", as_index=False)
-                  .agg(
-                      total_tiffin=("quantity", "sum"),
-                      total_amount=("amount", "sum")
-                  )
-            )
+            df['date'] = pd.to_datetime(df['date'], errors='coerce')
 
-            total_row = pd.DataFrame({
-                "name": ["TOTAL"],
-                "total_tiffin": [summary_df["total_tiffin"].sum()],
-                "total_amount": [summary_df["total_amount"].sum()]
-            })
+            df = df[df["quantity"] > 0]
 
-            summary_df = pd.concat([summary_df, total_row], ignore_index=True)
+            today_dt = datetime.date.today()
+            df = df[
+                (df['date'].dt.month == today_dt.month) &
+                (df['date'].dt.year == today_dt.year)
+                ]
 
-            st.dataframe(summary_df)
+            if df.empty:
+                st.info("No orders found for this month.")
+            else:
+                summary_df = (
+                    df.groupby("name", as_index=False)
+                    .agg(
+                        total_tiffin=("quantity", "sum"),
+                        total_amount=("amount", "sum")
+                    )
+                )
 
-            fig, ax = plt.subplots()
-            ax.pie(
-                summary_df[summary_df["name"] != "TOTAL"]["total_tiffin"],
-                labels=summary_df[summary_df["name"] != "TOTAL"]["name"],
-                autopct='%1.1f%%'
-            )
-            st.pyplot(fig)
+                total_row = pd.DataFrame({
+                    "name": ["TOTAL"],
+                    "total_tiffin": [summary_df["total_tiffin"].sum()],
+                    "total_amount": [summary_df["total_amount"].sum()]
+                })
+
+                summary_df = pd.concat([summary_df, total_row], ignore_index=True)
+
+                st.dataframe(summary_df)
+
+                fig, ax = plt.subplots()
+                ax.pie(
+                    summary_df[summary_df["name"] != "TOTAL"]["total_tiffin"],
+                    labels=summary_df[summary_df["name"] != "TOTAL"]["name"],
+                    autopct='%1.1f%%'
+                )
+                st.pyplot(fig)
+
 
     # -------------------- Edit --------------------
 
