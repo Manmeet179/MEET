@@ -595,8 +595,8 @@ def account_records_page():
 
         styled_df = (
             df.style
-            .applymap(color_name, subset=["name"])
-            .applymap(color_payment, subset=["payment_status"])
+            .map(color_name, subset=["name"])
+            .map(color_payment, subset=["payment_status"])
         )
         st.dataframe(styled_df, use_container_width=True)
 
@@ -643,7 +643,7 @@ def edit_account_page():
         return ""
 
     # --- Show all records on top with color ---
-    styled_df = df.style.applymap(color_name, subset=["name"]).applymap(color_payment, subset=["payment_status"])
+    styled_df = df.style.map(color_name, subset=["name"]).map(color_payment, subset=["payment_status"])
     st.dataframe(styled_df)
 
     # --- Single selectbox with all Name-Date-Place combinations ---
@@ -919,8 +919,8 @@ def app():
 
             styled_df = (
                 df.style
-                .applymap(color_payment, subset=["payment_status"])
-                .applymap(color_name, subset=["name"])
+                .map(color_payment, subset=["payment_status"])
+                .map(color_name, subset=["name"])
             )
             st.dataframe(styled_df, use_container_width=True)
 
@@ -1030,7 +1030,7 @@ def app():
 
                 st.markdown("### 📝 Summary of This Month")
 
-                styled_df = summary_df.style.applymap(color_name, subset=["name"])
+                styled_df = summary_df.style.map(color_name, subset=["name"])
 
                 st.dataframe(styled_df, use_container_width=True)
 
@@ -1119,7 +1119,7 @@ def app():
 
             # --- Display styled dataframe ---
 
-            styled_df = df_reset.style.applymap(color_name, subset=["name"]).applymap(color_payment,
+            styled_df = df_reset.style.map(color_name, subset=["name"]).map(color_payment,
                                                                                       subset=["payment_status"])
 
             st.dataframe(styled_df, use_container_width=True)
@@ -1359,20 +1359,20 @@ def app():
 
                 def style_table(df):
                     # Name coloring
-                    styler = df.style.applymap(
+                    styler = df.style.map(
                         lambda v: f"color: {color_name(v)}; font-weight:bold;" if color_name(v) else "",
                         subset=['name']
                     )
 
                     # Payment Status coloring
-                    styler = styler.applymap(
+                    styler = styler.map(
                         lambda v: f"color: {color_payment(v)};font-weight:bold;" if color_payment(v) else "",
                         subset=['payment_status']
                     )
 
                     # Shift coloring
                     if 'shift' in df.columns:
-                        styler = styler.applymap(
+                        styler = styler.map(
                             lambda v: f"color: {color_shift(v)};font-weight:bold;" if color_shift(v) else "",
                             subset=['shift']
                         )
