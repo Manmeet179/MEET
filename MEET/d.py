@@ -86,8 +86,47 @@ st.markdown(
     }}
 
     @keyframes colorchange {{
-      
-        100% {{ color: #3498DB; }}
+        0%   {{ color: #ff0000; }}
+        2.5% {{ color: #ff3300; }}
+        5%   {{ color: #ff6600; }}
+        7.5% {{ color: #ff9900; }}
+        10%  {{ color: #ffcc00; }}
+        12.5%{{ color: #ffff00; }}
+        15%  {{ color: #ccff00; }}
+        17.5%{{ color: #99ff00; }}
+        20%  {{ color: #66ff00; }}
+        22.5%{{ color: #33ff00; }}
+        25%  {{ color: #00ff00; }}
+        27.5%{{ color: #00ff33; }}
+        30%  {{ color: #00ff66; }}
+        32.5%{{ color: #00ff99; }}
+        35%  {{ color: #00ffcc; }}
+        37.5%{{ color: #00ffff; }}
+        40%  {{ color: #00ccff; }}
+        42.5%{{ color: #0099ff; }}
+        45%  {{ color: #0066ff; }}
+        47.5%{{ color: #0033ff; }}
+        50%  {{ color: #0000ff; }}
+        52.5%{{ color: #3300ff; }}
+        55%  {{ color: #6600ff; }}
+        57.5%{{ color: #9900ff; }}
+        60%  {{ color: #cc00ff; }}
+        62.5%{{ color: #ff00ff; }}
+        65%  {{ color: #ff00cc; }}
+        67.5%{{ color: #ff0099; }}
+        70%  {{ color: #ff0066; }}
+        72.5%{{ color: #ff0033; }}
+        75%  {{ color: #ff1493; }}
+        77.5%{{ color: #ff4500; }}
+        80%  {{ color: #ff6347; }}
+        82.5%{{ color: #ffa500; }}
+        85%  {{ color: #ffd700; }}
+        87.5%{{ color: #adff2f; }}
+        90%  {{ color: #7fff00; }}
+        92.5%{{ color: #00fa9a; }}
+        95%  {{ color: #00ced1; }}
+        97.5%{{ color: #1e90ff; }}
+        100% {{ color: #8a2be2; }}
     }}
     </style>
 
@@ -849,10 +888,10 @@ def app():
                     qty = per_person_qty
                     amount = per_person_amount
                     payment_status = "Payment Pending"
-                else:
-                    qty = 0.00
-                    amount = 0.00
-                    payment_status = "Not Involved"
+                # else:
+                #     qty = 0.00
+                #     amount = 0.00
+                #     payment_status = "Not Involved"
 
                 roti = roti_qty.get(name, 0)
                 roti_amount = roti * roti_rate
@@ -930,61 +969,135 @@ def app():
     elif menu == "🗃️ Analytics Dashboard":
 
         with open("images/chart.png", "rb") as f:
+
             img_bytes = f.read()
+
             img_base64 = base64.b64encode(img_bytes).decode()
 
         st.markdown(
+
             f"""
-          <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
-              <img src="data:image/png;base64,{img_base64}" width="30" />
-              <span>Analytics Dashboard</span>
-          </div>
-          """,
+
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+
+                <img src="data:image/png;base64,{img_base64}" width="30" />
+
+                <span>Analytics Dashboard</span>
+
+            </div>
+
+            """,
+
             unsafe_allow_html=True
+
         )
 
         df = fetch_all()
 
         if df.empty:
+
             st.info("No records to plot.")
+
         else:
+
             df['date'] = pd.to_datetime(df['date'], errors='coerce')
+
+            # ✅ Only rows where quantity > 0
 
             df = df[df["quantity"] > 0]
 
+            # ✅ Optional Month Filter (current month only)
+
             today_dt = datetime.date.today()
+
             df = df[
+
                 (df['date'].dt.month == today_dt.month) &
+
                 (df['date'].dt.year == today_dt.year)
+
                 ]
 
             if df.empty:
+
                 st.info("No orders found for this month.")
+
             else:
+
+                # ✅ Proper Aggregation
+
                 summary_df = (
+
                     df.groupby("name", as_index=False)
+
                     .agg(
+
                         total_tiffin=("quantity", "sum"),
+
                         total_amount=("amount", "sum")
+
                     )
+
                 )
 
+                # ✅ Add TOTAL Row
+
                 total_row = pd.DataFrame({
+
                     "name": ["TOTAL"],
+
                     "total_tiffin": [summary_df["total_tiffin"].sum()],
+
                     "total_amount": [summary_df["total_amount"].sum()]
+
                 })
 
                 summary_df = pd.concat([summary_df, total_row], ignore_index=True)
 
-                st.dataframe(summary_df)
+                # ✅ Name Color
+
+                def color_name(val):
+
+                    colors = {
+
+                        "MEET": "#FF0033",
+
+                        "YASH": "#bfff00",
+
+                        "DHRUMIL": "#00bfff",
+
+                        "TOTAL": "#9929EA"
+
+                    }
+
+                    return f"color: {colors[val.upper()]}; font-weight: bold;" if str(val).upper() in colors else ""
+
+                st.markdown("### 📝 Summary of This Month")
+
+                styled_df = summary_df.style.applymap(color_name, subset=["name"])
+
+                st.dataframe(styled_df, use_container_width=True)
+
+                # ✅ Pie Chart Fix
+
+                pie_data = summary_df[summary_df["name"] != "TOTAL"]
 
                 fig, ax = plt.subplots()
+
                 ax.pie(
-                    summary_df[summary_df["name"] != "TOTAL"]["total_tiffin"],
-                    labels=summary_df[summary_df["name"] != "TOTAL"]["name"],
-                    autopct='%1.1f%%'
+
+                    pie_data["total_tiffin"],
+
+                    labels=pie_data["name"],
+
+                    autopct='%1.1f%%',
+
+                    startangle=90
+
                 )
+
+                ax.set_title("📊 Monthly Tiffin Orders by User")
+
                 st.pyplot(fig)
 
 
