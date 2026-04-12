@@ -926,184 +926,114 @@ def app():
 
     # -------------------- Chart --------------------
 
-elif menu == "🗃️ Analytics Dashboard":
+    elif menu == "🗃️ Analytics Dashboard":
 
-with open("images/chart.png", "rb") as f:
-    img_bytes = f.read()
+        with open("images/chart.png", "rb") as f:
+            img_bytes = f.read()
+            img_base64 = base64.b64encode(img_bytes).decode()
 
-    img_base64 = base64.b64encode(img_bytes).decode()
-
-st.markdown(
-
-    f"""
-
-           <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
-
-               <img src="data:image/png;base64,{img_base64}" width="30" />
-
-               <span>Analytics Dashboard</span>
-
-           </div>
-
-           """,
-
-    unsafe_allow_html=True
-
-)
-
-df = fetch_all()
-
-if df.empty:
-
-    st.info("No records to plot.")
-
-else:
-
-    df['date'] = pd.to_datetime(df['date'], errors='coerce')
-
-    # ✅ Only valid tiffin entries
-
-    df = df[df["quantity"] > 0]
-
-    # ✅ Current month filter
-
-    today_dt = datetime.date.today()
-
-    df = df[
-
-        (df['date'].dt.month == today_dt.month) &
-
-        (df['date'].dt.year == today_dt.year)
-
-        ]
-
-    if df.empty:
-
-        st.info("No orders found for this month.")
-
-    else:
-
-        # ✅ Aggregation (NEW)
-
-        summary_df = (
-
-            df.groupby("name", as_index=False)
-
-            .agg(
-
-                total_tiffin=("quantity", "sum"),
-
-                total_amount=("amount", "sum"),
-
-                total_roti=("roti", "sum"),
-
-                total_roti_amount=("roti_amount", "sum")
-
-            )
-
+        st.markdown(
+            f"""
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+                <img src="data:image/png;base64,{img_base64}" width="30" />
+                <span>Analytics Dashboard</span>
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
-        # ✅ Final Amount
+        df = fetch_all()
 
-        summary_df["final_amount"] = (
+        if df.empty:
+            st.info("No records to plot.")
+        else:
+            df['date'] = pd.to_datetime(df['date'], errors='coerce')
 
-                summary_df["total_amount"] + summary_df["total_roti_amount"]
+            # ✅ IMPORTANT: only jenu tiffin hoy e j aave
+            df = df[df["quantity"] > 0]
 
-        )
+            # ✅ current month filter
+            today_dt = datetime.date.today()
+            df = df[
+                (df['date'].dt.month == today_dt.month) &
+                (df['date'].dt.year == today_dt.year)
+                ]
 
-        # ✅ TOTAL row
+            if df.empty:
+                st.info("No orders found for this month.")
+            else:
 
-        total_row = pd.DataFrame({
+                # ✅ GROUP BY with roti
+                summary_df = (
+                    df.groupby("name", as_index=False)
+                    .agg(
+                        total_tiffin=("quantity", "sum"),
+                        total_amount=("amount", "sum"),
+                        total_roti=("roti", "sum"),
+                        total_roti_amount=("roti_amount", "sum")
+                    )
+                )
 
-            "name": ["TOTAL"],
+                # ✅ FINAL AMOUNT
+                summary_df["final_amount"] = (
+                        summary_df["total_amount"] + summary_df["total_roti_amount"]
+                )
 
-            "total_tiffin": [summary_df["total_tiffin"].sum()],
+                # ✅ TOTAL ROW
+                total_row = pd.DataFrame({
+                    "name": ["TOTAL"],
+                    "total_tiffin": [summary_df["total_tiffin"].sum()],
+                    "total_amount": [summary_df["total_amount"].sum()],
+                    "total_roti": [summary_df["total_roti"].sum()],
+                    "total_roti_amount": [summary_df["total_roti_amount"].sum()],
+                    "final_amount": [summary_df["final_amount"].sum()]
+                })
 
-            "total_amount": [summary_df["total_amount"].sum()],
+                summary_df = pd.concat([summary_df, total_row], ignore_index=True)
 
-            "total_roti": [summary_df["total_roti"].sum()],
+                # ✅ COLUMN RENAME
+                summary_df.columns = [
+                    "Name",
+                    "Tiffin Qty",
+                    "Tiffin Amount",
+                    "Total Roti",
+                    "Roti Amount",
+                    "Final Amount"
+                ]
 
-            "total_roti_amount": [summary_df["total_roti_amount"].sum()],
+                # ✅ COLOR FUNCTION
+                def color_name(val):
+                    colors = {
+                        "MEET": "#FF0033",
+                        "YASH": "#bfff00",
+                        "DHRUMIL": "#00bfff",
+                        "TOTAL": "#9929EA"
+                    }
+                    return f"color: {colors.get(str(val).upper(), 'white')}; font-weight: bold;"
 
-            "final_amount": [summary_df["final_amount"].sum()]
+                st.markdown("### 📝 Summary of This Month")
 
-        })
+                try:
+                    styled_df = summary_df.style.map(color_name, subset=["Name"])
+                    st.dataframe(styled_df, use_container_width=True)
+                except:
+                    st.dataframe(summary_df, use_container_width=True)
 
-        summary_df = pd.concat([summary_df, total_row], ignore_index=True)
+                # ✅ PIE CHART
+                pie_data = summary_df[summary_df["Name"] != "TOTAL"]
 
-        # ✅ Rename columns (clean UI)
+                if not pie_data.empty:
+                    fig, ax = plt.subplots()
 
-        summary_df.columns = [
+                    ax.pie(
+                        pie_data["Tiffin Qty"],
+                        labels=pie_data["Name"],
+                        autopct='%1.1f%%',
+                        startangle=90
+                    )
 
-            "Name",
-
-            "Tiffin Qty",
-
-            "Tiffin Amount",
-
-            "Total Roti",
-
-            "Roti Amount",
-
-            "Final Amount"
-
-        ]
-
-
-        # ✅ Color styling
-
-        def color_name(val):
-
-            colors = {
-
-                "MEET": "#FF0033",
-
-                "YASH": "#bfff00",
-
-                "DHRUMIL": "#00bfff",
-
-                "TOTAL": "#9929EA"
-
-            }
-
-            return f"color: {colors.get(str(val).upper(), 'white')}; font-weight: bold;"
-
-
-        st.markdown("### 📝 Summary of This Month")
-
-        try:
-
-            styled_df = summary_df.style.map(color_name, subset=["Name"])
-
-            st.dataframe(styled_df, use_container_width=True)
-
-        except:
-
-            st.dataframe(summary_df, use_container_width=True)
-
-        # ✅ Pie Chart (without TOTAL row)
-
-        pie_data = summary_df[summary_df["Name"] != "TOTAL"]
-
-        if not pie_data.empty:
-            fig, ax = plt.subplots()
-
-            ax.pie(
-
-                pie_data["Tiffin Qty"],
-
-                labels=pie_data["Name"],
-
-                autopct='%1.1f%%',
-
-                startangle=90
-
-            )
-
-            ax.set_title("📊 Monthly Tiffin Orders by User")
-
-            st.pyplot(fig)
-
+                    ax.set_title("📊 Monthly Tiffin Orders by User")
+                    st.pyplot(fig)
 
     # -------------------- Edit --------------------
 
