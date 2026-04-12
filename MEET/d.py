@@ -86,9 +86,8 @@ st.markdown(
     }}
 
     @keyframes colorchange {{
-        0%   {{ color: #ff0000; }}
-        2.5% {{ color: #ff3300; }}
-        100% {{ color: #8a2be2; }}
+      
+        100% {{ color: #3498DB; }}
     }}
     </style>
 
