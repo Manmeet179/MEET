@@ -764,7 +764,7 @@ def app():
 
     # -------------------- Add Record --------------------
 
-    if menu == "➕ Add Tiffin Entry":
+    elif menu == "➕ Add Tiffin Entry":
 
         with open("images/add.png", "rb") as f:
             img_bytes = f.read()
@@ -841,26 +841,28 @@ def app():
 
         if st.button("Save Record"):
             data_to_insert = []
-            for name in names:
-                if name in selected_names:
-                    qty = per_person_qty
-                    amount = per_person_amount
-                    payment_status = "Payment Pending"
-                # else:
-                #     qty = 0.00
-                #     amount = 0.00
-                #     payment_status = "Not Involved"
+
+            for name in selected_names:  # ✅ only selected लोग
+                qty = per_person_qty
+                amount = per_person_amount
+                payment_status = "Payment Pending"
 
                 roti = roti_qty.get(name, 0)
                 roti_amount = roti * roti_rate
                 total_individual_amount = round(amount + roti_amount, 2)
 
-                # If roti > 0 but tiffin qty = 0, still treat as Payment Pending
-                if qty == 0 and roti > 0:
-                    payment_status = "Payment Pending"
+                row = [
+                    selected_date,
+                    current_time,
+                    name,
+                    shift,
+                    qty,
+                    roti,
+                    roti_amount,
+                    total_individual_amount,
+                    payment_status
+                ]
 
-                row = [selected_date, current_time, name, shift, qty, roti, roti_amount, total_individual_amount,
-                       payment_status]
                 data_to_insert.append(row)
 
             insert_record(data_to_insert)
