@@ -1490,23 +1490,49 @@ def app():
                         return "#3B9797"
                     return None
 
+                def color_name(val):
+
+                    colors = {
+                        "MEET": "#FF0033",
+                        "YASH": "#bfff00",
+                        "DHRUMIL": "#00bfff",
+                        "TOTAL": "#9929EA"
+                    }
+
+                    return colors.get(str(val).upper(), None)
+
+                def color_payment(val):
+
+                    val_lower = str(val).lower()
+
+                    if val_lower == "payment done":
+                        return "#059212"
+
+                    elif val_lower in ["pending", "payment pending"]:
+                        return "#76153C"
+
+                    elif val_lower == "paid":
+                        return "goldenrod"
+
+                    elif val_lower == "not involved":
+                        return "#FCDC2A"
+
+                    return None
+
                 # ---------- Streamlit Table Styling ----------
 
                 def style_table(df):
 
-                    # Name coloring
                     styler = df.style.map(
                         lambda v: f"color: {color_name(v)}; font-weight:bold;" if color_name(v) else "",
                         subset=['name']
                     )
 
-                    # Payment Status coloring
                     styler = styler.map(
                         lambda v: f"color: {color_payment(v)};font-weight:bold;" if color_payment(v) else "",
                         subset=['payment_status']
                     )
 
-                    # Shift coloring
                     if 'shift' in df.columns:
                         styler = styler.map(
                             lambda v: f"color: {color_shift(v)};font-weight:bold;" if color_shift(v) else "",
@@ -1515,11 +1541,87 @@ def app():
 
                     return styler
 
+                # ✅ SHOW MAIN TABLE
                 st.dataframe(style_table(filtered_df), use_container_width=True)
+
+                # =====================================================
+                # ✅ SUMMARY TABLE
+                # =====================================================
+
+                summary_df = (
+                    filtered_df.groupby("name", as_index=False)
+                    .agg(
+                        total_tiffin=("quantity", lambda x: pd.to_numeric(x, errors="coerce").sum()),
+                        total_tiffin_amount=("amount", lambda x: pd.to_numeric(x, errors="coerce").sum()),
+                        total_roti=("roti", lambda x: pd.to_numeric(x, errors="coerce").sum()),
+                        total_roti_amount=("roti_amount", lambda x: pd.to_numeric(x, errors="coerce").sum())
+                    )
+                )
+
+                summary_df["sub_total"] = (
+                        summary_df["total_tiffin_amount"] +
+                        summary_df["total_roti_amount"]
+                )
+
+                total_row = pd.DataFrame({
+                    "name": ["TOTAL"],
+                    "total_tiffin": [summary_df["total_tiffin"].sum()],
+                    "total_tiffin_amount": [summary_df["total_tiffin_amount"].sum()],
+                    "total_roti": [summary_df["total_roti"].sum()],
+                    "total_roti_amount": [summary_df["total_roti_amount"].sum()],
+                    "sub_total": [summary_df["sub_total"].sum()]
+                })
+
+                summary_df = pd.concat([summary_df, total_row], ignore_index=True)
+
+                summary_df.columns = [
+                    "Name",
+                    "Total Tiffin",
+                    "Total Tiffin Amount",
+                    "Total Roti",
+                    "Total Roti Amount",
+                    "Sub Total"
+                ]
+
+                # ✅ FORMAT SUMMARY NUMBERS
+                for col in [
+                    "Total Tiffin",
+                    "Total Tiffin Amount",
+                    "Total Roti",
+                    "Total Roti Amount",
+                    "Sub Total"
+                ]:
+                    summary_df[col] = summary_df[col].apply(
+                        lambda x: f"{x:.2f}" if float(x) % 1 else f"{int(x)}"
+                    )
+
+                st.markdown("<br><br>", unsafe_allow_html=True)
+
+                def color_summary_name(val):
+
+                    colors = {
+                        "MEET": "#FF0033",
+                        "YASH": "#bfff00",
+                        "DHRUMIL": "#00bfff",
+                        "TOTAL": "#9929EA"
+                    }
+
+                    return f"color: {colors.get(str(val).upper(), 'white')}; font-weight:bold;"
+
+                styled_summary = summary_df.style.map(
+                    color_summary_name,
+                    subset=["Name"]
+                )
+
+                st.markdown("## 📊 Summary Table")
+
+                st.dataframe(styled_summary, use_container_width=True)
 
                 st.markdown(f"### Records from {from_date} to {to_date}")
 
-                # ---------- Excel Download ----------
+                # =====================================================
+                # ✅ EXCEL DOWNLOAD
+                # =====================================================
 
                 if not filtered_df.empty:
 
@@ -1527,12 +1629,56 @@ def app():
 
                     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
 
+                        # ✅ Main Data
                         filtered_df.to_excel(writer, index=False, sheet_name="Tiffin Records")
 
                         workbook = writer.book
                         worksheet = writer.sheets["Tiffin Records"]
 
-                        # --- Name column coloring ---
+                        # ---------- Formats ----------
+
+                        bold_format = workbook.add_format({
+                            'bold': True,
+                            'border': 1
+                        })
+
+                        total_format = workbook.add_format({
+                            'bold': True,
+                            'font_color': '#9929EA',
+                            'border': 1
+                        })
+
+                        # ---------- Write Summary Table ----------
+
+                        start_row = len(filtered_df) + 4
+
+                        worksheet.write(start_row, 0, "SUMMARY TABLE", bold_format)
+
+                        # Header
+                        for col_num, value in enumerate(summary_df.columns.values):
+                            worksheet.write(start_row + 1, col_num, value, bold_format)
+
+                        # Data
+                        for row_num, row_data in enumerate(summary_df.values):
+
+                            for col_num, cell_data in enumerate(row_data):
+
+                                if str(row_data[0]).upper() == "TOTAL":
+                                    worksheet.write(
+                                        start_row + 2 + row_num,
+                                        col_num,
+                                        cell_data,
+                                        total_format
+                                    )
+                                else:
+                                    worksheet.write(
+                                        start_row + 2 + row_num,
+                                        col_num,
+                                        cell_data
+                                    )
+
+                        # ---------- Main Table Name Coloring ----------
+
                         name_col_idx = filtered_df.columns.get_loc("name")
 
                         for row_num, val in enumerate(filtered_df['name'], start=1):
@@ -1547,7 +1693,8 @@ def app():
 
                                 worksheet.write(row_num, name_col_idx, val, cell_format)
 
-                        # --- Payment Status coloring ---
+                        # ---------- Payment Status Coloring ----------
+
                         payment_col_idx = filtered_df.columns.get_loc("payment_status")
 
                         for row_num, val in enumerate(filtered_df['payment_status'], start=1):
@@ -1561,7 +1708,8 @@ def app():
 
                                 worksheet.write(row_num, payment_col_idx, val, cell_format)
 
-                        # --- Shift column coloring ---
+                        # ---------- Shift Coloring ----------
+
                         if 'shift' in filtered_df.columns:
 
                             shift_col_idx = filtered_df.columns.get_loc("shift")
@@ -1576,6 +1724,15 @@ def app():
                                     })
 
                                     worksheet.write(row_num, shift_col_idx, val, cell_format)
+
+                        # ✅ Auto column width
+                        for i, col in enumerate(filtered_df.columns):
+                            column_len = max(
+                                filtered_df[col].astype(str).map(len).max(),
+                                len(col)
+                            ) + 5
+
+                            worksheet.set_column(i, i, column_len)
 
                     processed_data = output.getvalue()
 
