@@ -1062,7 +1062,7 @@ def app():
 
                     "MEET": "#FF0033",
 
-                    "YASH": "#9929EA",
+                    "YASH": "#bfff00",
 
                     "DHRUMIL": "#00bfff",
 
