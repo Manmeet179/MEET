@@ -886,11 +886,7 @@ def app():
 
             f"""
 
-            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
-
-                <img src="data:image/png;base64,{img_base64}" width="30" />
-
-                <span>All Records</span>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;"><img src="data:image/png;base64,{img_base64}" width="30" /><span>All Records</span>
 
             </div>
 
@@ -1429,148 +1425,178 @@ def app():
 
     # --- Streamlit menu ---
 
-    if menu == "⬇️ Export Data":
+    # ---------- Excel Download ----------
 
-        # PNG icon load & display
-        with open("images/icons8-microsoft-excel-2025-48.png", "rb") as f:
-            img_bytes = f.read()
+    if not filtered_df.empty:
 
-        img_base64 = base64.b64encode(img_bytes).decode()
+        output = BytesIO()
 
-        st.markdown(
-            f"""
-            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
-                <img src="data:image/png;base64,{img_base64}" width="30" />
-                <span>Download Tiffin Excel</span>
-            </div>
-            """,
-            unsafe_allow_html=True
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+
+            # ================================
+            # ✅ Tiffin Records Sheet
+            # ================================
+
+            filtered_df.to_excel(writer, index=False, sheet_name="Tiffin Records")
+
+            workbook = writer.book
+            worksheet = writer.sheets["Tiffin Records"]
+
+            # --- Name column coloring ---
+            name_col_idx = filtered_df.columns.get_loc("name")
+
+            for row_num, val in enumerate(filtered_df['name'], start=1):
+
+                color = color_name(val)
+
+                if color:
+                    cell_format = workbook.add_format({
+                        'font_color': color,
+                        'bold': True
+                    })
+
+                    worksheet.write(row_num, name_col_idx, val, cell_format)
+
+            # --- Payment Status coloring ---
+            payment_col_idx = filtered_df.columns.get_loc("payment_status")
+
+            for row_num, val in enumerate(filtered_df['payment_status'], start=1):
+
+                color = color_payment(val)
+
+                if color:
+                    cell_format = workbook.add_format({
+                        'font_color': color,
+                        'bold': True
+                    })
+
+                    worksheet.write(row_num, payment_col_idx, val, cell_format)
+
+            # --- Shift column coloring ---
+            if 'shift' in filtered_df.columns:
+
+                shift_col_idx = filtered_df.columns.get_loc("shift")
+
+                for row_num, val in enumerate(filtered_df['shift'], start=1):
+
+                    color = color_shift(val)
+
+                    if color:
+                        cell_format = workbook.add_format({
+                            'font_color': color,
+                            'bold': True
+                        })
+
+                        worksheet.write(row_num, shift_col_idx, val, cell_format)
+
+            # ================================
+            # ✅ Analytics Summary Sheet
+            # ================================
+
+            analytics_df = filtered_df.copy()
+
+            # Convert numeric columns
+            for col in ["quantity", "amount", "roti", "roti_amount"]:
+                analytics_df[col] = pd.to_numeric(analytics_df[col], errors="coerce").fillna(0)
+
+            summary_df = (
+                analytics_df.groupby("name", as_index=False)
+                .agg(
+                    total_tiffin=("quantity", "sum"),
+                    total_amount=("amount", "sum"),
+                    total_roti=("roti", "sum"),
+                    total_roti_amount=("roti_amount", "sum")
+                )
+            )
+
+            summary_df["final_amount"] = (
+                    summary_df["total_amount"] + summary_df["total_roti_amount"]
+            )
+
+            # ✅ TOTAL ROW
+            total_row = pd.DataFrame({
+                "name": ["TOTAL"],
+                "total_tiffin": [summary_df["total_tiffin"].sum()],
+                "total_amount": [summary_df["total_amount"].sum()],
+                "total_roti": [summary_df["total_roti"].sum()],
+                "total_roti_amount": [summary_df["total_roti_amount"].sum()],
+                "final_amount": [summary_df["final_amount"].sum()]
+            })
+
+            summary_df = pd.concat([summary_df, total_row], ignore_index=True)
+
+            # ✅ Rename columns
+            summary_df.columns = [
+                "Name",
+                "Tiffin Qty",
+                "Tiffin Amount",
+                "Total Roti",
+                "Roti Amount",
+                "Final Amount"
+            ]
+
+            # ✅ Remove extra .00000
+            for col in ["Tiffin Qty", "Tiffin Amount", "Total Roti", "Roti Amount", "Final Amount"]:
+                summary_df[col] = summary_df[col].apply(
+                    lambda x: f"{x:.2f}" if float(x) % 1 else f"{int(x)}"
+                )
+
+            # ✅ Export Summary Sheet
+            summary_df.to_excel(writer, index=False, sheet_name="Analytics Summary")
+
+            summary_ws = writer.sheets["Analytics Summary"]
+
+            # --- Header format ---
+            header_format = workbook.add_format({
+                'bold': True,
+                'bg_color': '#D9EAD3',
+                'border': 1
+            })
+
+            # --- Apply header style ---
+            for col_num, value in enumerate(summary_df.columns.values):
+                summary_ws.write(0, col_num, value, header_format)
+
+            # --- Name color formatting ---
+            name_col_idx_summary = summary_df.columns.get_loc("Name")
+
+            for row_num, val in enumerate(summary_df['Name'], start=1):
+
+                colors = {
+                    "MEET": "#FF0033",
+                    "YASH": "#bfff00",
+                    "DHRUMIL": "#00bfff",
+                    "TOTAL": "#9929EA"
+                }
+
+                color = colors.get(str(val).upper())
+
+                if color:
+                    cell_format = workbook.add_format({
+                        'font_color': color,
+                        'bold': True
+                    })
+
+                    summary_ws.write(row_num, name_col_idx_summary, val, cell_format)
+
+            # ✅ Auto column width
+            for i, col in enumerate(filtered_df.columns):
+                column_len = max(filtered_df[col].astype(str).map(len).max(), len(col)) + 5
+                worksheet.set_column(i, i, column_len)
+
+            for i, col in enumerate(summary_df.columns):
+                column_len = max(summary_df[col].astype(str).map(len).max(), len(col)) + 5
+                summary_ws.set_column(i, i, column_len)
+
+        processed_data = output.getvalue()
+
+        st.download_button(
+            label="⬇️ Download Excel",
+            data=processed_data,
+            file_name=f"Tiffin_Records_{from_date}_to_{to_date}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-
-        df = fetch_all()
-
-        if df.empty:
-            st.info("No records available for download")
-
-        else:
-            df['date'] = pd.to_datetime(df['date'], errors='coerce')
-
-            min_date = df['date'].min().date() if not df['date'].isna().all() else datetime.date.today()
-            max_date = df['date'].max().date() if not df['date'].isna().all() else datetime.date.today()
-
-            from_date = st.date_input("From Date", value=min_date, key="download_from")
-            to_date = st.date_input("To Date", value=max_date, key="download_to")
-
-            if from_date > to_date:
-                st.error("❎ Start Date cannot be after End Date.")
-
-            else:
-                filtered_df = df[
-                    (df['date'] >= pd.to_datetime(from_date)) &
-                    (df['date'] <= pd.to_datetime(to_date))
-                    ]
-
-                # ---------- Color Functions ----------
-
-                def color_shift(val):
-                    if str(val).lower() == "day":
-                        return "#FF8F00"
-                    elif str(val).lower() == "night":
-                        return "#3B9797"
-                    return None
-
-                # ---------- Streamlit Table Styling ----------
-
-                def style_table(df):
-                    # Name coloring
-                    styler = df.style.map(
-                        lambda v: f"color: {color_name(v)}; font-weight:bold;" if color_name(v) else "",
-                        subset=['name']
-                    )
-
-                    # Payment Status coloring
-                    styler = styler.map(
-                        lambda v: f"color: {color_payment(v)};font-weight:bold;" if color_payment(v) else "",
-                        subset=['payment_status']
-                    )
-
-                    # Shift coloring
-                    if 'shift' in df.columns:
-                        styler = styler.map(
-                            lambda v: f"color: {color_shift(v)};font-weight:bold;" if color_shift(v) else "",
-                            subset=['shift']
-                        )
-
-                    return styler
-
-                st.dataframe(style_table(filtered_df))
-
-                st.markdown(f"### Records from {from_date} to {to_date}")
-
-                # ---------- Excel Download ----------
-
-                if not filtered_df.empty:
-
-                    output = BytesIO()
-
-                    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-
-                        filtered_df.to_excel(writer, index=False, sheet_name="Tiffin Records")
-
-                        workbook = writer.book
-                        worksheet = writer.sheets["Tiffin Records"]
-
-                        # --- Name column coloring ---
-                        name_col_idx = filtered_df.columns.get_loc("name")
-
-                        for row_num, val in enumerate(filtered_df['name'], start=1):
-                            color = color_name(val)
-
-                            if color:
-                                cell_format = workbook.add_format({
-                                    'font_color': color,
-                                    'bold': True
-                                })
-
-                                worksheet.write(row_num, name_col_idx, val, cell_format)
-
-                        # --- Payment Status coloring ---
-                        payment_col_idx = filtered_df.columns.get_loc("payment_status")
-
-                        for row_num, val in enumerate(filtered_df['payment_status'], start=1):
-                            color = color_payment(val)
-
-                            if color:
-                                cell_format = workbook.add_format({
-                                    'font_color': color
-                                })
-
-                                worksheet.write(row_num, payment_col_idx, val, cell_format)
-
-                        # --- Shift column coloring ---
-                        if 'shift' in filtered_df.columns:
-
-                            shift_col_idx = filtered_df.columns.get_loc("shift")
-
-                            for row_num, val in enumerate(filtered_df['shift'], start=1):
-
-                                color = color_shift(val)
-
-                                if color:
-                                    cell_format = workbook.add_format({
-                                        'font_color': color
-                                    })
-
-                                    worksheet.write(row_num, shift_col_idx, val, cell_format)
-
-                    processed_data = output.getvalue()
-
-                    st.download_button(
-                        label="⬇️ Download Excel",
-                        data=processed_data,
-                        file_name=f"Tiffin_Records_{from_date}_to_{to_date}.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
+                    
                 # -------------------- Delete --------------------
 
     elif menu == "💳 Add Expense Entry":
