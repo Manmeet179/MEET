@@ -873,55 +873,113 @@ def app():
     elif menu == "🔎 View Tiffin Records":
 
         # PNG file load & encode
+
         with open("images/view.png", "rb") as f:
+
             img_bytes = f.read()
+
             img_base64 = base64.b64encode(img_bytes).decode()
 
-        # Display icon + text side by side (similar to st.subheader)
+        # Display icon + text side by side
+
         st.markdown(
+
             f"""
+
             <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+
                 <img src="data:image/png;base64,{img_base64}" width="30" />
+
                 <span>All Records</span>
+
             </div>
+
             """,
+
             unsafe_allow_html=True
+
         )
+
         df = fetch_all()
+
         if df.empty:
+
             st.info("No records available")
+
+
         else:
 
-            # Font color for Payment Status
+            # ✅ Remove time column if exists
+
+            if "time" in df.columns:
+                df = df.drop(columns=["time"])
+
+            # ✅ Number formatting
+
+            numeric_cols = ["quantity", "amount", "roti", "roti_amount"]
+
+            for col in numeric_cols:
+
+                if col in df.columns:
+                    df[col] = df[col].apply(
+
+                        lambda x: f"{x:.2f}" if float(x) % 1 else f"{int(x)}"
+
+                    )
+
+            # ✅ Font color for Payment Status
 
             def color_payment(val):
+
                 val_lower = str(val).lower()
+
                 if val_lower == "payment done":
+
                     return "color: #059212; font-weight:bold;"
+
+
                 elif val_lower in ["pending", "payment pending"]:
+
                     return "color: #76153C; font-weight:bold;"
+
+
                 elif val_lower == "paid":
+
                     return "color: goldenrod; font-weight:bold;"
+
+
                 elif val_lower == "not involved":
+
                     return "color: #FCDC2A; font-weight:bold;"
+
                 return ""
 
-            # Font color for Name
+            # ✅ Font color for Name
 
             def color_name(val):
 
                 colors = {
+
                     "MEET": "#FF0033",
+
                     "YASH": "#bfff00",
+
                     "DHRUMIL": "#00bfff"
+
                 }
+
                 return f"color: {colors[val.upper()]}; font-weight: bold;" if str(val).upper() in colors else ""
 
             styled_df = (
+
                 df.style
+
                 .map(color_payment, subset=["payment_status"])
+
                 .map(color_name, subset=["name"])
+
             )
+
             st.dataframe(styled_df, use_container_width=True)
 
     # -------------------- Chart --------------------
@@ -1060,7 +1118,7 @@ def app():
                     summary_df[col] = summary_df[col].apply(
                         lambda x: f"{x:.2f}" if float(x) % 1 else f"{int(x)}"
                     )
-                        
+
                 # ✅ COLOR MAP
 
                 color_map = {
