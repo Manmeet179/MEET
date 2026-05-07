@@ -1056,6 +1056,11 @@ def app():
 
                 ]
 
+                for col in ["Tiffin Qty", "Tiffin Amount", "Total Roti", "Roti Amount", "Final Amount"]:
+                    summary_df[col] = summary_df[col].apply(
+                        lambda x: f"{x:.2f}" if float(x) % 1 else f"{int(x)}"
+                    )
+                        
                 # ✅ COLOR MAP
 
                 color_map = {
