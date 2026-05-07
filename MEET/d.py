@@ -1085,7 +1085,7 @@ def app():
 
             img_bytes = f.read()
 
-            img_base64 = base64.b64encode(img_bytes).decode()
+        img_base64 = base64.b64encode(img_bytes).decode()
 
         st.markdown(
 
@@ -1107,6 +1107,7 @@ def app():
 
             st.info("No records to plot.")
 
+
         else:
 
             # ✅ Date convert
@@ -1117,7 +1118,11 @@ def app():
 
             df = df[df["quantity"] > 0]
 
-            # ✅ 📅 DATE FILTER UI
+            # ======================================================
+
+            # 📅 DATE FILTER
+
+            # ======================================================
 
             st.markdown("### 📅 Select Date Range")
 
@@ -1125,11 +1130,23 @@ def app():
 
             with col1:
 
-                from_date = st.date_input("From Date", df['date'].min())
+                from_date = st.date_input(
+
+                    "From Date",
+
+                    value=df['date'].min().date()
+
+                )
 
             with col2:
 
-                to_date = st.date_input("To Date", df['date'].max())
+                to_date = st.date_input(
+
+                    "To Date",
+
+                    value=df['date'].max().date()
+
+                )
 
             # ✅ Apply filter
 
@@ -1145,9 +1162,14 @@ def app():
 
                 st.info("No orders found for selected date range.")
 
+
             else:
 
+                # ======================================================
+
                 # ✅ SUMMARY
+
+                # ======================================================
 
                 summary_df = (
 
@@ -1157,8 +1179,6 @@ def app():
 
                         total_tiffin=("quantity", "sum"),
 
-                        total_amount=("amount", "sum"),
-
                         total_roti=("roti", "sum"),
 
                         total_roti_amount=("roti_amount", "sum")
@@ -1167,31 +1187,99 @@ def app():
 
                 )
 
-                summary_df["final_amount"] = (
+                # ✅ Proper Tiffin Amount Calculation
 
-                        summary_df["total_amount"] + summary_df["total_roti_amount"]
+                # 1 Tiffin = ₹90
+
+                summary_df["total_amount"] = (
+
+                        summary_df["total_tiffin"] * 90
 
                 )
 
+                # ✅ Final Amount
+
+                summary_df["final_amount"] = (
+
+                        summary_df["total_amount"] +
+
+                        summary_df["total_roti_amount"]
+
+                )
+
+                # ======================================================
+
                 # ✅ TOTAL ROW
+
+                # ======================================================
 
                 total_row = pd.DataFrame({
 
                     "name": ["TOTAL"],
 
-                    "total_tiffin": [summary_df["total_tiffin"].sum()],
+                    "total_tiffin": [
 
-                    "total_amount": [summary_df["total_amount"].sum()],
+                        summary_df["total_tiffin"].sum()
 
-                    "total_roti": [summary_df["total_roti"].sum()],
+                    ],
 
-                    "total_roti_amount": [summary_df["total_roti_amount"].sum()],
+                    "total_roti": [
 
-                    "final_amount": [summary_df["final_amount"].sum()]
+                        summary_df["total_roti"].sum()
+
+                    ],
+
+                    "total_roti_amount": [
+
+                        summary_df["total_roti_amount"].sum()
+
+                    ],
+
+                    "total_amount": [
+
+                        summary_df["total_amount"].sum()
+
+                    ],
+
+                    "final_amount": [
+
+                        summary_df["final_amount"].sum()
+
+                    ]
 
                 })
 
-                summary_df = pd.concat([summary_df, total_row], ignore_index=True)
+                # ✅ Add total row
+
+                summary_df = pd.concat(
+
+                    [summary_df, total_row],
+
+                    ignore_index=True
+
+                )
+
+                # ======================================================
+
+                # ✅ COLUMN NAMES
+
+                # ======================================================
+
+                summary_df = summary_df[[
+
+                    "name",
+
+                    "total_tiffin",
+
+                    "total_amount",
+
+                    "total_roti",
+
+                    "total_roti_amount",
+
+                    "final_amount"
+
+                ]]
 
                 summary_df.columns = [
 
@@ -1209,12 +1297,38 @@ def app():
 
                 ]
 
-                for col in ["Tiffin Qty", "Tiffin Amount", "Total Roti", "Roti Amount", "Final Amount"]:
+                # ======================================================
+
+                # ✅ NUMBER FORMAT
+
+                # ======================================================
+
+                numeric_cols = [
+
+                    "Tiffin Qty",
+
+                    "Tiffin Amount",
+
+                    "Total Roti",
+
+                    "Roti Amount",
+
+                    "Final Amount"
+
+                ]
+
+                for col in numeric_cols:
                     summary_df[col] = summary_df[col].apply(
+
                         lambda x: f"{x:.2f}" if float(x) % 1 else f"{int(x)}"
+
                     )
 
+                # ======================================================
+
                 # ✅ COLOR MAP
+
+                # ======================================================
 
                 color_map = {
 
@@ -1230,23 +1344,60 @@ def app():
 
                 def color_name(val):
 
-                    return f"color: {color_map.get(str(val).upper(), 'white')}; font-weight: bold;"
+                    return (
+
+                        f"color: {color_map.get(str(val).upper(), 'white')}; font-weight: bold;"
+
+                    )
+
+                # ======================================================
+
+                # ✅ SHOW SUMMARY
+
+                # ======================================================
 
                 st.markdown("### 📝 Summary")
 
                 try:
 
-                    styled_df = summary_df.style.map(color_name, subset=["Name"])
+                    styled_df = (
 
-                    st.dataframe(styled_df, use_container_width=True)
+                        summary_df.style
+
+                        .map(color_name, subset=["Name"])
+
+                    )
+
+                    st.dataframe(
+
+                        styled_df,
+
+                        use_container_width=True
+
+                    )
+
 
                 except:
 
-                    st.dataframe(summary_df, use_container_width=True)
+                    st.dataframe(
+
+                        summary_df,
+
+                        use_container_width=True
+
+                    )
+
+                # ======================================================
 
                 # ✅ PIE CHART
 
-                pie_data = summary_df[summary_df["Name"] != "TOTAL"]
+                # ======================================================
+
+                pie_data = summary_df[
+
+                    summary_df["Name"] != "TOTAL"
+
+                    ]
 
                 if not pie_data.empty:
                     pie_colors = [
