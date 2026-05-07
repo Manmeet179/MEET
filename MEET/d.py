@@ -1737,9 +1737,9 @@ def app():
                 # ---------- Color Functions ----------
 
                 def color_shift(val):
-                    if str(val).lower() == "DAY":
+                    if str(val).lower() == "day":
                         return "#FF8F00"
-                    elif str(val).lower() == "NIGHT":
+                    elif str(val).lower() == "night":
                         return "#3B9797"
                     return None
 
@@ -1773,6 +1773,7 @@ def app():
                     return None
 
                 # ---------- Streamlit Table Styling ----------
+                
 
                 def style_table(df):
 
@@ -1901,6 +1902,24 @@ def app():
                         # =================================================
                         # ✅ FORMATS
                         # =================================================
+                        
+                        # ✅ DAY format
+                        day_format = workbook.add_format({
+                            'font_color': '#FF8F00',
+                            'bold': True,
+                            'border': 1,
+                            'align': 'center',
+                            'valign': 'vcenter'
+                        })
+
+                        # ✅ NIGHT format
+                        night_format = workbook.add_format({
+                            'font_color': '#3B9797',
+                            'bold': True,
+                            'border': 1,
+                            'align': 'center',
+                            'valign': 'vcenter'
+                        })
 
                         header_format = workbook.add_format({
                             'bold': True,
