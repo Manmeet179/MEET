@@ -1773,7 +1773,7 @@ def app():
                     return None
 
                 # ---------- Streamlit Table Styling ----------
-                
+
 
                 def style_table(df):
 
@@ -1903,6 +1903,25 @@ def app():
                         # ✅ FORMATS
                         # =================================================
 
+
+                        # ✅ DAY format
+                        day_format = workbook.add_format({
+                            'font_color': '#FF8F00',
+                            'bold': True,
+                            'border': 1,
+                            'align': 'center',
+                            'valign': 'vcenter'
+                        })
+
+                        # ✅ NIGHT format
+                        night_format = workbook.add_format({
+                            'font_color': '#3B9797',
+                            'bold': True,
+                            'border': 1,
+                            'align': 'center',
+                            'valign': 'vcenter'
+                        })
+
                         header_format = workbook.add_format({
                             'bold': True,
                             'border': 1,
@@ -2020,6 +2039,83 @@ def app():
                                         val,
                                         night_format
                                     )
+                        # =================================================
+                        # ✅ PAYMENT STATUS COLORING
+                        # =================================================
+
+                        if 'payment_status' in filtered_df.columns:
+
+                            payment_col_idx = filtered_df.columns.get_loc("payment_status")
+
+                            # ✅ Formats
+                            payment_done_format = workbook.add_format({
+                                'font_color': '#059212',
+                                'bold': True,
+                                'border': 1,
+                                'align': 'center'
+                            })
+
+                            pending_format = workbook.add_format({
+                                'font_color': '#76153C',
+                                'bold': True,
+                                'border': 1,
+                                'align': 'center'
+                            })
+
+                            paid_format = workbook.add_format({
+                                'font_color': 'gold',
+                                'bold': True,
+                                'border': 1,
+                                'align': 'center'
+                            })
+
+                            not_involved_format = workbook.add_format({
+                                'font_color': '#FCDC2A',
+                                'bold': True,
+                                'border': 1,
+                                'align': 'center'
+                            })
+
+                            # ✅ Apply formats row wise
+                            for row_num, val in enumerate(filtered_df['payment_status'], start=1):
+
+                                payment_val = str(val).lower()
+
+                                if payment_val == "payment done":
+
+                                    worksheet.write(
+                                        row_num,
+                                        payment_col_idx,
+                                        val,
+                                        payment_done_format
+                                    )
+
+                                elif payment_val in ["pending", "payment pending"]:
+
+                                    worksheet.write(
+                                        row_num,
+                                        payment_col_idx,
+                                        val,
+                                        pending_format
+                                    )
+
+                                elif payment_val == "paid":
+
+                                    worksheet.write(
+                                        row_num,
+                                        payment_col_idx,
+                                        val,
+                                        paid_format
+                                    )
+
+                                elif payment_val == "not involved":
+
+                                    worksheet.write(
+                                        row_num,
+                                        payment_col_idx,
+                                        val,
+                                        not_involved_format
+                                    )
 
                         # =================================================
                         # ✅ SUMMARY TABLE
@@ -2091,7 +2187,7 @@ def app():
                     st.download_button(
                         label="⬇️ Download Excel",
                         data=processed_data,
-                        file_name=f"Tiffin_Records_{from_date}_to_{to_date}.xlsx",
+                        file_name=f"MANMMET'S_Tiffin_Records_{from_date}_to_{to_date}.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     )
                 # -------------------- Delete --------------------
