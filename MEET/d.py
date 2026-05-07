@@ -1805,27 +1805,58 @@ def app():
                     filtered_df.groupby("name", as_index=False)
                     .agg(
                         total_tiffin=("quantity", lambda x: pd.to_numeric(x, errors="coerce").sum()),
-                        total_tiffin_amount=("amount", lambda x: pd.to_numeric(x, errors="coerce").sum()),
+
                         total_roti=("roti", lambda x: pd.to_numeric(x, errors="coerce").sum()),
+
                         total_roti_amount=("roti_amount", lambda x: pd.to_numeric(x, errors="coerce").sum())
                     )
                 )
 
+                # ✅ Proper Tiffin Amount Calculation
+                # 1 Tiffin = ₹90
+
+                summary_df["total_tiffin_amount"] = (
+                        pd.to_numeric(summary_df["total_tiffin"], errors="coerce") * 90
+                )
+
+                # ✅ Sub Total
                 summary_df["sub_total"] = (
                         summary_df["total_tiffin_amount"] +
                         summary_df["total_roti_amount"]
                 )
 
+                # =====================================================
+                # ✅ TOTAL ROW
+                # =====================================================
+
                 total_row = pd.DataFrame({
                     "name": ["TOTAL"],
-                    "total_tiffin": [summary_df["total_tiffin"].sum()],
-                    "total_tiffin_amount": [summary_df["total_tiffin_amount"].sum()],
-                    "total_roti": [summary_df["total_roti"].sum()],
-                    "total_roti_amount": [summary_df["total_roti_amount"].sum()],
-                    "sub_total": [summary_df["sub_total"].sum()]
+
+                    "total_tiffin": [
+                        summary_df["total_tiffin"].sum()
+                    ],
+
+                    "total_tiffin_amount": [
+                        summary_df["total_tiffin_amount"].sum()
+                    ],
+
+                    "total_roti": [
+                        summary_df["total_roti"].sum()
+                    ],
+
+                    "total_roti_amount": [
+                        summary_df["total_roti_amount"].sum()
+                    ],
+
+                    "sub_total": [
+                        summary_df["sub_total"].sum()
+                    ]
                 })
 
-                summary_df = pd.concat([summary_df, total_row], ignore_index=True)
+                summary_df = pd.concat(
+                    [summary_df, total_row],
+                    ignore_index=True
+                )
 
                 summary_df.columns = [
                     "Name",
