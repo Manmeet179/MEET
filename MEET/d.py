@@ -878,7 +878,7 @@ def app():
 
             img_bytes = f.read()
 
-            img_base64 = base64.b64encode(img_bytes).decode()
+        img_base64 = base64.b64encode(img_bytes).decode()
 
         # Display icon + text side by side
 
@@ -886,7 +886,11 @@ def app():
 
             f"""
 
-            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;"><img src="data:image/png;base64,{img_base64}" width="30" /><span>All Records</span>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+
+                <img src="data:image/png;base64,{img_base64}" width="30" />
+
+                <span>All Records</span>
 
             </div>
 
@@ -910,7 +914,84 @@ def app():
             if "time" in df.columns:
                 df = df.drop(columns=["time"])
 
-            # ✅ Number formatting
+            # ✅ Convert date column properly
+
+            df["date"] = pd.to_datetime(df["date"], dayfirst=True)
+
+            # ============================================
+
+            # 🔽 VIEW RECORD BY
+
+            # ============================================
+
+            view_type = st.selectbox(
+
+                "View Record By",
+
+                ["Date Wise", "Name Wise"]
+
+            )
+
+            # ============================================
+
+            # ✅ DATE WISE
+
+            # ============================================
+
+            if view_type == "Date Wise":
+
+                # Ascending order by date
+
+                df = df.sort_values(by="date", ascending=True)
+
+
+            # ============================================
+
+            # ✅ NAME WISE
+
+            # ============================================
+
+            elif view_type == "Name Wise":
+
+                # Custom name order
+
+                name_order = {
+
+                    "MEET": 1,
+
+                    "YASH": 2,
+
+                    "DHRUMIL": 3
+
+                }
+
+                df["name_order"] = df["name"].str.upper().map(name_order)
+
+                # Sort by name first then date
+
+                df = df.sort_values(
+
+                    by=["name_order", "date"],
+
+                    ascending=[True, True]
+
+                )
+
+                df = df.drop(columns=["name_order"])
+
+            # ============================================
+
+            # ✅ DATE FORMAT ONLY DD/MM/YYYY
+
+            # ============================================
+
+            df["date"] = df["date"].dt.strftime("%d/%m/%Y")
+
+            # ============================================
+
+            # ✅ NUMBER FORMATTING
+
+            # ============================================
 
             numeric_cols = ["quantity", "amount", "roti", "roti_amount"]
 
@@ -923,7 +1004,11 @@ def app():
 
                     )
 
-            # ✅ Font color for Payment Status
+            # ============================================
+
+            # ✅ FONT COLOR FOR PAYMENT STATUS
+
+            # ============================================
 
             def color_payment(val):
 
@@ -950,7 +1035,11 @@ def app():
 
                 return ""
 
-            # ✅ Font color for Name
+            # ============================================
+
+            # ✅ FONT COLOR FOR NAME
+
+            # ============================================
 
             def color_name(val):
 
@@ -964,7 +1053,21 @@ def app():
 
                 }
 
-                return f"color: {colors[val.upper()]}; font-weight: bold;" if str(val).upper() in colors else ""
+                return (
+
+                    f"color: {colors[val.upper()]}; font-weight: bold;"
+
+                    if str(val).upper() in colors
+
+                    else ""
+
+                )
+
+            # ============================================
+
+            # ✅ STYLE APPLY
+
+            # ============================================
 
             styled_df = (
 
@@ -1758,3 +1861,4 @@ def app():
 
 if __name__ == "__main__":
     app()
+    
