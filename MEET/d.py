@@ -1774,7 +1774,6 @@ def app():
 
                 # ---------- Streamlit Table Styling ----------
 
-
                 def style_table(df):
 
                     styler = df.style.map(
@@ -1806,20 +1805,17 @@ def app():
                     filtered_df.groupby("name", as_index=False)
                     .agg(
                         total_tiffin=("quantity", lambda x: pd.to_numeric(x, errors="coerce").sum()),
+                        total_tiffin_amount=("amount", lambda x: pd.to_numeric(x, errors="coerce").sum()),
                         total_roti=("roti", lambda x: pd.to_numeric(x, errors="coerce").sum()),
                         total_roti_amount=("roti_amount", lambda x: pd.to_numeric(x, errors="coerce").sum())
                     )
                 )
-
-                # ✅ Proper Tiffin Amount
-                summary_df["total_tiffin_amount"] = summary_df["total_tiffin"] * 90
 
                 summary_df["sub_total"] = (
                         summary_df["total_tiffin_amount"] +
                         summary_df["total_roti_amount"]
                 )
 
-                # ✅ TOTAL ROW
                 total_row = pd.DataFrame({
                     "name": ["TOTAL"],
                     "total_tiffin": [summary_df["total_tiffin"].sum()],
@@ -1886,135 +1882,86 @@ def app():
 
                     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
 
-                        # =================================================
-                        # ✅ MAIN TABLE
-                        # =================================================
-
-                        filtered_df.to_excel(
-                            writer,
-                            index=False,
-                            sheet_name="Tiffin Records"
-                        )
+                        # ✅ Main Data
+                        filtered_df.to_excel(writer, index=False, sheet_name="Tiffin Records")
 
                         workbook = writer.book
                         worksheet = writer.sheets["Tiffin Records"]
 
-                        # =================================================
-                        # ✅ FORMATS
-                        # =================================================
+                        # ---------- Formats ----------
 
-
-                        # ✅ DAY format
-                        day_format = workbook.add_format({
-                            'font_color': '#FF8F00',
-                            'bold': True,
-                            'border': 1,
-                            'align': 'center',
-                            'valign': 'vcenter'
-                        })
-
-                        # ✅ NIGHT format
-                        night_format = workbook.add_format({
-                            'font_color': '#3B9797',
-                            'bold': True,
-                            'border': 1,
-                            'align': 'center',
-                            'valign': 'vcenter'
-                        })
-
-                        header_format = workbook.add_format({
-                            'bold': True,
-                            'border': 1,
-                            'align': 'center',
-                            'bg_color': '#D9EAFD'
-                        })
-
-                        normal_format = workbook.add_format({
-                            'border': 1
-                        })
-
-                        # ✅ DAY format
-                        day_format = workbook.add_format({
-                            'font_color': '#FF8F00',
-                            'bold': True,
-                            'border': 1
-                        })
-
-                        # ✅ NIGHT format
-                        night_format = workbook.add_format({
-                            'font_color': '#3B9797',
-                            'bold': True,
-                            'border': 1
-                        })
-
-                        # ✅ Name formats
-                        meet_format = workbook.add_format({
-                            'font_color': '#FF0033',
-                            'bold': True,
-                            'border': 1
-                        })
-
-                        yash_format = workbook.add_format({
-                            'font_color': '#bfff00',
-                            'bold': True,
-                            'border': 1
-                        })
-
-                        dhrumil_format = workbook.add_format({
-                            'font_color': '#00bfff',
+                        bold_format = workbook.add_format({
                             'bold': True,
                             'border': 1
                         })
 
                         total_format = workbook.add_format({
-                            'font_color': '#9929EA',
                             'bold': True,
+                            'font_color': '#9929EA',
                             'border': 1
                         })
 
-                        # =================================================
-                        # ✅ HEADER FORMAT APPLY
-                        # =================================================
+                        # ---------- Write Summary Table ----------
 
-                        for col_num, value in enumerate(filtered_df.columns.values):
-                            worksheet.write(0, col_num, value, header_format)
+                        start_row = len(filtered_df) + 4
 
-                        # =================================================
-                        # ✅ MAIN TABLE BORDER
-                        # =================================================
+                        worksheet.write(start_row, 0, "SUMMARY TABLE", bold_format)
 
-                        for row in range(1, len(filtered_df) + 1):
+                        # Header
+                        for col_num, value in enumerate(summary_df.columns.values):
+                            worksheet.write(start_row + 1, col_num, value, bold_format)
 
-                            for col in range(len(filtered_df.columns)):
-                                worksheet.write(
-                                    row,
-                                    col,
-                                    filtered_df.iloc[row - 1, col],
-                                    normal_format
-                                )
+                        # Data
+                        for row_num, row_data in enumerate(summary_df.values):
 
-                        # =================================================
-                        # ✅ NAME COLORING
-                        # =================================================
+                            for col_num, cell_data in enumerate(row_data):
+
+                                if str(row_data[0]).upper() == "TOTAL":
+                                    worksheet.write(
+                                        start_row + 2 + row_num,
+                                        col_num,
+                                        cell_data,
+                                        total_format
+                                    )
+                                else:
+                                    worksheet.write(
+                                        start_row + 2 + row_num,
+                                        col_num,
+                                        cell_data
+                                    )
+
+                        # ---------- Main Table Name Coloring ----------
 
                         name_col_idx = filtered_df.columns.get_loc("name")
 
                         for row_num, val in enumerate(filtered_df['name'], start=1):
 
-                            val_upper = str(val).upper()
+                            color = color_name(val)
 
-                            if val_upper == "MEET":
-                                worksheet.write(row_num, name_col_idx, val, meet_format)
+                            if color:
+                                cell_format = workbook.add_format({
+                                    'font_color': color,
+                                    'bold': True
+                                })
 
-                            elif val_upper == "YASH":
-                                worksheet.write(row_num, name_col_idx, val, yash_format)
+                                worksheet.write(row_num, name_col_idx, val, cell_format)
 
-                            elif val_upper == "DHRUMIL":
-                                worksheet.write(row_num, name_col_idx, val, dhrumil_format)
+                        # ---------- Payment Status Coloring ----------
 
-                        # =================================================
-                        # ✅ SHIFT COLORING (DAY / NIGHT)
-                        # =================================================
+                        payment_col_idx = filtered_df.columns.get_loc("payment_status")
+
+                        for row_num, val in enumerate(filtered_df['payment_status'], start=1):
+
+                            color = color_payment(val)
+
+                            if color:
+                                cell_format = workbook.add_format({
+                                    'font_color': color
+                                })
+
+                                worksheet.write(row_num, payment_col_idx, val, cell_format)
+
+                        # ---------- Shift Coloring ----------
 
                         if 'shift' in filtered_df.columns:
 
@@ -2022,158 +1969,16 @@ def app():
 
                             for row_num, val in enumerate(filtered_df['shift'], start=1):
 
-                                shift_val = str(val).upper()
+                                color = color_shift(val)
 
-                                if shift_val == "DAY":
-                                    worksheet.write(
-                                        row_num,
-                                        shift_col_idx,
-                                        val,
-                                        day_format
-                                    )
+                                if color:
+                                    cell_format = workbook.add_format({
+                                        'font_color': color
+                                    })
 
-                                elif shift_val == "NIGHT":
-                                    worksheet.write(
-                                        row_num,
-                                        shift_col_idx,
-                                        val,
-                                        night_format
-                                    )
-                        # =================================================
-                        # ✅ PAYMENT STATUS COLORING
-                        # =================================================
+                                    worksheet.write(row_num, shift_col_idx, val, cell_format)
 
-                        if 'payment_status' in filtered_df.columns:
-
-                            payment_col_idx = filtered_df.columns.get_loc("payment_status")
-
-                            # ✅ Formats
-                            payment_done_format = workbook.add_format({
-                                'font_color': '#059212',
-                                'bold': True,
-                                'border': 1,
-                                'align': 'center'
-                            })
-
-                            pending_format = workbook.add_format({
-                                'font_color': '#76153C',
-                                'bold': True,
-                                'border': 1,
-                                'align': 'center'
-                            })
-
-                            paid_format = workbook.add_format({
-                                'font_color': 'gold',
-                                'bold': True,
-                                'border': 1,
-                                'align': 'center'
-                            })
-
-                            not_involved_format = workbook.add_format({
-                                'font_color': '#FCDC2A',
-                                'bold': True,
-                                'border': 1,
-                                'align': 'center'
-                            })
-
-                            # ✅ Apply formats row wise
-                            for row_num, val in enumerate(filtered_df['payment_status'], start=1):
-
-                                payment_val = str(val).lower()
-
-                                if payment_val == "payment done":
-
-                                    worksheet.write(
-                                        row_num,
-                                        payment_col_idx,
-                                        val,
-                                        payment_done_format
-                                    )
-
-                                elif payment_val in ["pending", "payment pending"]:
-
-                                    worksheet.write(
-                                        row_num,
-                                        payment_col_idx,
-                                        val,
-                                        pending_format
-                                    )
-
-                                elif payment_val == "paid":
-
-                                    worksheet.write(
-                                        row_num,
-                                        payment_col_idx,
-                                        val,
-                                        paid_format
-                                    )
-
-                                elif payment_val == "not involved":
-
-                                    worksheet.write(
-                                        row_num,
-                                        payment_col_idx,
-                                        val,
-                                        not_involved_format
-                                    )
-
-                        # =================================================
-                        # ✅ SUMMARY TABLE
-                        # =================================================
-
-                        start_row = len(filtered_df) + 4
-
-                        worksheet.write(
-                            start_row,
-                            0,
-                            "SUMMARY TABLE",
-                            header_format
-                        )
-
-                        # Header
-                        for col_num, value in enumerate(summary_df.columns.values):
-                            worksheet.write(
-                                start_row + 1,
-                                col_num,
-                                value,
-                                header_format
-                            )
-
-                        # =================================================
-                        # ✅ SUMMARY DATA WITH NAME COLORS
-                        # =================================================
-
-                        for row_num, row_data in enumerate(summary_df.values):
-
-                            name_val = str(row_data[0]).upper()
-
-                            if name_val == "MEET":
-                                row_format = meet_format
-
-                            elif name_val == "YASH":
-                                row_format = yash_format
-
-                            elif name_val == "DHRUMIL":
-                                row_format = dhrumil_format
-
-                            elif name_val == "TOTAL":
-                                row_format = total_format
-
-                            else:
-                                row_format = normal_format
-
-                            for col_num, cell_data in enumerate(row_data):
-                                worksheet.write(
-                                    start_row + 2 + row_num,
-                                    col_num,
-                                    cell_data,
-                                    row_format
-                                )
-
-                        # =================================================
-                        # ✅ AUTO COLUMN WIDTH
-                        # =================================================
-
+                        # ✅ Auto column width
                         for i, col in enumerate(filtered_df.columns):
                             column_len = max(
                                 filtered_df[col].astype(str).map(len).max(),
@@ -2187,7 +1992,7 @@ def app():
                     st.download_button(
                         label="⬇️ Download Excel",
                         data=processed_data,
-                        file_name=f"MANMMET'S_Tiffin_Records_{from_date}_to_{to_date}.xlsx",
+                        file_name=f"Tiffin_Records_{from_date}_to_{to_date}.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     )
                 # -------------------- Delete --------------------
