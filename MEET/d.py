@@ -886,11 +886,7 @@ def app():
 
             f"""
 
-            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
-
-                <img src="data:image/png;base64,{img_base64}" width="30" />
-
-                <span>All Records</span>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;"><img src="data:image/png;base64,{img_base64}" width="30" /><span>All Records</span>
 
             </div>
 
@@ -1861,4 +1857,3 @@ def app():
 
 if __name__ == "__main__":
     app()
-    
