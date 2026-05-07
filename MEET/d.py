@@ -1812,9 +1812,7 @@ def app():
                     )
                 )
 
-                # ✅ Proper Tiffin Amount Calculation
-                # 1 Tiffin = ₹90
-
+                # ✅ Proper Tiffin Amount
                 summary_df["total_tiffin_amount"] = (
                         pd.to_numeric(summary_df["total_tiffin"], errors="coerce") * 90
                 )
@@ -1824,6 +1822,19 @@ def app():
                         summary_df["total_tiffin_amount"] +
                         summary_df["total_roti_amount"]
                 )
+
+                # =====================================================
+                # ✅ COLUMN ORDER FIX
+                # =====================================================
+
+                summary_df = summary_df[[
+                    "name",
+                    "total_tiffin",
+                    "total_tiffin_amount",
+                    "total_roti",
+                    "total_roti_amount",
+                    "sub_total"
+                ]]
 
                 # =====================================================
                 # ✅ TOTAL ROW
@@ -1858,6 +1869,10 @@ def app():
                     ignore_index=True
                 )
 
+                # =====================================================
+                # ✅ COLUMN NAMES
+                # =====================================================
+
                 summary_df.columns = [
                     "Name",
                     "Total Tiffin",
@@ -1867,7 +1882,10 @@ def app():
                     "Sub Total"
                 ]
 
+                # =====================================================
                 # ✅ FORMAT SUMMARY NUMBERS
+                # =====================================================
+
                 for col in [
                     "Total Tiffin",
                     "Total Tiffin Amount",
@@ -1878,6 +1896,10 @@ def app():
                     summary_df[col] = summary_df[col].apply(
                         lambda x: f"{x:.2f}" if float(x) % 1 else f"{int(x)}"
                     )
+
+                # =====================================================
+                # ✅ SUMMARY STYLE
+                # =====================================================
 
                 st.markdown("<br><br>", unsafe_allow_html=True)
 
