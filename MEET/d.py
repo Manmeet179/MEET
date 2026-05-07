@@ -1737,9 +1737,9 @@ def app():
                 # ---------- Color Functions ----------
 
                 def color_shift(val):
-                    if str(val).lower() == "day":
+                    if str(val).lower() == "DAY":
                         return "#FF8F00"
-                    elif str(val).lower() == "night":
+                    elif str(val).lower() == "NIGHT":
                         return "#3B9797"
                     return None
 
