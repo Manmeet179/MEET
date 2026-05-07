@@ -1472,6 +1472,9 @@ def app():
                     (df['date'] <= pd.to_datetime(to_date))
                     ]
 
+                # ✅ Only date show (remove time)
+                filtered_df['date'] = pd.to_datetime(filtered_df['date']).dt.strftime('%d-%m-%Y')
+
                 # ✅ Remove extra .00000
                 numeric_cols = ["quantity", "amount", "roti", "roti_amount"]
 
