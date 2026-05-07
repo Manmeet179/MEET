@@ -1902,24 +1902,6 @@ def app():
                         # =================================================
                         # ✅ FORMATS
                         # =================================================
-                        
-                        # ✅ DAY format
-                        day_format = workbook.add_format({
-                            'font_color': '#FF8F00',
-                            'bold': True,
-                            'border': 1,
-                            'align': 'center',
-                            'valign': 'vcenter'
-                        })
-
-                        # ✅ NIGHT format
-                        night_format = workbook.add_format({
-                            'font_color': '#3B9797',
-                            'bold': True,
-                            'border': 1,
-                            'align': 'center',
-                            'valign': 'vcenter'
-                        })
 
                         header_format = workbook.add_format({
                             'bold': True,
