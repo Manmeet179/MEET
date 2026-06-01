@@ -1127,8 +1127,6 @@ def app():
             from datetime import date
             from dateutil.relativedelta import relativedelta
 
-            st.markdown("### 📅 Select Billing Cycle")
-
             # First Load
             if "cycle_end" not in st.session_state:
 
@@ -1144,7 +1142,42 @@ def app():
                     # Example: 05-Jun => 10-May to 10-Jun
                     st.session_state.cycle_end = today.replace(day=10)
 
-            # Navigation Buttons
+            st.markdown("""
+            <style>
+
+            /* Previous Month Button */
+            div[data-testid="column"]:nth-of-type(1) .stButton > button {
+                background-color: #dc3545 !important;
+                color: white !important;
+                border: none !important;
+                border-radius: 10px !important;
+                font-weight: 600 !important;
+                width: 100%;
+            }
+
+            div[data-testid="column"]:nth-of-type(1) .stButton > button:hover {
+                background-color: #bb2d3b !important;
+                color: white !important;
+            }
+
+            /* Next Month Button */
+            div[data-testid="column"]:nth-of-type(2) .stButton > button {
+                background-color: #198754 !important;
+                color: white !important;
+                border: none !important;
+                border-radius: 10px !important;
+                font-weight: 600 !important;
+                width: 100%;
+            }
+
+            div[data-testid="column"]:nth-of-type(2) .stButton > button:hover {
+                background-color: #157347 !important;
+                color: white !important;
+            }
+
+            </style>
+            """, unsafe_allow_html=True)
+
             btn1, btn2 = st.columns(2)
 
             with btn1:
