@@ -538,69 +538,90 @@ def account_page():
 
 # -------------------- Account Records Page --------------------
 
-def account_records_page():
-    # PNG file load & encode
-    with open("images/view.png", "rb") as f:
-        img_bytes = f.read()
-        img_base64 = base64.b64encode(img_bytes).decode()
+# PNG file load & encode
+with open("images/view.png", "rb") as f:
+    img_bytes = f.read()
+    img_base64 = base64.b64encode(img_bytes).decode()
 
-    # Display icon + text side by side
-    st.markdown(
-        f"""
-        <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
-            <img src="data:image/png;base64,{img_base64}" width="30" />
-            <span>Account Records</span>
-        </div>
-        """,
-        unsafe_allow_html=True
+    # Header
+st.markdown(
+    f"""
+       <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+           <img src="data:image/png;base64,{img_base64}" width="30" />
+           <span>Account Records</span>
+       </div>
+       """,
+    unsafe_allow_html=True
+)
+
+conn = get_db()
+
+df = pd.read_sql(
+    "SELECT * FROM account_records ORDER BY date DESC, time DESC",
+    conn
+)
+
+if df.empty:
+    st.info("No account records available.")
+
+else:
+
+    # ======================================================
+    # ❌ REMOVE TIME COLUMN
+    # ======================================================
+    if "time" in df.columns:
+        df = df.drop(columns=["time"])
+
+    # ======================================================
+    # 🔢 CLEAN NUMBER FORMATTING
+    # ======================================================
+    for col in df.columns:
+        if pd.api.types.is_numeric_dtype(df[col]):
+            df[col] = df[col].apply(
+                lambda x: (
+                    str(int(x)) if pd.notna(x) and float(x).is_integer()
+                    else f"{x:.2f}".rstrip("0").rstrip(".")
+                )
+            )
+
+
+    # ======================================================
+    # 🎨 NAME COLOR
+    # ======================================================
+    def color_name(val):
+        colors = {
+            "MEET": "#FF0033",
+            "YASH": "#bfff00",
+            "DHRUMIL": "#00bfff"
+        }
+        if str(val).upper() in colors:
+            return f"color: {colors[str(val).upper()]}; font-weight: bold;"
+        return ""
+
+
+    # ======================================================
+    # 🎨 PAYMENT STATUS COLOR
+    # ======================================================
+    def color_payment(val):
+        if str(val).lower() == "payment done":
+            return "color: #83FFE6; font-weight:bold"
+        elif str(val).lower() == "pending":
+            return "color: #C768FF; font-weight:bold"
+        elif str(val).lower() == "paid":
+            return "color: #0046FF; font-weight:bold"
+        return ""
+
+
+    # ======================================================
+    # 📊 APPLY STYLING
+    # ======================================================
+    styled_df = (
+        df.style
+        .map(color_name, subset=["name"])
+        .map(color_payment, subset=["payment_status"])
     )
-    conn = get_db()
 
-    df = pd.read_sql("SELECT * FROM account_records ORDER BY date DESC, time DESC", conn)
-
-
-
-    if df.empty:
-
-        st.info("No account records available.")
-
-    else:
-
-        # --- Name wise color ---
-
-        def color_name(val):
-
-            colors = {
-                "MEET": "#FF0033",
-                "YASH": "#bfff00",
-                "DHRUMIL": "#00bfff"
-            }
-            if str(val).upper() in colors:
-                return f"color: {colors[str(val).upper()]}; font-weight: bold;"
-
-            return ""
-
-        # --- Payment Status wise color ---
-
-        def color_payment(val):
-            if str(val).lower() == "payment done":
-                return "color: #83FFE6; font-weight:bold"
-            elif str(val).lower() == "pending":
-                return "color: #C768FF; font-weight:bold"
-            elif str(val).lower() == "paid":
-                return "color: #0046FF; font-weight:bold"
-            return ""
-
-        # --- Apply both styles ---
-
-        styled_df = (
-            df.style
-            .map(color_name, subset=["name"])
-            .map(color_payment, subset=["payment_status"])
-        )
-        st.dataframe(styled_df, use_container_width=True)
-
-
+    st.dataframe(styled_df, use_container_width=True)
 def edit_account_page():
     # --- Load icon ---
     with open("images/edit.png", "rb") as f:
@@ -1123,9 +1144,6 @@ def app():
             # ======================================================
             # 📅 DATE FILTER WITH PREVIOUS / NEXT MONTH BUTTON
             # ======================================================
-
-            from datetime import date
-            from dateutil.relativedelta import relativedelta
 
             # First Load
             if "cycle_end" not in st.session_state:
