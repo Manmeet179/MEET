@@ -562,6 +562,10 @@ def account_records_page():
         conn
     )
 
+    # 🔠 Convert to CAPITAL
+    if "payment_status" in df.columns:
+        df["payment_status"] = df["payment_status"].astype(str).str.upper()
+
     if df.empty:
         st.info("No account records available.")
 
