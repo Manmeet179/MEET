@@ -1138,6 +1138,7 @@ def app():
             )
 
             st.dataframe(styled_df, use_container_width=True)
+
     # -------------------- Chart --------------------
 
     elif menu == "🗃️ Analytics Dashboard":
