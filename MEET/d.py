@@ -1124,61 +1124,64 @@ def app():
             # 📅 DATE FILTER
             # ======================================================
 
-            from datetime import date
-            from dateutil.relativedelta import relativedelta
+            # First load
+            if "cycle_end" not in st.session_state:
+                today = date.today()
 
-            st.markdown("### 📅 Select Date Range")
+                # Current cycle end = current month's 10th
+                cycle_end = today.replace(day=10)
 
-            # Default range = Previous 10th to Current 10th
-            today = date.today()
+                # Default = previous billing cycle
+                st.session_state.cycle_end = cycle_end
 
-            current_month_10 = today.replace(day=10)
+            # Navigation Buttons
+            col_prev, col_next = st.columns(2)
 
-            # If today is before 10th, use previous month's 10th as cycle end
-            if today.day < 10:
-                cycle_end = current_month_10
-            else:
-                cycle_end = current_month_10
+            with col_prev:
+                if st.button("⬅ Previous Month"):
+                    st.session_state.cycle_end = (
+                            st.session_state.cycle_end - relativedelta(months=1)
+                    )
 
-            default_to = cycle_end
-            default_from = cycle_end - relativedelta(months=1)
+            with col_next:
+                if st.button("Next Month ➡"):
+                    st.session_state.cycle_end = (
+                            st.session_state.cycle_end + relativedelta(months=1)
+                    )
 
-            # Keep dates within available data range
-            min_date = df['date'].min().date()
-            max_date = df['date'].max().date()
+            # Calculate Range
+            default_to = st.session_state.cycle_end
+            default_from = default_to - relativedelta(months=1)
 
-            if default_from < min_date:
-                default_from = min_date
+            st.info(
+                f"Showing Billing Cycle: "
+                f"{default_from.strftime('%d-%b-%Y')} → "
+                f"{default_to.strftime('%d-%b-%Y')}"
+            )
 
-            if default_to > max_date:
-                default_to = max_date
-
+            # Date Inputs
             col1, col2 = st.columns(2)
 
             with col1:
                 from_date = st.date_input(
                     "From Date",
                     value=default_from,
-                    min_value=min_date,
-                    max_value=max_date
+                    key="from_date"
                 )
 
             with col2:
                 to_date = st.date_input(
                     "To Date",
                     value=default_to,
-                    min_value=min_date,
-                    max_value=max_date
+                    key="to_date"
                 )
 
-            # Apply filter
+            # Apply Filter
             df = df[
                 (df['date'] >= pd.to_datetime(from_date)) &
                 (df['date'] <= pd.to_datetime(to_date))
                 ]
-
-            if df.empty:
-                st.info("No orders found for selected date range.")
+            
             # ✅ Apply filter
 
             df = df[
