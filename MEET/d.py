@@ -745,15 +745,15 @@ def app():
     menu = st.sidebar.selectbox("Navigation", [
         "➕ Add Tiffin Entry",
         "🔎 View Tiffin Records",
+        "🗃️ Analytics Dashboard",
+        "⬇️ Export Data",
         "❎ Remove Tiffin Records",
         "🛠️ Edit Tiffin Records",
         "💳 Add Expense Entry",
         "🔍 View Expense Records",
         "❎ Remove Expense Records",
         "✏️ Edit Expense Details",
-        "🗃️ Analytics Dashboard",
         "💳 Update Payment Status",
-        "⬇️ Export Data",
     ])
 
     if menu == "❎ Remove Tiffin Records":
@@ -1120,34 +1120,65 @@ def app():
 
             # ======================================================
 
+            # ======================================================
             # 📅 DATE FILTER
-
             # ======================================================
 
+            from datetime import date
+            from dateutil.relativedelta import relativedelta
+
             st.markdown("### 📅 Select Date Range")
+
+            # Default range = Previous 10th to Current 10th
+            today = date.today()
+
+            current_month_10 = today.replace(day=10)
+
+            # If today is before 10th, use previous month's 10th as cycle end
+            if today.day < 10:
+                cycle_end = current_month_10
+            else:
+                cycle_end = current_month_10
+
+            default_to = cycle_end
+            default_from = cycle_end - relativedelta(months=1)
+
+            # Keep dates within available data range
+            min_date = df['date'].min().date()
+            max_date = df['date'].max().date()
+
+            if default_from < min_date:
+                default_from = min_date
+
+            if default_to > max_date:
+                default_to = max_date
 
             col1, col2 = st.columns(2)
 
             with col1:
-
                 from_date = st.date_input(
-
                     "From Date",
-
-                    value=df['date'].min().date()
-
+                    value=default_from,
+                    min_value=min_date,
+                    max_value=max_date
                 )
 
             with col2:
-
                 to_date = st.date_input(
-
                     "To Date",
-
-                    value=df['date'].max().date()
-
+                    value=default_to,
+                    min_value=min_date,
+                    max_value=max_date
                 )
 
+            # Apply filter
+            df = df[
+                (df['date'] >= pd.to_datetime(from_date)) &
+                (df['date'] <= pd.to_datetime(to_date))
+                ]
+
+            if df.empty:
+                st.info("No orders found for selected date range.")
             # ✅ Apply filter
 
             df = df[
