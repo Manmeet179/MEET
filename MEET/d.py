@@ -1121,45 +1121,77 @@ def app():
             # ======================================================
 
             # ======================================================
-            # 📅 DATE FILTER
+            # 📅 DATE FILTER WITH PREVIOUS / NEXT MONTH BUTTON
             # ======================================================
 
-            # First load
             from datetime import date
             from dateutil.relativedelta import relativedelta
 
+            st.markdown("### 📅 Select Billing Cycle")
+
+            # First Load
             if "cycle_end" not in st.session_state:
+
                 today = date.today()
-                st.session_state.cycle_end = today.replace(day=10)
 
-            col1, col2 = st.columns(2)
+                if today.day >= 10:
+                    # Current Billing Cycle
+                    # Example: 15-Jun => 10-Jun to 10-Jul
+                    st.session_state.cycle_end = (
+                            today.replace(day=10) + relativedelta(months=1)
+                    )
+                else:
+                    # Example: 05-Jun => 10-May to 10-Jun
+                    st.session_state.cycle_end = today.replace(day=10)
 
-            with col1:
-                if st.button("⬅ Previous"):
+            # Navigation Buttons
+            btn1, btn2 = st.columns(2)
+
+            with btn1:
+                if st.button("⬅ Previous Month"):
                     st.session_state.cycle_end -= relativedelta(months=1)
                     st.rerun()
 
-            with col2:
-                if st.button("Next ➡"):
+            with btn2:
+                if st.button("Next Month ➡"):
                     st.session_state.cycle_end += relativedelta(months=1)
                     st.rerun()
 
-            default_to = st.session_state.cycle_end
-            default_from = default_to - relativedelta(months=1)
+            # Calculate Current Cycle
+            to_date = st.session_state.cycle_end
+            from_date = to_date - relativedelta(months=1)
 
-            st.write(
-                f"Showing: {default_from.strftime('%d-%m-%Y')} "
-                f"to {default_to.strftime('%d-%m-%Y')}"
+            # Show Current Range
+            st.info(
+                f"📅 Billing Cycle: "
+                f"{from_date.strftime('%d-%b-%Y')} ➜ "
+                f"{to_date.strftime('%d-%b-%Y')}"
             )
 
-            from_date = default_from
-            to_date = default_to
+            # Optional Manual Date Selection
+            col1, col2 = st.columns(2)
 
+            with col1:
+                from_date = st.date_input(
+                    "From Date",
+                    value=from_date
+                )
+
+            with col2:
+                to_date = st.date_input(
+                    "To Date",
+                    value=to_date
+                )
+
+            # Apply Filter
             df = df[
                 (df["date"] >= pd.to_datetime(from_date)) &
-                (df["date"] < pd.to_datetime(to_date))
+                (df["date"] < pd.to_datetime(to_date) + pd.Timedelta(days=1))
                 ]
 
+            if df.empty:
+                st.warning("No data found for selected billing cycle.")
+                st.stop()
             # ✅ Apply filter
 
             df = df[
