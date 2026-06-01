@@ -7,8 +7,6 @@ import psycopg2
 from io import BytesIO
 import base64
 import time
-from datetime import date
-from dateutil.relativedelta import relativedelta
 # -------------------- Streamlit Config --------------------
 
 st.set_page_config(
@@ -1127,63 +1125,41 @@ def app():
             # ======================================================
 
             # First load
+            from datetime import date
+            from dateutil.relativedelta import relativedelta
+
             if "cycle_end" not in st.session_state:
                 today = date.today()
+                st.session_state.cycle_end = today.replace(day=10)
 
-                # Current cycle end = current month's 10th
-                cycle_end = today.replace(day=10)
-
-                # Default = previous billing cycle
-                st.session_state.cycle_end = cycle_end
-
-            # Navigation Buttons
-            col_prev, col_next = st.columns(2)
-
-            with col_prev:
-                if st.button("⬅ Previous Month"):
-                    st.session_state.cycle_end = (
-                            st.session_state.cycle_end - relativedelta(months=1)
-                    )
-
-            with col_next:
-                if st.button("Next Month ➡"):
-                    st.session_state.cycle_end = (
-                            st.session_state.cycle_end + relativedelta(months=1)
-                    )
-
-            # Calculate Range
-            default_to = st.session_state.cycle_end
-            default_from = default_to - relativedelta(months=1)
-
-            st.info(
-                f"Showing Billing Cycle: "
-                f"{default_from.strftime('%d-%b-%Y')} → "
-                f"{default_to.strftime('%d-%b-%Y')}"
-            )
-
-            # Date Inputs
             col1, col2 = st.columns(2)
 
             with col1:
-                from_date = st.date_input(
-                    "From Date",
-                    value=default_from,
-                    key="from_date"
-                )
+                if st.button("⬅ Previous"):
+                    st.session_state.cycle_end -= relativedelta(months=1)
+                    st.rerun()
 
             with col2:
-                to_date = st.date_input(
-                    "To Date",
-                    value=default_to,
-                    key="to_date"
-                )
+                if st.button("Next ➡"):
+                    st.session_state.cycle_end += relativedelta(months=1)
+                    st.rerun()
 
-            # Apply Filter
+            default_to = st.session_state.cycle_end
+            default_from = default_to - relativedelta(months=1)
+
+            st.write(
+                f"Showing: {default_from.strftime('%d-%m-%Y')} "
+                f"to {default_to.strftime('%d-%m-%Y')}"
+            )
+
+            from_date = default_from
+            to_date = default_to
+
             df = df[
-                (df['date'] >= pd.to_datetime(from_date)) &
-                (df['date'] <= pd.to_datetime(to_date))
+                (df["date"] >= pd.to_datetime(from_date)) &
+                (df["date"] < pd.to_datetime(to_date))
                 ]
-            
+
             # ✅ Apply filter
 
             df = df[
