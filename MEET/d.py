@@ -562,10 +562,6 @@ def account_records_page():
         conn
     )
 
-    # 🔠 Convert to CAPITAL
-    if "payment_status" in df.columns:
-        df["payment_status"] = df["payment_status"].astype(str).str.upper()
-
     if df.empty:
         st.info("No account records available.")
 
@@ -897,31 +893,21 @@ def app():
 
     elif menu == "🔎 View Tiffin Records":
 
-        import base64
-
-        import pandas as pd
-
-        import streamlit as st
-
         # PNG file load & encode
 
         with open("images/view.png", "rb") as f:
 
             img_bytes = f.read()
 
-            img_base64 = base64.b64encode(img_bytes).decode()
+        img_base64 = base64.b64encode(img_bytes).decode()
 
-        # Header
+        # Display icon + text side by side
 
         st.markdown(
 
             f"""
 
-            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
-
-                <img src="data:image/png;base64,{img_base64}" width="30" />
-
-                <span>All Records</span>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;"><img src="data:image/png;base64,{img_base64}" width="30" /><span>All Records</span>
 
             </div>
 
@@ -940,32 +926,12 @@ def app():
 
         else:
 
-            # ======================================================
-
-            # ❌ Remove time column
-
-            # ======================================================
+            # ✅ Remove time column if exists
 
             if "time" in df.columns:
                 df = df.drop(columns=["time"])
 
-            # ======================================================
-
-            # 🔠 CAPITAL CONVERSION (NEW ADD)
-
-            # ======================================================
-
-            if "payment_status" in df.columns:
-                df["payment_status"] = df["payment_status"].astype(str).str.strip().upper()
-
-            if "shift" in df.columns:
-                df["shift"] = df["shift"].astype(str).str.strip().upper()
-
-            # ======================================================
-
-            # 📅 Convert date
-
-            # ======================================================
+            # ✅ Convert date column properly
 
             df["date"] = pd.to_datetime(df["date"], dayfirst=True)
 
@@ -985,22 +951,26 @@ def app():
 
             # ============================================
 
-            # DATE WISE
+            # ✅ DATE WISE
 
             # ============================================
 
             if view_type == "Date Wise":
+
+                # Ascending order by date
 
                 df = df.sort_values(by="date", ascending=True)
 
 
             # ============================================
 
-            # NAME WISE
+            # ✅ NAME WISE
 
             # ============================================
 
             elif view_type == "Name Wise":
+
+                # Custom name order
 
                 name_order = {
 
@@ -1014,6 +984,8 @@ def app():
 
                 df["name_order"] = df["name"].str.upper().map(name_order)
 
+                # Sort by name first then date
+
                 df = df.sort_values(
 
                     by=["name_order", "date"],
@@ -1026,7 +998,7 @@ def app():
 
             # ============================================
 
-            # DATE FORMAT
+            # ✅ DATE FORMAT ONLY DD/MM/YYYY
 
             # ============================================
 
@@ -1034,7 +1006,7 @@ def app():
 
             # ============================================
 
-            # NUMBER FORMAT
+            # ✅ NUMBER FORMATTING
 
             # ============================================
 
@@ -1051,49 +1023,38 @@ def app():
 
             # ============================================
 
-            # 🎨 PAYMENT STATUS COLOR (UPDATED)
+            # ✅ FONT COLOR FOR PAYMENT STATUS
 
             # ============================================
 
             def color_payment(val):
 
-                val = str(val).upper().strip()
+                val_lower = str(val).lower()
 
-                if val == "PAYMENT DONE":
+                if val_lower == "payment done":
 
-                    return "color: #28a745; font-weight:bold;"  # Green
-
-
-                elif val == "PAID":
-
-                    return "color: #ffc107; font-weight:bold;"  # Golden
-
-                return ""
-
-            # ============================================
-
-            # 🌙 SHIFT COLOR (NEW ADD)
-
-            # ============================================
-
-            def color_shift(val):
-
-                val = str(val).upper().strip()
-
-                if val == "DAY":
-
-                    return "color: #1E90FF; font-weight:bold;"
+                    return "color: #059212; font-weight:bold;"
 
 
-                elif val == "NIGHT":
+                elif val_lower in ["pending", "payment pending"]:
 
-                    return "color: #8A2BE2; font-weight:bold;"
+                    return "color: #76153C; font-weight:bold;"
+
+
+                elif val_lower == "paid":
+
+                    return "color: goldenrod; font-weight:bold;"
+
+
+                elif val_lower == "not involved":
+
+                    return "color: #FCDC2A; font-weight:bold;"
 
                 return ""
 
             # ============================================
 
-            # 👤 NAME COLOR (same)
+            # ✅ FONT COLOR FOR NAME
 
             # ============================================
 
@@ -1111,7 +1072,7 @@ def app():
 
                 return (
 
-                    f"color: {colors.get(str(val).upper(), '')}; font-weight: bold;"
+                    f"color: {colors[val.upper()]}; font-weight: bold;"
 
                     if str(val).upper() in colors
 
@@ -1121,7 +1082,7 @@ def app():
 
             # ============================================
 
-            # STYLE APPLY (UPDATED)
+            # ✅ STYLE APPLY
 
             # ============================================
 
@@ -1130,8 +1091,6 @@ def app():
                 df.style
 
                 .map(color_payment, subset=["payment_status"])
-
-                .map(color_shift, subset=["shift"])
 
                 .map(color_name, subset=["name"])
 
