@@ -559,11 +559,9 @@ def account_records_page():
     conn = get_db()
 
     df = pd.read_sql(
-        "SELECT date, name, amount, payment_status, time FROM account_records ORDER BY date DESC, time DESC",
+        "SELECT date, name, amount, payment_status FROM account_records ORDER BY date DESC",
         conn
     )
-
-    df = df.drop(columns=["time"], errors="ignore")
 
 
     if df.empty:
