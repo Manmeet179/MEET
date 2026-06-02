@@ -1642,7 +1642,7 @@ def app():
 
             "Payment Status to Update",
 
-            ["-- SELECT --", "Payment Pending", "Payment Done"]
+            ["-- SELECT --", "PENDING", "PAID"]
 
         )
 
@@ -1650,17 +1650,19 @@ def app():
 
         if st.button("Update Payments"):
 
-            # ❌ validation
-
             if start_date > end_date:
                 st.error("❎ Start Date cannot be after End Date.")
-
                 st.stop()
 
             if selected_payment == "-- SELECT --":
                 st.warning("⚠️ Please select payment status.")
-
                 st.stop()
+
+            update_payment(start_date, end_date, selected_payment)
+
+            st.success("✅ Payment status updated successfully")
+
+            st.rerun()
 
             # -------------------- SAFE UPDATE (NO DATE CHECK ERROR) --------------------
 
