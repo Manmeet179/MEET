@@ -1141,12 +1141,35 @@ def app():
 
             st.markdown("""
             <style>
-            div[data-testid="column"] .stButton > button {
-                width: 100% !important;
-                min-height: 45px !important;
-                white-space: nowrap !important;
-                font-size: 14px !important;
+
+            /* Force columns to stay in one row */
+            div[data-testid="stHorizontalBlock"] {
+                flex-wrap: nowrap !important;
+                gap: 10px !important;
             }
+
+            /* Make each column equal width */
+            div[data-testid="column"] {
+                flex: 1 1 0% !important;
+                min-width: 0px !important;
+            }
+
+            /* Button full width inside column */
+            div[data-testid="column"] button {
+                width: 100% !important;
+                border-radius: 10px !important;
+                font-size: 14px !important;
+                white-space: nowrap !important;
+            }
+
+            /* Optional: reduce padding for mobile fit */
+            @media only screen and (max-width: 600px) {
+                div[data-testid="column"] button {
+                    font-size: 12px !important;
+                    padding: 6px 4px !important;
+                }
+            }
+
             </style>
             """, unsafe_allow_html=True)
 
