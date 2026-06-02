@@ -749,6 +749,7 @@ def app():
         "➕ Add Tiffin Entry",
         "🔎 View Tiffin Records",
         "🗃️ Analytics Dashboard",
+        "💳 Update Payment Status",
         "⬇️ Export Data",
         "❎ Remove Tiffin Records",
         "🛠️ Edit Tiffin Records",
@@ -756,7 +757,7 @@ def app():
         "🔍 View Expense Records",
         "❎ Remove Expense Records",
         "✏️ Edit Expense Details",
-        "💳 Update Payment Status",
+       
     ])
 
     if menu == "❎ Remove Tiffin Records":
