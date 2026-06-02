@@ -602,7 +602,7 @@ def account_records_page():
 
         styled_df = (
             df.style
-            .format({"amount": "{:.0f}"})
+            .format(precision=0)
             .map(color_name, subset=["name"])
             .map(color_payment, subset=["payment_status"])
         )
