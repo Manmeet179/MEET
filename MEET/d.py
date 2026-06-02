@@ -1125,14 +1125,10 @@ def app():
 
                 today = date.today()
 
+                # 👉 If today is 10th or after → cycle ends next month 10th
                 if today.day >= 10:
-                    # Current Billing Cycle
-                    # Example: 15-Jun => 10-Jun to 10-Jul
-                    st.session_state.cycle_end = (
-                            today.replace(day=10) + relativedelta(months=1)
-                    )
+                    st.session_state.cycle_end = (today.replace(day=10) + relativedelta(months=1))
                 else:
-                    # Example: 05-Jun => 10-May to 10-Jun
                     st.session_state.cycle_end = today.replace(day=10)
 
             # First Load
