@@ -606,9 +606,7 @@ def account_records_page():
             .map(color_name, subset=["name"])
             .map(color_payment, subset=["payment_status"])
         )
-        
-        df["amount"] = df["amount"].apply(lambda x: int(x) if pd.notnull(x) else x)
-        
+
         st.dataframe(styled_df, use_container_width=True)
 
 
