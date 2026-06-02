@@ -1081,387 +1081,450 @@ def app():
 
     # -------------------- Chart --------------------
 
-    elif menu == "🗃️ Analytics Dashboard":
+elif menu == "🗃️ Analytics Dashboard":
 
-        with open("images/chart.png", "rb") as f:
+import base64
 
-            img_bytes = f.read()
+import pandas as pd
 
-        img_base64 = base64.b64encode(img_bytes).decode()
+import matplotlib.pyplot as plt
 
-        st.markdown(
+from datetime import date
 
-            f"""
+from dateutil.relativedelta import relativedelta
 
-            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;"><img src="data:image/png;base64,{img_base64}" width="30" /><span>Analytics Dashboard</span>
+with open("images/chart.png", "rb") as f:
+    img_bytes = f.read()
 
-            </div>
+img_base64 = base64.b64encode(img_bytes).decode()
 
-            """,
+st.markdown(
 
-            unsafe_allow_html=True
+    f"""
 
-        )
+           <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
 
-        df = fetch_all()
+               <img src="data:image/png;base64,{img_base64}" width="30" />
 
-        if df.empty:
+               <span>Analytics Dashboard</span>
 
-            st.info("No records to plot.")
+           </div>
 
+           """,
+
+    unsafe_allow_html=True
+
+)
+
+df = fetch_all()
+
+if df.empty:
+
+    st.info("No records to plot.")
+
+
+else:
+
+    # =========================
+
+    # DATE CONVERT
+
+    # =========================
+
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+
+    df = df[df["quantity"] > 0]
+
+    # =========================
+
+    # SESSION INIT
+
+    # =========================
+
+    if "cycle_end" not in st.session_state:
+
+        today = date.today()
+
+        if today.day >= 10:
+
+            st.session_state.cycle_end = (
+
+                    today.replace(day=10) + relativedelta(months=1)
+
+            )
 
         else:
 
-            # ✅ Date convert
+            st.session_state.cycle_end = today.replace(day=10)
 
-            df['date'] = pd.to_datetime(df['date'], errors='coerce')
+    if "show_date_filter" not in st.session_state:
+        st.session_state.show_date_filter = False
 
-            # ✅ Remove zero quantity
+    # =========================
 
-            df = df[df["quantity"] > 0]
+    # UI STYLE (SEGMENTED CONTROL)
 
-            # First Load
-            if "cycle_end" not in st.session_state:
+    # =========================
 
-                today = date.today()
+    st.markdown("""
 
-                if today.day >= 10:
-                    # Current Billing Cycle
-                    # Example: 15-Jun => 10-Jun to 10-Jul
-                    st.session_state.cycle_end = (
-                            today.replace(day=10) + relativedelta(months=1)
-                    )
-                else:
-                    # Example: 05-Jun => 10-May to 10-Jun
-                    st.session_state.cycle_end = today.replace(day=10)
+           <style>
 
-            # First Load
-            if "show_date_filter" not in st.session_state:
-                st.session_state.show_date_filter = False
 
-            st.markdown("""
-            <style>
+           .mydict div {
 
-            /* Reduce column spacing */
-            div[data-testid="stHorizontalBlock"] {
-                gap: 6px !important;
-                justify-content: center !important;
-            }
+             display: flex;
 
-            /* Make columns shrink to content */
-            div[data-testid="column"] {
-                flex: 0 1 auto !important;
-                width: auto !important;
-            }
+             flex-wrap: nowrap;
 
-            /* Reduce button width */
-            div[data-testid="column"] button {
-                width: auto !important;
-                min-width: 70px !important;
-                padding: 6px 10px !important;
-                font-size: 13px !important;
-                border-radius: 8px !important;
-            }
+             justify-content: center;
 
-            /* Optional: tighten button inner div */
-            .stButton {
-                width: auto !important;
-            }
+             margin: 10px 0;
 
-            </style>
-            """, unsafe_allow_html=True)
+           }
 
-            btn1, btn_mid, btn2 = st.columns([1, 1, 1])
 
-            with btn1:
-                if st.button("Prev"):
-                    st.session_state.cycle_end -= relativedelta(months=1)
-                    st.rerun()
+           .mydict input[type="radio"] {
 
-            with btn_mid:
-                if st.button("📅 By Date"):
-                    st.session_state.show_date_filter = not st.session_state.show_date_filter
-                    st.rerun()
+             position: absolute;
 
-            with btn2:
-                if st.button("Next"):
-                    st.session_state.cycle_end += relativedelta(months=1)
-                    st.rerun()
+             opacity: 0;
 
-            # Calculate Current Cycle
-            to_date = st.session_state.cycle_end
-            from_date = to_date - relativedelta(months=1)
+           }
 
-            # Show Current Range
-            st.info(
-                f"📅 Billing Cycle: "
-                f"{from_date.strftime('%d-%b-%Y')} ➜ "
-                f"{to_date.strftime('%d-%b-%Y')}"
+
+           .mydict label span {
+
+             display: block;
+
+             cursor: pointer;
+
+             background-color: #fff;
+
+             padding: 6px 14px;
+
+             box-shadow: 0 0 0 1px #b5bfd9;
+
+             color: #3e4963;
+
+             font-size: 13px;
+
+             transition: 0.3s;
+
+             white-space: nowrap;
+
+           }
+
+
+           .mydict input[type="radio"]:checked + span {
+
+             background-color: #dee7ff;
+
+             color: #0043ed;
+
+             box-shadow: 0 0 0 1px #2260ff;
+
+           }
+
+
+           .mydict label:first-child span {
+
+             border-radius: 8px 0 0 8px;
+
+           }
+
+
+           .mydict label:last-child span {
+
+             border-radius: 0 8px 8px 0;
+
+           }
+
+
+           </style>
+
+           """, unsafe_allow_html=True)
+
+    # =========================
+
+    # SEGMENTED CONTROL UI
+
+    # =========================
+
+    selected_view = st.radio(
+
+        "View",
+
+        ["Prev", "By Date", "Next"],
+
+        horizontal=True,
+
+        label_visibility="collapsed"
+
+    )
+
+    # =========================
+
+    # ACTIONS
+
+    # =========================
+
+    if selected_view == "Prev":
+
+        st.session_state.cycle_end -= relativedelta(months=1)
+
+        st.rerun()
+
+
+    elif selected_view == "Next":
+
+        st.session_state.cycle_end += relativedelta(months=1)
+
+        st.rerun()
+
+
+    elif selected_view == "By Date":
+
+        st.session_state.show_date_filter = True
+
+    # =========================
+
+    # DATE RANGE
+
+    # =========================
+
+    to_date = st.session_state.cycle_end
+
+    from_date = to_date - relativedelta(months=1)
+
+    st.info(
+
+        f"📅 Billing Cycle: {from_date.strftime('%d-%b-%Y')} ➜ {to_date.strftime('%d-%b-%Y')}"
+
+    )
+
+    # =========================
+
+    # CUSTOM DATE PICKER
+
+    # =========================
+
+    if st.session_state.show_date_filter:
+        st.markdown("### 📅 Select Custom Date Range")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            from_date = st.date_input(
+
+                "From Date",
+
+                value=from_date,
+
+                key="custom_from"
+
             )
 
-            # Show Date Picker only when By Date button clicked
-            if st.session_state.show_date_filter:
-                st.markdown("### 📅 Select Custom Date Range")
+        with col2:
+            to_date = st.date_input(
 
-                col1, col2 = st.columns(2)
+                "To Date",
 
-                with col1:
-                    from_date = st.date_input(
-                        "From Date",
-                        value=from_date,
-                        key="custom_from_date"
-                    )
+                value=to_date,
 
-                with col2:
-                    to_date = st.date_input(
-                        "To Date",
-                        value=to_date,
-                        key="custom_to_date"
-                    )
+                key="custom_to"
 
-            # Apply Filter
-            df = df[
-                (df["date"] >= pd.to_datetime(from_date)) &
-                (df["date"] < pd.to_datetime(to_date) + pd.Timedelta(days=1))
-                ]
+            )
 
-            if df.empty:
-                st.warning("No data found for selected billing cycle.")
-                st.stop()
-            # ✅ Apply filter
+    # =========================
 
-            df = df[
+    # FILTER
 
-                (df['date'] >= pd.to_datetime(from_date)) &
+    # =========================
 
-                (df['date'] <= pd.to_datetime(to_date))
+    df = df[
 
-                ]
+        (df["date"] >= pd.to_datetime(from_date)) &
 
-            if df.empty:
+        (df["date"] < pd.to_datetime(to_date) + pd.Timedelta(days=1))
 
-                st.info("No orders found for selected date range.")
+        ]
 
+    if df.empty:
+        st.warning("No data found for selected range.")
 
-            else:
+        st.stop()
 
-                # ======================================================
+    # =========================
 
-                # ✅ SUMMARY
+    # SUMMARY
 
-                # ======================================================
+    # =========================
 
-                summary_df = (
+    summary_df = (
 
-                    df.groupby("name", as_index=False)
+        df.groupby("name", as_index=False)
 
-                    .agg(
+        .agg(
 
-                        total_tiffin=("quantity", "sum"),
+            total_tiffin=("quantity", "sum"),
 
-                        total_roti=("roti", "sum"),
+            total_roti=("roti", "sum"),
 
-                        total_roti_amount=("roti_amount", "sum")
+            total_roti_amount=("roti_amount", "sum")
 
-                    )
+        )
 
-                )
+    )
 
-                # ✅ Proper Tiffin Amount Calculation
+    summary_df["total_amount"] = summary_df["total_tiffin"] * 90
 
-                # 1 Tiffin = ₹90
+    summary_df["final_amount"] = summary_df["total_amount"] + summary_df["total_roti_amount"]
 
-                summary_df["total_amount"] = (
-                        summary_df["total_tiffin"] * 90
+    # TOTAL ROW
 
-                )
+    total_row = pd.DataFrame({
 
-                # ✅ Final Amount
+        "name": ["TOTAL"],
 
-                summary_df["final_amount"] = (
-                        summary_df["total_amount"] +
-                        summary_df["total_roti_amount"]
+        "total_tiffin": [summary_df["total_tiffin"].sum()],
 
-                )
+        "total_roti": [summary_df["total_roti"].sum()],
 
-                # ======================================================
-                # ✅ TOTAL ROW
-                # ======================================================
+        "total_roti_amount": [summary_df["total_roti_amount"].sum()],
 
-                total_row = pd.DataFrame({
+        "total_amount": [summary_df["total_amount"].sum()],
 
-                    "name": ["TOTAL"],
-                    "total_tiffin": [
-                        summary_df["total_tiffin"].sum()
+        "final_amount": [summary_df["final_amount"].sum()]
 
-                    ],
+    })
 
-                    "total_roti": [
+    summary_df = pd.concat([summary_df, total_row], ignore_index=True)
 
-                        summary_df["total_roti"].sum()
+    summary_df = summary_df[[
 
-                    ],
-                    "total_roti_amount": [
-                        summary_df["total_roti_amount"].sum()
-                    ],
-                    "total_amount": [
-                        summary_df["total_amount"].sum()
+        "name",
 
-                    ],
-                    "final_amount": [
-                        summary_df["final_amount"].sum()
-                    ]
+        "total_tiffin",
 
-                })
+        "total_amount",
 
-                # ✅ Add total row
-                summary_df = pd.concat(
-                    [summary_df, total_row],
-                    ignore_index=True
+        "total_roti",
 
-                )
+        "total_roti_amount",
 
-                # ======================================================
-                # ✅ COLUMN NAMES
-                # ======================================================
+        "final_amount"
 
-                summary_df = summary_df[[
+    ]]
 
-                    "name",
-                    "total_tiffin",
-                    "total_amount",
-                    "total_roti",
-                    "total_roti_amount",
-                    "final_amount"
+    summary_df.columns = [
 
-                ]]
+        "Name",
 
-                summary_df.columns = [
+        "Tiffin Qty",
 
-                    "Name",
-                    "Tiffin Qty",
-                    "Tiffin Amount",
-                    "Total Roti",
-                    "Roti Amount",
-                    "Final Amount"
+        "Tiffin Amount",
 
-                ]
-                # ======================================================
-                # ✅ NUMBER FORMAT
-                # ======================================================
+        "Total Roti",
 
-                numeric_cols = [
+        "Roti Amount",
 
-                    "Tiffin Qty",
-                    "Tiffin Amount",
-                    "Total Roti",
-                    "Roti Amount",
-                    "Final Amount"
-                ]
+        "Final Amount"
 
-                for col in numeric_cols:
-                    summary_df[col] = summary_df[col].apply(
-                        lambda x: f"{x:.2f}" if float(x) % 1 else f"{int(x)}"
+    ]
 
-                    )
+    # =========================
 
-                # ======================================================
-                # ✅ COLOR MAP
-                # ======================================================
+    # FORMAT
 
-                color_map = {
+    # =========================
 
-                    "MEET": "#FF0033",
-                    "YASH": "#bfff00",
-                    "DHRUMIL": "#00bfff",
-                    "TOTAL": "#9929EA"
-                }
+    numeric_cols = [
 
-                def color_name(val):
+        "Tiffin Qty",
 
-                    return (
+        "Tiffin Amount",
 
-                        f"color: {color_map.get(str(val).upper(), 'white')}; font-weight: bold;"
+        "Total Roti",
 
-                    )
+        "Roti Amount",
 
-                # ======================================================
+        "Final Amount"
 
-                # ✅ SHOW SUMMARY
+    ]
 
-                # ======================================================
+    for col in numeric_cols:
+        summary_df[col] = summary_df[col].apply(
 
-                st.markdown("### 📝 Summary")
+            lambda x: f"{x:.2f}" if float(x) % 1 else f"{int(x)}"
 
-                try:
+        )
 
-                    styled_df = (
+    # =========================
 
-                        summary_df.style
+    # COLOR MAP
 
-                        .map(color_name, subset=["Name"])
+    # =========================
 
-                    )
+    color_map = {
 
-                    st.dataframe(
+        "MEET": "#FF0033",
 
-                        styled_df,
+        "YASH": "#bfff00",
 
-                        use_container_width=True
+        "DHRUMIL": "#00bfff",
 
-                    )
+        "TOTAL": "#9929EA"
 
+    }
 
-                except:
 
-                    st.dataframe(
+    def color_name(val):
 
-                        summary_df,
+        return f"color: {color_map.get(str(val).upper(), 'white')}; font-weight: bold;"
 
-                        use_container_width=True
 
-                    )
+    st.markdown("### 📝 Summary")
 
-                # ======================================================
+    try:
 
-                # ✅ PIE CHART
+        st.dataframe(summary_df.style.map(color_name, subset=["Name"]), use_container_width=True)
 
-                # ======================================================
+    except:
 
-                pie_data = summary_df[
+        st.dataframe(summary_df, use_container_width=True)
 
-                    summary_df["Name"] != "TOTAL"
+    # =========================
 
-                    ]
+    # PIE CHART
 
-                if not pie_data.empty:
-                    pie_colors = [
+    # =========================
 
-                        color_map.get(name.upper(), "#FFFFFF")
+    pie_data = summary_df[summary_df["Name"] != "TOTAL"]
 
-                        for name in pie_data["Name"]
+    if not pie_data.empty:
 
-                    ]
+        pie_colors = [color_map.get(n.upper(), "#FFFFFF") for n in pie_data["Name"]]
 
-                    fig, ax = plt.subplots()
+        fig, ax = plt.subplots()
 
-                    ax.pie(
+        ax.pie(
 
-                        pie_data["Tiffin Qty"],
+            pie_data["Tiffin Qty"],
 
-                        labels=pie_data["Name"],
+            labels=pie_data["Name"],
 
-                        autopct='%1.1f%%',
+            autopct="%1.1f%%",
 
-                        startangle=90,
+            startangle=90,
 
-                        colors=pie_colors
+            colors=pie_colors
 
-                    )
+        )
 
-                    ax.set_title("📊 Tiffin Orders by User")
+        ax.set_title("📊 Tiffin Orders by User")
 
-                    st.pyplot(fig)
+        st.pyplot(fig)
     # -------------------- Edit --------------------
 
     elif menu == "🛠️ Edit Tiffin Records":
