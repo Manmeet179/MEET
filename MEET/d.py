@@ -1662,7 +1662,7 @@ def app():
 
                         # -------------------- FIXED LOGIC --------------------
                         if missing_dates:
-                            st.warning(f"⚠️ {len(missing_dates)} selected dates are not in records.")
+                            pass
 
                             # OPTIONAL: still update available dates instead of blocking
                             available_dates = [d for d in date_range if d in db_dates]
