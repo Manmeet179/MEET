@@ -565,8 +565,8 @@ def account_records_page():
 
     df = df.drop(columns=["time"], errors="ignore")
 
-
-
+    df["payment_status"] = df["payment_status"].astype(str).str.upper()
+    
     if df.empty:
 
         st.info("No account records available.")
