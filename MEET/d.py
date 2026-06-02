@@ -941,7 +941,7 @@ def app():
 
                 # Ascending order by date
 
-                df = df.sort_values(by="date", ascending=True)
+                df = df.sort_values(by="date", ascending=False)
 
 
             # ============================================
@@ -2100,4 +2100,3 @@ def app():
 
 if __name__ == "__main__":
     app()
-
