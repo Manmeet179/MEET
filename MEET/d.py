@@ -417,10 +417,8 @@ LOGIN_PASS_HASH = b"$2b$12$xfVNu267cnWT0hjsrzoWQ.AOYvxcm9GdWjjAlmcSG8IFBGf3IuP62
 
 def login():
     with open("images/icons8-dinner-64.png", "rb") as f:
-        img_bytes = f.read()
-        img_base64 = base64.b64encode(img_bytes).decode()
+        img_base64 = base64.b64encode(f.read()).decode()
 
-    # Display icon + heading centered
     st.markdown(
         f"""
         <div style="text-align: center; display: flex; justify-content: center; align-items: center; gap: 10px;">
@@ -430,28 +428,30 @@ def login():
         """,
         unsafe_allow_html=True
     )
+
     st.markdown(
         """
-        <div style="display: flex; 
-                    justify-content: center; 
-                    align-items: center; 
-                    gap: 8px;">
-            <img src="data:image/mt.png;base64,{}" width="30">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 8px;">
             <h2 style="margin:0;">LOGIN</h2>
         </div>
-        """.format(
-            base64.b64encode(open("images/icons8-authentication-100.png", "rb").read()).decode()
-        ),
+        """,
         unsafe_allow_html=True
     )
+
     username = st.text_input("Username", key="user")
     password = st.text_input("Password", type="password", key="pass")
 
-    if st.button("Login"):
+    # 🔥 important: initialize state
+    if "logged_in" not in st.session_state:
+        st.session_state["logged_in"] = False
 
-        if bcrypt.checkpw(username.encode(), LOGIN_USER_HASH) and bcrypt.checkpw(password.encode(), LOGIN_PASS_HASH):
-            st.session_state['logged_in'] = True
+    if st.button("Login"):
+        if bcrypt.checkpw(username.encode(), LOGIN_USER_HASH) and \
+           bcrypt.checkpw(password.encode(), LOGIN_PASS_HASH):
+
+            st.session_state["logged_in"] = True
             st.success("Logged in successfully!")
+            st.rerun()   # 🔥 IMPORTANT FIX
         else:
             st.error("Invalid credentials")
 
@@ -1135,7 +1135,7 @@ def app():
             if "show_date_filter" not in st.session_state:
                 st.session_state.show_date_filter = False
 
-           
+
             btn1, btn_mid, btn2 = st.columns([1, 1, 1])
 
             with btn1:
