@@ -1552,6 +1552,7 @@ def app():
                 else:
 
                     default_payment_status = values['payment_status'] if values[
+                    default_payment_status = values['payment_status'] if values[
                                                                              'payment_status'].lower() != "not involved" else "Payment Pending"
 
                 payment_status = st.selectbox(
@@ -1597,76 +1598,104 @@ def app():
 
     # -------------------- Payment Method --------------------
 
-    elif menu == "💳 Update Payment Status":
+                    with open("images/icons8-payment-history-48.png", "rb") as f:
 
-        # PNG file load & encode
-        with open("images/icons8-payment-history-48.png", "rb") as f:
-            img_bytes = f.read()
-            img_base64 = base64.b64encode(img_bytes).decode()
+                        img_bytes = f.read()
 
-        st.markdown(
-            f"""
-            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
-                <img src="data:image/png;base64,{img_base64}" width="30" />
-                <span>Update Payment Status</span>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+                    img_base64 = base64.b64encode(img_bytes).decode()
 
-        df = fetch_all()
+                    st.markdown(
 
-        if df.empty:
-            st.info("No records available.")
+                        f"""
 
-        else:
+           <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
 
-            # ---------------- FIX: convert safely ----------------
-            df["date"] = pd.to_datetime(df["date"]).dt.date
+               <img src="data:image/png;base64,{img_base64}" width="30" />
 
-            min_date = min(df["date"])
-            max_date = max(df["date"])
+               <span>Update Payment Status</span>
 
-            start_date = st.date_input("Start Date", value=min_date, key="payment_start")
-            end_date = st.date_input("End Date", value=max_date, key="payment_end")
+           </div>
 
-            selected_payment = st.selectbox(
-                "Payment Status to Update",
-                ["-- SELECT --", "PAID", "PENDING"]
-            )
+           """,
 
-            if st.button("Update Payments"):
+                        unsafe_allow_html=True
 
-                if start_date > end_date:
+                    )
+
+                    df = fetch_all()
+
+                    if df.empty:
+
+                        st.info("No records available.")
+
+
+                    else:
+                    # ---------------- FIX: convert safely ----------------
+
+                        df["date"] = pd.to_datetime(df["date"]).dt.date
+
+                    min_date = min(df["date"])
+
+                    max_date = max(df["date"])
+
+                    start_date = st.date_input("Start Date", value=min_date, key="payment_start")
+
+                    end_date = st.date_input("End Date", value=max_date, key="payment_end")
+
+                    # 🔥 ONLY TWO VALUES (YOUR REQUIREMENT)
+
+                    selected_payment = st.selectbox(
+
+                        "Payment Status to Update",
+
+                        ["-- SELECT --", "PAYMENT DONE", "PAYMENT PENDING"]
+
+                    )
+
+                    if st.button("Update Payments"):
+                        if
+                    start_date > end_date:
+
                     st.error("Start Date cannot be after End Date")
+
                     st.stop()
 
-                if selected_payment == "-- SELECT --":
-                    st.warning("Select payment status")
+                    if selected_payment == "-- SELECT --":
+                        st.warning("Select payment status")
+
                     st.stop()
 
-                conn = get_db()
-                cursor = conn.cursor()
+                    conn = get_db()
 
-                # 🔥 IMPORTANT FIX: cast date properly
-                cursor.execute("""
-                    UPDATE account_records
-                    SET payment_status = %s
-                    WHERE DATE(date) BETWEEN %s AND %s
-                """, (
-                    selected_payment,
-                    start_date,
-                    end_date
-                ))
+                    cursor = conn.cursor()
 
-                conn.commit()
-                cursor.close()
-                conn.close()
+                    cursor.execute("""
 
-                st.success("✅ Payment updated successfully")
+                   UPDATE account_records
 
-                st.rerun()
+                   SET payment_status = %s
 
+                   WHERE DATE(date) BETWEEN %s AND %s
+
+               """, (
+
+                        selected_payment,
+
+                        start_date,
+
+                        end_date
+
+                    ))
+
+                    conn.commit()
+
+                    cursor.close()
+
+                    conn.close()
+
+                    st.success("✅ Payment updated successfully")
+
+                    st.rerun()
     # -------------------- Download --------------------
 
     def color_name(val):
