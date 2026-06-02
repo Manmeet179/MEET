@@ -1604,49 +1604,90 @@ def app():
             img_bytes = f.read()
             img_base64 = base64.b64encode(img_bytes).decode()
 
-        # Display icon + text side by side
         st.markdown(
             f"""
-                  <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
-                      <img src="data:image/png;base64,{img_base64}" width="30" />
-                      <span>Update Payment Status</span>
-                  </div>
-                  """,
+               <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+                   <img src="data:image/png;base64,{img_base64}" width="30" />
+                   <span>Update Payment Status</span>
+               </div>
+               """,
             unsafe_allow_html=True
         )
+
+        # -------------------- LOAD DATA --------------------
         df = fetch_all()
 
         if df.empty:
-
             st.info("No records available.")
 
         else:
+            # -------------------- CLEAN DATE COLUMN --------------------
+            df["date"] = pd.to_datetime(df["date"], errors="coerce")
+            df = df.dropna(subset=["date"])
 
-            df['date'] = pd.to_datetime(df['date'], errors='coerce')
-            min_date = df['date'].min().date() if not df['date'].isna().all() else datetime.date.today()
-            max_date = df['date'].max().date() if not df['date'].isna().all() else datetime.date.today()
-            start_date = st.date_input("Start Date", value=min_date, key="payment_start")
-            end_date = st.date_input("End Date", value=max_date, key="payment_end")
-            selected_payment = st.selectbox("Payment Status to Update",
+            if df.empty:
+                st.warning("No valid date records found.")
+            else:
 
-                                            ["-- SELECT --", "Payment Pending", "Payment Done"])
+                min_date = df["date"].min().date()
+                max_date = df["date"].max().date()
 
-            if st.button("Update Payments"):
-                if start_date > end_date:
-                    st.error("❎ Start Date cannot be after End Date.")
+                # -------------------- UI --------------------
+                start_date = st.date_input("Start Date", value=min_date, key="payment_start")
+                end_date = st.date_input("End Date", value=max_date, key="payment_end")
 
-                else:
+                selected_payment = st.selectbox(
+                    "Payment Status to Update",
+                    ["-- SELECT --", "Payment Pending", "Payment Done"]
+                )
 
-                    # Check if all dates in range exist in DB
+                # -------------------- ACTION --------------------
+                if st.button("Update Payments"):
 
-                    date_range = pd.date_range(start=start_date, end=end_date).date
-                    db_dates = set(df['date'].dropna().dt.date)
-                    if all(d in db_dates for d in date_range):
-                        if selected_payment != "-- SELECT --":
-                            update_payment(start_date, end_date, selected_payment)
-                            st.success(f"✅ Payment status updated successfully for {start_date} to {end_date}")
+                    if start_date > end_date:
+                        st.error("❎ Start Date cannot be after End Date.")
+
+                    elif selected_payment == "-- SELECT --":
+                        st.warning("⚠️ Please select a payment status.")
+
                     else:
-                        st.warning("⚠️ Cannot update: Some dates in the range do not exist in the records.")
+                        # Build selected range
+                        date_range = pd.date_range(start=start_date, end=end_date).date
+
+                        # Existing DB dates
+                        db_dates = set(df["date"].dt.date)
+
+                        # Find missing dates
+                        missing_dates = [d for d in date_range if d not in db_dates]
+
+                        # -------------------- FIXED LOGIC --------------------
+                        if missing_dates:
+                            st.warning(
+                                f"⚠️ Some dates are missing in records ({len(missing_dates)} missing). "
+                                f"Example: {missing_dates[:5]}"
+                            )
+
+                            # OPTIONAL: still update available dates instead of blocking
+                            available_dates = [d for d in date_range if d in db_dates]
+
+                            if available_dates:
+                                update_payment(
+                                    available_dates[0],
+                                    available_dates[-1],
+                                    selected_payment
+                                )
+                                st.success(
+                                    f"✅ Updated available dates from {available_dates[0]} to {available_dates[-1]}"
+                                )
+                            else:
+                                st.error("❌ No matching dates found to update.")
+
+                        else:
+                            # All dates exist → safe update
+                            update_payment(start_date, end_date, selected_payment)
+                            st.success(
+                                f"✅ Payment status updated successfully for {start_date} to {end_date}"
+                            )
 
     # -------------------- Download --------------------
 
