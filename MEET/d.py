@@ -1118,15 +1118,6 @@ def app():
 
             df = df[df["quantity"] > 0]
 
-            # ======================================================
-
-            # ======================================================
-            # 📅 DATE FILTER WITH PREVIOUS / NEXT MONTH BUTTON
-            # ======================================================
-
-            from datetime import date
-            from dateutil.relativedelta import relativedelta
-
             # First Load
             if "cycle_end" not in st.session_state:
 
@@ -1142,47 +1133,20 @@ def app():
                     # Example: 05-Jun => 10-May to 10-Jun
                     st.session_state.cycle_end = today.replace(day=10)
 
-            st.markdown("""
-            <style>
+            # First Load
+            if "show_date_filter" not in st.session_state:
+                st.session_state.show_date_filter = False
 
-            /* Previous Month Button */
-            div[data-testid="column"]:nth-of-type(1) .stButton > button {
-                background-color: #dc3545 !important;
-                color: white !important;
-                border: none !important;
-                border-radius: 10px !important;
-                font-weight: 600 !important;
-                width: 100%;
-            }
-
-            div[data-testid="column"]:nth-of-type(1) .stButton > button:hover {
-                background-color: #bb2d3b !important;
-                color: white !important;
-            }
-
-            /* Next Month Button */
-            div[data-testid="column"]:nth-of-type(2) .stButton > button {
-                background-color: #198754 !important;
-                color: white !important;
-                border: none !important;
-                border-radius: 10px !important;
-                font-weight: 600 !important;
-                width: 100%;
-            }
-
-            div[data-testid="column"]:nth-of-type(2) .stButton > button:hover {
-                background-color: #157347 !important;
-                color: white !important;
-            }
-
-            </style>
-            """, unsafe_allow_html=True)
-
-            btn1, btn2 = st.columns(2)
+            btn1, btn_mid, btn2 = st.columns([1, 1, 1])
 
             with btn1:
                 if st.button("⬅ Previous Month"):
                     st.session_state.cycle_end -= relativedelta(months=1)
+                    st.rerun()
+
+            with btn_mid:
+                if st.button("📅 By Date"):
+                    st.session_state.show_date_filter = not st.session_state.show_date_filter
                     st.rerun()
 
             with btn2:
@@ -1201,20 +1165,25 @@ def app():
                 f"{to_date.strftime('%d-%b-%Y')}"
             )
 
-            # Optional Manual Date Selection
-            col1, col2 = st.columns(2)
+            # Show Date Picker only when By Date button clicked
+            if st.session_state.show_date_filter:
+                st.markdown("### 📅 Select Custom Date Range")
 
-            with col1:
-                from_date = st.date_input(
-                    "From Date",
-                    value=from_date
-                )
+                col1, col2 = st.columns(2)
 
-            with col2:
-                to_date = st.date_input(
-                    "To Date",
-                    value=to_date
-                )
+                with col1:
+                    from_date = st.date_input(
+                        "From Date",
+                        value=from_date,
+                        key="custom_from_date"
+                    )
+
+                with col2:
+                    to_date = st.date_input(
+                        "To Date",
+                        value=to_date,
+                        key="custom_to_date"
+                    )
 
             # Apply Filter
             df = df[
@@ -1269,7 +1238,6 @@ def app():
                 # 1 Tiffin = ₹90
 
                 summary_df["total_amount"] = (
-
                         summary_df["total_tiffin"] * 90
 
                 )
@@ -1277,25 +1245,19 @@ def app():
                 # ✅ Final Amount
 
                 summary_df["final_amount"] = (
-
                         summary_df["total_amount"] +
-
                         summary_df["total_roti_amount"]
 
                 )
 
                 # ======================================================
-
                 # ✅ TOTAL ROW
-
                 # ======================================================
 
                 total_row = pd.DataFrame({
 
                     "name": ["TOTAL"],
-
                     "total_tiffin": [
-
                         summary_df["total_tiffin"].sum()
 
                     ],
@@ -1305,55 +1267,37 @@ def app():
                         summary_df["total_roti"].sum()
 
                     ],
-
                     "total_roti_amount": [
-
                         summary_df["total_roti_amount"].sum()
-
                     ],
-
                     "total_amount": [
-
                         summary_df["total_amount"].sum()
 
                     ],
-
                     "final_amount": [
-
                         summary_df["final_amount"].sum()
-
                     ]
 
                 })
 
                 # ✅ Add total row
-
                 summary_df = pd.concat(
-
                     [summary_df, total_row],
-
                     ignore_index=True
 
                 )
 
                 # ======================================================
-
                 # ✅ COLUMN NAMES
-
                 # ======================================================
 
                 summary_df = summary_df[[
 
                     "name",
-
                     "total_tiffin",
-
                     "total_amount",
-
                     "total_roti",
-
                     "total_roti_amount",
-
                     "final_amount"
 
                 ]]
@@ -1361,62 +1305,42 @@ def app():
                 summary_df.columns = [
 
                     "Name",
-
                     "Tiffin Qty",
-
                     "Tiffin Amount",
-
                     "Total Roti",
-
                     "Roti Amount",
-
                     "Final Amount"
 
                 ]
-
                 # ======================================================
-
                 # ✅ NUMBER FORMAT
-
                 # ======================================================
 
                 numeric_cols = [
 
                     "Tiffin Qty",
-
                     "Tiffin Amount",
-
                     "Total Roti",
-
                     "Roti Amount",
-
                     "Final Amount"
-
                 ]
 
                 for col in numeric_cols:
                     summary_df[col] = summary_df[col].apply(
-
                         lambda x: f"{x:.2f}" if float(x) % 1 else f"{int(x)}"
 
                     )
 
                 # ======================================================
-
                 # ✅ COLOR MAP
-
                 # ======================================================
 
                 color_map = {
 
                     "MEET": "#FF0033",
-
                     "YASH": "#bfff00",
-
                     "DHRUMIL": "#00bfff",
-
                     "TOTAL": "#9929EA"
-
                 }
 
                 def color_name(val):
