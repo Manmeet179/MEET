@@ -558,7 +558,12 @@ def account_records_page():
     )
     conn = get_db()
 
-    df = pd.read_sql("SELECT * FROM account_records ORDER BY date DESC", conn)
+    df = pd.read_sql(
+        "SELECT * FROM account_records ORDER BY date DESC, time DESC",
+        conn
+    )
+
+    df = df.drop(columns=["time"], errors="ignore")
 
 
 
