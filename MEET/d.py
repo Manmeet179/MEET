@@ -546,62 +546,63 @@ def account_records_page():
         img_bytes = f.read()
         img_base64 = base64.b64encode(img_bytes).decode()
 
-    # Display icon + text side by side
+    # Header UI
     st.markdown(
         f"""
-        <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
-            <img src="data:image/png;base64,{img_base64}" width="30" />
-            <span>Account Records</span>
-        </div>
-        """,
+           <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+               <img src="data:image/png;base64,{img_base64}" width="30" />
+               <span>Account Records</span>
+           </div>
+           """,
         unsafe_allow_html=True
     )
+
     conn = get_db()
 
-    df = pd.read_sql("SELECT * FROM account_records ORDER BY date DESC, time DESC", conn)
-
-
+    # Only required columns (time removed here itself)
+    df = pd.read_sql(
+        "SELECT date, name, amount, payment_status FROM account_records ORDER BY date DESC",
+        conn
+    )
 
     if df.empty:
-
         st.info("No account records available.")
+        return
 
-    else:
+    # --- Convert numeric columns to clean format (12.00000 → 12) ---
+    for col in df.select_dtypes(include=["float", "int"]).columns:
+        df[col] = df[col].apply(lambda x: int(x) if pd.notnull(x) and float(x).is_integer() else x)
 
-        # --- Name wise color ---
+    # --- Name wise color ---
+    def color_name(val):
+        colors = {
+            "MEET": "#FF0033",
+            "YASH": "#bfff00",
+            "DHRUMIL": "#00bfff"
+        }
+        if str(val).upper() in colors:
+            return f"color: {colors[str(val).upper()]}; font-weight: bold;"
+        return ""
 
-        def color_name(val):
+    # --- Payment Status wise color ---
+    def color_payment(val):
+        if str(val).lower() == "payment done":
+            return "color: #83FFE6; font-weight:bold"
+        elif str(val).lower() == "pending":
+            return "color: #C768FF; font-weight:bold"
+        elif str(val).lower() == "paid":
+            return "color: #0046FF; font-weight:bold"
+        return ""
 
-            colors = {
-                "MEET": "#FF0033",
-                "YASH": "#bfff00",
-                "DHRUMIL": "#00bfff"
-            }
-            if str(val).upper() in colors:
-                return f"color: {colors[str(val).upper()]}; font-weight: bold;"
+    # --- Apply styles ---
+    styled_df = (
+        df.style
+        .map(color_name, subset=["name"])
+        .map(color_payment, subset=["payment_status"])
+        .format(precision=0)
+    )
 
-            return ""
-
-        # --- Payment Status wise color ---
-
-        def color_payment(val):
-            if str(val).lower() == "payment done":
-                return "color: #83FFE6; font-weight:bold"
-            elif str(val).lower() == "pending":
-                return "color: #C768FF; font-weight:bold"
-            elif str(val).lower() == "paid":
-                return "color: #0046FF; font-weight:bold"
-            return ""
-
-        # --- Apply both styles ---
-
-        styled_df = (
-            df.style
-            .map(color_name, subset=["name"])
-            .map(color_payment, subset=["payment_status"])
-        )
-        st.dataframe(styled_df, use_container_width=True)
-
+    st.dataframe(styled_df, use_container_width=True)
 
 def edit_account_page():
     # --- Load icon ---
