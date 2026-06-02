@@ -1139,38 +1139,7 @@ def app():
             if "show_date_filter" not in st.session_state:
                 st.session_state.show_date_filter = False
 
-            st.markdown("""
-            <style>
-
-            /* Reduce column spacing */
-            div[data-testid="stHorizontalBlock"] {
-                gap: 6px !important;
-                justify-content: center !important;
-            }
-
-            /* Make columns shrink to content */
-            div[data-testid="column"] {
-                flex: 0 1 auto !important;
-                width: auto !important;
-            }
-
-            /* Reduce button width */
-            div[data-testid="column"] button {
-                width: auto !important;
-                min-width: 70px !important;
-                padding: 6px 10px !important;
-                font-size: 13px !important;
-                border-radius: 8px !important;
-            }
-
-            /* Optional: tighten button inner div */
-            .stButton {
-                width: auto !important;
-            }
-
-            </style>
-            """, unsafe_allow_html=True)
-
+        
             btn1, btn_mid, btn2 = st.columns([1, 1, 1])
 
             with btn1:
@@ -1179,7 +1148,7 @@ def app():
                     st.rerun()
 
             with btn_mid:
-                if st.button("By Date"):
+                if st.button("📅 By Date"):
                     st.session_state.show_date_filter = not st.session_state.show_date_filter
                     st.rerun()
 
