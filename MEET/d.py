@@ -1139,10 +1139,21 @@ def app():
             if "show_date_filter" not in st.session_state:
                 st.session_state.show_date_filter = False
 
+            st.markdown("""
+            <style>
+            div[data-testid="column"] .stButton > button {
+                width: 100% !important;
+                min-height: 45px !important;
+                white-space: nowrap !important;
+                font-size: 14px !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+
             btn1, btn_mid, btn2 = st.columns([1, 1, 1])
 
             with btn1:
-                if st.button("⬅ Previous Month"):
+                if st.button("Prev"):
                     st.session_state.cycle_end -= relativedelta(months=1)
                     st.rerun()
 
@@ -1152,7 +1163,7 @@ def app():
                     st.rerun()
 
             with btn2:
-                if st.button("Next Month ➡"):
+                if st.button("Next"):
                     st.session_state.cycle_end += relativedelta(months=1)
                     st.rerun()
 
