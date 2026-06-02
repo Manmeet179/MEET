@@ -1679,16 +1679,16 @@ def app():
 
         val_upper = str(val).upper()
 
-        if val_upper == "PAYMENT DONE" or val_upper == "PAID":
-            return "#059212"  # green
+        if val_upper in ["PAID", "PAYMENT DONE"]:
+            return "color: #059212; font-weight:bold;"
 
         elif val_upper in ["PENDING", "PAYMENT PENDING"]:
-            return "#76153C"  # red
+            return "color: #76153C; font-weight:bold;"
 
         elif val_upper == "NOT INVOLVED":
-            return "#FCDC2A"  # yellow
+            return "color: #FCDC2A; font-weight:bold;"
 
-        return None
+        return ""
 
     # --- Streamlit menu ---
 
