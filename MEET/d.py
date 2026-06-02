@@ -1621,40 +1621,38 @@ def app():
 
         else:
 
-            # -------------------- DATE CLEAN --------------------
-            df["date"] = pd.to_datetime(df["date"], errors="coerce")
+            # ---------------- FIX: convert safely ----------------
+            df["date"] = pd.to_datetime(df["date"]).dt.date
 
-            min_date = df["date"].min().date() if not df["date"].isna().all() else datetime.date.today()
-            max_date = df["date"].max().date() if not df["date"].isna().all() else datetime.date.today()
+            min_date = min(df["date"])
+            max_date = max(df["date"])
 
-            # -------------------- INPUT --------------------
             start_date = st.date_input("Start Date", value=min_date, key="payment_start")
             end_date = st.date_input("End Date", value=max_date, key="payment_end")
 
             selected_payment = st.selectbox(
                 "Payment Status to Update",
-                ["-- SELECT --", "Payment Pending", "Payment Done"]
+                ["-- SELECT --", "PAID", "PENDING"]
             )
 
-            # -------------------- UPDATE BUTTON --------------------
             if st.button("Update Payments"):
 
                 if start_date > end_date:
-                    st.error("❎ Start Date cannot be after End Date.")
+                    st.error("Start Date cannot be after End Date")
                     st.stop()
 
                 if selected_payment == "-- SELECT --":
-                    st.warning("⚠️ Please select payment status.")
+                    st.warning("Select payment status")
                     st.stop()
 
-                # 🔥 DIRECT SAFE UPDATE (NO DATE CHECK ISSUE)
                 conn = get_db()
                 cursor = conn.cursor()
 
+                # 🔥 IMPORTANT FIX: cast date properly
                 cursor.execute("""
                     UPDATE account_records
                     SET payment_status = %s
-                    WHERE date BETWEEN %s AND %s
+                    WHERE DATE(date) BETWEEN %s AND %s
                 """, (
                     selected_payment,
                     start_date,
@@ -1665,9 +1663,7 @@ def app():
                 cursor.close()
                 conn.close()
 
-                st.success(
-                    f"✅ Payment updated successfully from {start_date} to {end_date}"
-                )
+                st.success("✅ Payment updated successfully")
 
                 st.rerun()
 
@@ -1681,19 +1677,16 @@ def app():
 
     def color_payment(val):
 
-        val_lower = str(val).lower()
+        val_upper = str(val).upper()
 
-        if val_lower == "payment done":
-            return "#059212"
+        if val_upper == "PAYMENT DONE" or val_upper == "PAID":
+            return "#059212"  # green
 
-        elif val_lower in ["pending", "payment pending"]:
-            return "#76153C"
+        elif val_upper in ["PENDING", "PAYMENT PENDING"]:
+            return "#76153C"  # red
 
-        elif val_lower == "paid":
-            return "goldenrod"
-
-        elif val_lower == "not involved":
-            return "#FCDC2A"
+        elif val_upper == "NOT INVOLVED":
+            return "#FCDC2A"  # yellow
 
         return None
 
