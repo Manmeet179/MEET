@@ -1142,32 +1142,30 @@ def app():
             st.markdown("""
             <style>
 
-            /* Force columns to stay in one row */
+            /* Reduce column spacing */
             div[data-testid="stHorizontalBlock"] {
-                flex-wrap: nowrap !important;
-                gap: 1px !important;
+                gap: 6px !important;
+                justify-content: center !important;
             }
 
-            /* Make each column equal width */
+            /* Make columns shrink to content */
             div[data-testid="column"] {
-                flex: 1 1 0% !important;
-                min-width: 0px !important;
+                flex: 0 1 auto !important;
+                width: auto !important;
             }
 
-            /* Button full width inside column */
+            /* Reduce button width */
             div[data-testid="column"] button {
-                width: 100% !important;
-                border-radius: 10px !important;
-                font-size: 14px !important;
-                white-space: nowrap !important;
+                width: auto !important;
+                min-width: 70px !important;
+                padding: 6px 10px !important;
+                font-size: 13px !important;
+                border-radius: 8px !important;
             }
 
-            /* Optional: reduce padding for mobile fit */
-            @media only screen and (max-width: 600px) {
-                div[data-testid="column"] button {
-                    font-size: 12px !important;
-                    padding: 6px 4px !important;
-                }
+            /* Optional: tighten button inner div */
+            .stButton {
+                width: auto !important;
             }
 
             </style>
