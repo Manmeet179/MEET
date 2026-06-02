@@ -584,7 +584,7 @@ def account_records_page():
         # --- Payment Status wise color ---
 
         def color_payment(val):
-            if str(val).lower() == "PAYMENT DONE":
+            if str(val).lower() == "payment done":
                 return "color: #83FFE6; font-weight:bold"
             elif str(val).lower() == "pending":
                 return "color: #C768FF; font-weight:bold"
@@ -635,9 +635,9 @@ def edit_account_page():
 
     def color_payment(val):
         val_lower = str(val).lower()
-        if val_lower == "PAYMENT DONE":
+        if val_lower == "payment done":
             return "color: #059212; font-weight:bold;"  # greenish
-        elif val_lower in ["pending", "PAYMENT PENDING"]:
+        elif val_lower in ["pending", "payment pending"]:
             return "color: #76153C; font-weight:bold;"  # pink/purple
         elif val_lower == "paid":
             return "color: goldenrod; font-weight:bold;"
@@ -681,7 +681,7 @@ def edit_account_page():
     edit_place = st.text_input("Place Name", str(record['place_name']))
     edit_total = st.number_input("Total Amount", value=float(record['total_amount']))
     edit_per_person = st.number_input("Per Person Amount", value=float(record['per_person_amount']))
-    payment_options = ["Pending", "PAYMENT DONE", "Paid"]
+    payment_options = ["Pending", "Payment Done", "Paid"]
     edit_payment = st.selectbox(
         "Payment Status",
         payment_options,
@@ -848,7 +848,7 @@ def app():
             for name in selected_names:  # ✅ only selected लोग
                 qty = per_person_qty
                 amount = per_person_amount
-                payment_status = "PAYMENT PENDING"
+                payment_status = "Payment Pending"
 
                 roti = roti_qty.get(name, 0)
                 roti_amount = roti * roti_rate
@@ -1013,12 +1013,12 @@ def app():
 
                 val_lower = str(val).lower()
 
-                if val_lower == "PAYMENT DONE":
+                if val_lower == "payment done":
 
                     return "color: #059212; font-weight:bold;"
 
 
-                elif val_lower in ["pending", "PAYMENT PENDING"]:
+                elif val_lower in ["pending", "payment pending"]:
 
                     return "color: #76153C; font-weight:bold;"
 
@@ -1470,11 +1470,11 @@ def app():
 
                 val_lower = str(val).lower()
 
-                if val_lower == "PAYMENT DONE":
+                if val_lower == "payment done":
 
                     return "color: #059212; font-weight:bold;"  # greenish
 
-                elif val_lower in ["pending", "PAYMENT PENDING"]:
+                elif val_lower in ["pending", "payment pending"]:
 
                     return "color: #76153C; font-weight:bold;"  # pink/purple
 
@@ -1552,15 +1552,15 @@ def app():
                 else:
 
                     default_payment_status = values['payment_status'] if values[
-                                                                             'payment_status'].lower() != "not involved" else "PAYMENT PENDING"
+                                                                             'payment_status'].lower() != "not involved" else "Payment Pending"
 
                 payment_status = st.selectbox(
 
                     "Payment Status",
 
-                    ["Not Involved", "PAYMENT PENDING", "PAYMENT DONE"],
+                    ["Not Involved", "Payment Pending", "Payment Done"],
 
-                    index=["Not Involved", "PAYMENT PENDING", "PAYMENT DONE"].index(default_payment_status)
+                    index=["Not Involved", "Payment Pending", "Payment Done"].index(default_payment_status)
 
                 )
 
@@ -1638,7 +1638,7 @@ def app():
 
                 selected_payment = st.selectbox(
                     "Payment Status to Update",
-                    ["-- SELECT --", "PAYMENT PENDING", "PAYMENT DONE"]
+                    ["-- SELECT --", "Payment Pending", "Payment Done"]
                 )
 
                 # -------------------- ACTION --------------------
@@ -1797,10 +1797,10 @@ def app():
 
                     val_lower = str(val).lower()
 
-                    if val_lower == "PAYMENT DONE":
+                    if val_lower == "payment done":
                         return "#059212"
 
-                    elif val_lower in ["pending", "PAYMENT PENDING"]:
+                    elif val_lower in ["pending", "payment pending"]:
                         return "#76153C"
 
                     elif val_lower == "paid":
@@ -2100,3 +2100,4 @@ def app():
 
 if __name__ == "__main__":
     app()
+
