@@ -1139,40 +1139,27 @@ def app():
             if "show_date_filter" not in st.session_state:
                 st.session_state.show_date_filter = False
 
+           
             btn1, btn_mid, btn2 = st.columns([1, 1, 1])
 
             with btn1:
-                if st.markdown(
-                        """
-                        <a href="?prev=true">
-                            <img src="icons8-previous-64.png" width="40">
-                        </a>
-                        """,
-                        unsafe_allow_html=True
-                ):
-                    pass
+                if st.button("Prev"):
+                    st.session_state.cycle_end -= relativedelta(months=1)
+                    st.rerun()
 
             with btn_mid:
-                if st.markdown(
-                        """
-                        <a href="?toggle=date">
-                            <img src="icons8-timeline-week-48.png" width="40">
-                        </a>
-                        """,
-                        unsafe_allow_html=True
-                ):
-                    pass
+                if st.button("📅 By Date"):
+                    st.session_state.show_date_filter = not st.session_state.show_date_filter
+                    st.rerun()
 
             with btn2:
-                if st.markdown(
-                        """
-                        <a href="?next=true">
-                            <img src="icons8-last-64.png" width="40">
-                        </a>
-                        """,
-                        unsafe_allow_html=True
-                ):
-                    pass
+                if st.button("Next"):
+                    st.session_state.cycle_end += relativedelta(months=1)
+                    st.rerun()
+
+            # Calculate Current Cycle
+            to_date = st.session_state.cycle_end
+            from_date = to_date - relativedelta(months=1)
 
             # Show Current Range
             st.info(
