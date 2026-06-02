@@ -464,7 +464,6 @@ def account_page():
         img_bytes = f.read()
         img_base64 = base64.b64encode(img_bytes).decode()
 
-    # Display icon + text side by side
     st.markdown(
         f"""
         <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
@@ -474,12 +473,11 @@ def account_page():
         """,
         unsafe_allow_html=True
     )
+
     names = ["MEET", "YASH", "DHRUMIL"]
 
     paid_by = st.selectbox("Who Paid?", names)
-
     date = st.date_input("Date", value=datetime.date.today())
-    time = st.time_input("Time", value=datetime.datetime.now().time())
 
     product_name = st.text_input("Product Name")
     place_name = st.text_input("Place Name")
@@ -490,13 +488,12 @@ def account_page():
     participants = []
 
     for name in names:
-        # Payer checkbox is always checked by default
         default_checked = True if name == paid_by else False
         if st.checkbox(name, value=default_checked):
             participants.append(name)
 
     if st.button("Save Expense"):
-        # Split only among participants
+
         if len(participants) == 0:
             st.warning("Select at least one participant.")
             return
@@ -508,22 +505,19 @@ def account_page():
 
         for name in names:
             if name in participants:
-                # Participant – check if payer or not
-                payment_status = "Paid" if name == paid_by else "Pending"
+                payment_status = "PAID" if name == paid_by else "PENDING"
                 person_amount = per_person_amount
             else:
-                # Not participated
-                payment_status = "Not Involved"
+                payment_status = "NOT INVOLVED"
                 person_amount = 0
 
             cursor.execute("""
                 INSERT INTO account_records 
-                (date, time, name, product_name, place_name, total_amount,
+                (date, name, product_name, place_name, total_amount,
                  per_person_amount, payment_status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (
                 date,
-                time,
                 name,
                 product_name,
                 place_name,
@@ -534,7 +528,7 @@ def account_page():
 
         conn.commit()
         cursor.close()
-
+        conn.close()
 
         st.success(f"Expense added successfully! Each participant owes ₹{per_person_amount}")
 
@@ -566,7 +560,7 @@ def account_records_page():
     df = df.drop(columns=["time"], errors="ignore")
 
     df["payment_status"] = df["payment_status"].astype(str).str.upper()
-    
+
     if df.empty:
 
         st.info("No account records available.")
