@@ -1145,7 +1145,7 @@ def app():
             /* Force columns to stay in one row */
             div[data-testid="stHorizontalBlock"] {
                 flex-wrap: nowrap !important;
-                gap: 10px !important;
+                gap: 1px !important;
             }
 
             /* Make each column equal width */
