@@ -1698,10 +1698,10 @@ def app():
 
         val_lower = str(val).lower()
 
-        if val_lower == "payment done":
+        if val_lower == "PAYMENT DONE":
             return "#059212"
 
-        elif val_lower in ["pending", "payment pending"]:
+        elif val_lower in ["pending", "PAYMENT PENDING"]:
             return "#76153C"
 
         elif val_lower == "paid":
