@@ -1597,76 +1597,108 @@ def app():
 
     # -------------------- Payment Method --------------------
 
-    elif menu == "💳 Update Payment Status":
+    # PNG file load & encode
 
-        # PNG file load & encode
-        with open("images/icons8-payment-history-48.png", "rb") as f:
-            img_bytes = f.read()
-            img_base64 = base64.b64encode(img_bytes).decode()
+    with open("images/icons8-payment-history-48.png", "rb") as f:
 
-        st.markdown(
-            f"""
-            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
-                <img src="data:image/png;base64,{img_base64}" width="30" />
-                <span>Update Payment Status</span>
-            </div>
-            """,
-            unsafe_allow_html=True
+        img_bytes = f.read()
+
+        img_base64 = base64.b64encode(img_bytes).decode()
+
+        # Header UI
+
+    st.markdown(
+
+        f"""
+
+           <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+
+               <img src="data:image/png;base64,{img_base64}" width="30" />
+
+               <span>Update Payment Status</span>
+
+           </div>
+
+           """,
+
+        unsafe_allow_html=True
+
+    )
+
+    df = fetch_all()
+
+    if df.empty:
+
+        st.info("No records available.")
+
+
+    else:
+
+        # -------------------- CLEAN DATE --------------------
+
+        df['date'] = pd.to_datetime(df['date'], errors='coerce')
+
+        min_date = df['date'].min().date() if not df['date'].isna().all() else datetime.date.today()
+
+        max_date = df['date'].max().date() if not df['date'].isna().all() else datetime.date.today()
+
+        # -------------------- INPUTS --------------------
+
+        start_date = st.date_input("Start Date", value=min_date, key="payment_start")
+
+        end_date = st.date_input("End Date", value=max_date, key="payment_end")
+
+        selected_payment = st.selectbox(
+
+            "Payment Status to Update",
+
+            ["-- SELECT --", "Payment Pending", "Payment Done"]
+
         )
 
-        # -------------------- FETCH DATA --------------------
-        df = fetch_all()
+        # -------------------- UPDATE --------------------
 
-        if df.empty:
-            st.info("No records available.")
+        if st.button("Update Payments"):
 
-        else:
+            # ❌ validation
 
-            # -------------------- CLEAN DATA --------------------
-            df["date"] = pd.to_datetime(df["date"], errors="coerce")
+            if start_date > end_date:
+                st.error("❎ Start Date cannot be after End Date.")
 
-            min_date = df["date"].min().date() if not df["date"].isna().all() else datetime.date.today()
-            max_date = df["date"].max().date() if not df["date"].isna().all() else datetime.date.today()
+                st.stop()
 
-            # -------------------- INPUTS --------------------
-            start_date = st.date_input("Start Date", value=min_date, key="payment_start")
-            end_date = st.date_input("End Date", value=max_date, key="payment_end")
+            if selected_payment == "-- SELECT --":
+                st.warning("⚠️ Please select payment status.")
 
-            selected_payment = st.selectbox(
-                "Payment Status to Update",
-                ["-- SELECT --", "Payment Pending", "Payment Done"]
+                st.stop()
+
+            # -------------------- SAFE UPDATE (NO DATE CHECK ERROR) --------------------
+
+            conn = get_db()
+
+            cursor = conn.cursor()
+
+            cursor.execute("""
+
+                   UPDATE account_records
+
+                   SET payment_status = %s
+
+                   WHERE date BETWEEN %s AND %s
+
+               """, (selected_payment, start_date, end_date))
+
+            conn.commit()
+
+            cursor.close()
+
+            conn.close()
+
+            st.success(
+
+                f"✅ Payment status updated successfully for {start_date} to {end_date}"
+
             )
-
-            # -------------------- UPDATE BUTTON --------------------
-            if st.button("Update Payments"):
-
-                # ❌ validation
-                if start_date > end_date:
-                    st.error("❎ Start Date cannot be after End Date.")
-                    st.stop()
-
-                if selected_payment == "-- SELECT --":
-                    st.warning("⚠️ Please select payment status.")
-                    st.stop()
-
-                # -------------------- SAFE UPDATE (NO ERROR) --------------------
-                conn = get_db()
-                cursor = conn.cursor()
-
-                cursor.execute("""
-                    UPDATE account_records
-                    SET payment_status = %s
-                    WHERE date BETWEEN %s AND %s
-                """, (selected_payment, start_date, end_date))
-
-                conn.commit()
-                cursor.close()
-                conn.close()
-
-                st.success(
-                    f"✅ Payment status updated successfully from {start_date} to {end_date}"
-                )
-
     # -------------------- Download --------------------
 
     def color_name(val):
