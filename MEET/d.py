@@ -1609,17 +1609,7 @@ def app():
 
     st.markdown(
 
-        f"""
-
-           <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
-
-               <img src="data:image/png;base64,{img_base64}" width="30" />
-
-               <span>Update Payment Status</span>
-
-           </div>
-
-           """,
+        f"""<div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;"><img src="data:image/png;base64,{img_base64}" width="30" /><span>Update Payment Status</span></div>""",
 
         unsafe_allow_html=True
 
