@@ -1122,6 +1122,15 @@ def app():
 
             df = df[df["quantity"] > 0]
 
+            today = date.today()
+
+            if today.day >= 10:
+                from_date_default = today.replace(day=10)
+                to_date_default = from_date_default + relativedelta(months=1)
+            else:
+                to_date_default = today.replace(day=10)
+                from_date_default = to_date_default - relativedelta(months=1)
+
             # First Load
             st.markdown("### 📅 Select Date Range")
 
@@ -1130,23 +1139,27 @@ def app():
             with col1:
                 from_date = st.date_input(
                     "From Date",
-                    value=date.today().replace(day=1)
+                    value=from_date_default,
+                    key="analytics_from_date"
                 )
 
             with col2:
                 to_date = st.date_input(
                     "To Date",
-                    value=date.today()
+                    value=to_date_default,
+                    key="analytics_to_date"
                 )
 
+            # Apply Filter
             df = df[
                 (df["date"] >= pd.to_datetime(from_date)) &
-                (df["date"] <= pd.to_datetime(to_date))
+                (df["date"] < pd.to_datetime(to_date) + pd.Timedelta(days=1))
                 ]
 
             if df.empty:
-                st.info("No orders found for selected date range.")
+                st.warning("No data found for selected billing cycle.")
                 st.stop()
+            # ✅ Apply filter
 
             df = df[
 
