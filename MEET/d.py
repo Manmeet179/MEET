@@ -1123,79 +1123,30 @@ def app():
             df = df[df["quantity"] > 0]
 
             # First Load
-            if "cycle_end" not in st.session_state:
+            st.markdown("### 📅 Select Date Range")
 
-                today = date.today()
+            col1, col2 = st.columns(2)
 
-                # 👉 If today is 10th or after → cycle ends next month 10th
-                if today.day >= 10:
-                    st.session_state.cycle_end = (today.replace(day=10) + relativedelta(months=1))
-                else:
-                    st.session_state.cycle_end = today.replace(day=10)
+            with col1:
+                from_date = st.date_input(
+                    "From Date",
+                    value=date.today().replace(day=1)
+                )
 
-            # First Load
-            if "show_date_filter" not in st.session_state:
-                st.session_state.show_date_filter = False
+            with col2:
+                to_date = st.date_input(
+                    "To Date",
+                    value=date.today()
+                )
 
-
-            btn1, btn_mid, btn2 = st.columns([1, 1, 1])
-
-            with btn1:
-                if st.button("Prev"):
-                    st.session_state.cycle_end -= relativedelta(months=1)
-                    st.rerun()
-
-            with btn_mid:
-                if st.button("📅 By Date"):
-                    st.session_state.show_date_filter = not st.session_state.show_date_filter
-                    st.rerun()
-
-            with btn2:
-                if st.button("Next"):
-                    st.session_state.cycle_end += relativedelta(months=1)
-                    st.rerun()
-
-            # Calculate Current Cycle
-            to_date = st.session_state.cycle_end
-            from_date = to_date - relativedelta(months=1)
-
-            # Show Current Range
-            st.info(
-                f"📅 Billing Cycle: "
-                f"{from_date.strftime('%d-%b-%Y')} ➜ "
-                f"{to_date.strftime('%d-%b-%Y')}"
-            )
-
-            # Show Date Picker only when By Date button clicked
-            if st.session_state.show_date_filter:
-                st.markdown("### 📅 Select Custom Date Range")
-
-                col1, col2 = st.columns(2)
-
-                with col1:
-                    from_date = st.date_input(
-                        "From Date",
-                        value=from_date,
-                        key="custom_from_date"
-                    )
-
-                with col2:
-                    to_date = st.date_input(
-                        "To Date",
-                        value=to_date,
-                        key="custom_to_date"
-                    )
-
-            # Apply Filter
             df = df[
                 (df["date"] >= pd.to_datetime(from_date)) &
-                (df["date"] < pd.to_datetime(to_date) + pd.Timedelta(days=1))
+                (df["date"] <= pd.to_datetime(to_date))
                 ]
 
             if df.empty:
-                st.warning("No data found for selected billing cycle.")
+                st.info("No orders found for selected date range.")
                 st.stop()
-            # ✅ Apply filter
 
             df = df[
 
