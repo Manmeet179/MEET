@@ -876,23 +876,28 @@ def app():
 
     elif menu == "🔎 View Tiffin Records":
 
-        # PNG file load & encode
+        # ============================================
+        # 🖼 ICON HEADER
+        # ============================================
 
-        # PNG file load & encode
         with open("images/view.png", "rb") as f:
             img_bytes = f.read()
+
         img_base64 = base64.b64encode(img_bytes).decode()
 
-        # Header UI
         st.markdown(
             f"""
-              <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
-                  <img src="data:image/png;base64,{img_base64}" width="30" />
-                  <span>All Records</span>
-              </div>
-              """,
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+                    <img src="data:image/png;base64,{img_base64}" width="30" />
+                    <span>All Records</span>
+                </div>
+                """,
             unsafe_allow_html=True
         )
+
+        # ============================================
+        # 📦 DATA LOAD
+        # ============================================
 
         df = fetch_all()
 
@@ -905,23 +910,28 @@ def app():
             if "time" in df.columns:
                 df = df.drop(columns=["time"])
 
-            # Convert date column properly
+            # Convert date
             df["date"] = pd.to_datetime(df["date"], dayfirst=True)
 
             # ============================================
-            # 🔽 FILTER OPTION (CURRENT CYCLE / DATE RANGE)
+            # 🔽 SINGLE FILTER DROPDOWN (4 OPTIONS)
             # ============================================
 
-            filter_type = st.selectbox(
-                "Filter Records",
-                ["Current Cycle", "Custom Date Range"]
+            view_option = st.selectbox(
+                "View Records",
+                [
+                    "Current Cycle",
+                    "Date Wise",
+                    "Name Wise",
+                    "Custom Date Range"
+                ]
             )
 
             # ============================================
-            # ✅ CUSTOM DATE RANGE (FROM - TO)
+            # 📅 CUSTOM DATE RANGE (FROM - TO)
             # ============================================
 
-            if filter_type == "Custom Date Range":
+            if view_option == "Custom Date Range":
 
                 col1, col2 = st.columns(2)
 
@@ -943,10 +953,10 @@ def app():
                     ]
 
             # ============================================
-            # ✅ CURRENT CYCLE LOGIC (10 to 10)
+            # 📅 CURRENT CYCLE (10 TO 10)
             # ============================================
 
-            else:
+            elif view_option == "Current Cycle":
 
                 today = datetime.datetime.today()
 
@@ -972,20 +982,17 @@ def app():
                     ]
 
             # ============================================
-            # 🔽 VIEW RECORD BY
+            # 📅 DATE WISE SORT
             # ============================================
 
-            view_type = st.selectbox(
-                "View Record By",
-                ["Date Wise", "Name Wise"]
-            )
-
-            # Date Wise sorting
-            if view_type == "Date Wise":
+            elif view_option == "Date Wise":
                 df = df.sort_values(by="date", ascending=False)
 
-            # Name Wise sorting
-            elif view_type == "Name Wise":
+            # ============================================
+            # 👤 NAME WISE SORT
+            # ============================================
+
+            elif view_option == "Name Wise":
 
                 name_order = {
                     "MEET": 1,
@@ -1003,7 +1010,7 @@ def app():
                 df = df.drop(columns=["name_order"])
 
             # ============================================
-            # 📅 FORMAT DATE
+            # 📅 FORMAT DATE (DD/MM/YYYY)
             # ============================================
 
             df["date"] = df["date"].dt.strftime("%d/%m/%Y")
@@ -1021,7 +1028,7 @@ def app():
                     )
 
             # ============================================
-            # 🎨 PAYMENT COLOR
+            # 🎨 PAYMENT COLOR STYLE
             # ============================================
 
             def color_payment(val):
@@ -1042,7 +1049,7 @@ def app():
                 return ""
 
             # ============================================
-            # 🎨 NAME COLOR
+            # 🎨 NAME COLOR STYLE
             # ============================================
 
             def color_name(val):
@@ -1059,7 +1066,7 @@ def app():
                 )
 
             # ============================================
-            # 📊 STYLE APPLY
+            # 📊 APPLY STYLE + SHOW TABLE
             # ============================================
 
             styled_df = (
@@ -1069,7 +1076,6 @@ def app():
             )
 
             st.dataframe(styled_df, use_container_width=True)
-
     # -------------------- Chart --------------------
 
     elif menu == "🗃️ Analytics Dashboard":
