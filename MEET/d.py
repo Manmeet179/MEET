@@ -9,6 +9,8 @@ import base64
 import time
 from datetime import date
 from dateutil.relativedelta import relativedelta
+from io import BytesIO
+import matplotlib.pyplot as plt
 # -------------------- Streamlit Config --------------------
 
 st.set_page_config(
@@ -208,6 +210,7 @@ def create_account_table():
 @st.cache_data(ttl=5)
 def fetch_all():
     conn = get_db()
+    time.sleep(0.1)
 
     df = pd.read_sql(
         f"SELECT id, Date, Time, Name, Shift, Quantity, Roti, Roti_Amount, Amount, Payment_Status FROM {TABLE_NAME}",
@@ -224,9 +227,14 @@ def insert_record(data):
     cursor = conn.cursor()
 
     for row in data:
-        cursor.execute(f"""
+        row = [
+            str(value).upper() if isinstance(value, str) else value
+            for value in row
+        ]
 
-            INSERT INTO {TABLE_NAME} (Date, Time, Name, Shift, Quantity, Roti, Roti_Amount, Amount, Payment_Status)
+        cursor.execute(f"""
+            INSERT INTO {TABLE_NAME}
+            (Date, Time, Name, Shift, Quantity, Roti, Roti_Amount, Amount, Payment_Status)
             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
         """, row)
 
@@ -260,24 +268,18 @@ def update_record(record_id, date, shift, qty, roti, amount, roti_amount, paymen
 
 def update_payment(start_date, end_date, payment_status):
     conn = get_db()
-
     cursor = conn.cursor()
 
+    payment_status = str(payment_status).upper()
+
     cursor.execute(f"""
-
         UPDATE {TABLE_NAME}
-
         SET Payment_Status=%s
-
         WHERE Date BETWEEN %s AND %s
-
     """, (payment_status, start_date, end_date))
 
     conn.commit()
-
     cursor.close()
-
-
 
 
 def delete_tiffin_page():
@@ -787,7 +789,7 @@ def app():
 
         current_time = datetime.datetime.now().strftime("%H:%M:%S")
 
-        shift = st.selectbox("Select Shift", ["-- SELECT DAY --", "Day", "Night"])
+        shift = st.selectbox("Select Shift", ["-- SELECT DAY --", "DAY", "NIGHT"])
 
         if shift == "-- SELECT DAY --":
             st.warning("Please select a shift")
@@ -1013,11 +1015,11 @@ def app():
             # =========================
 
             def color_shift(val):
-                val_lower = str(val).lower()
+                val_normalized = str(val).strip().lower()
 
-                if val_lower == "day":
-                    return "color: #FF8F00; font-weight:bold;"
-                elif val_lower == "night":
+                if val_normalized == "day":
+                    return "color: #FF5C00; font-weight:bold;"
+                elif val_normalized == "night":
                     return "color: #3B9797; font-weight:bold;"
                 return ""
 
@@ -1580,7 +1582,7 @@ def app():
 
                 selected_payment = st.selectbox(
                     "Payment Status to Update",
-                    ["-- SELECT --", "Payment Pending", "Payment Done"]
+                    ["-- SELECT --", "PAYMENT PENDING", "PAYMENT DONE"]
                 )
 
                 # -------------------- ACTION --------------------
@@ -1736,22 +1738,17 @@ def app():
                     return colors.get(str(val).upper(), None)
 
                 def color_payment(val):
-
                     val_lower = str(val).lower()
 
                     if val_lower == "payment done":
-                        return "#059212"
-
+                        return "color: #73FF00; font-weight:bold;"
                     elif val_lower in ["pending", "payment pending"]:
-                        return "#76153C"
-
+                        return "color: #FF0095; font-weight:bold;"
                     elif val_lower == "paid":
-                        return "goldenrod"
-
+                        return "color: goldenrod; font-weight:bold;"
                     elif val_lower == "not involved":
-                        return "#FCDC2A"
-
-                    return None
+                        return "color: #FCDC2A; font-weight:bold;"
+                    return ""
 
                 # ---------- Streamlit Table Styling ----------
 
@@ -2011,7 +2008,62 @@ def app():
                                     })
 
                                     worksheet.write(row_num, shift_col_idx, val, cell_format)
+                        # =====================================================
+                        # ✅ PIE CHART IN EXCEL (Below Summary Table)
+                        # =====================================================
 
+                        pie_data = summary_df[summary_df["Name"] != "TOTAL"]
+
+                        if not pie_data.empty:
+                            pie_colors = [
+                                {
+                                    "MEET": "#FF0033",
+                                    "YASH": "#bfff00",
+                                    "DHRUMIL": "#00bfff"
+                                }.get(str(name).upper(), "#FFFFFF")
+                                for name in pie_data["Name"]
+                            ]
+
+                            fig, ax = plt.subplots(figsize=(6, 4))
+
+                            ax.pie(
+                                pd.to_numeric(
+                                    pie_data["Total Tiffin"],
+                                    errors="coerce"
+                                ),
+                                labels=pie_data["Name"],
+                                autopct="%1.1f%%",
+                                startangle=90,
+                                colors=pie_colors
+                            )
+
+                            ax.set_title("Tiffin Orders by User")
+
+                            chart_image = BytesIO()
+
+                            plt.savefig(
+                                chart_image,
+                                format="png",
+                                bbox_inches="tight"
+                            )
+
+                            plt.close(fig)
+
+                            chart_image.seek(0)
+
+                            # Summary table પછી chart મૂકો
+                            chart_row = start_row + len(summary_df) + 6
+
+                            worksheet.insert_image(
+                                chart_row,
+                                0,
+                                "pie_chart.png",
+                                {
+                                    "image_data": chart_image,
+                                    "x_scale": 1.2,
+                                    "y_scale": 1.2
+                                }
+                            )
                         # ✅ Auto column width
                         for i, col in enumerate(filtered_df.columns):
                             column_len = max(
