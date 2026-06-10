@@ -1014,11 +1014,11 @@ def app():
             # =========================
 
             def color_shift(val):
-                val_str = str(val).strip()
+                val_lower = str(val).lower()
 
-                if val_str == "DAY":
+                if val_lower == "day":
                     return "color: #FF8F00; font-weight:bold;"
-                elif val_str == "NIGHT":
+                elif val_lower == "night":
                     return "color: #3B9797; font-weight:bold;"
                 return ""
 
