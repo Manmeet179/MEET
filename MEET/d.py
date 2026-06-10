@@ -877,7 +877,7 @@ def app():
     elif menu == "🔎 View Tiffin Records":
 
         # ============================================
-        # 🖼 ICON HEADER
+        # 🖼 HEADER ICON
         # ============================================
 
         with open("images/view.png", "rb") as f:
@@ -896,7 +896,7 @@ def app():
         )
 
         # ============================================
-        # 📦 DATA LOAD
+        # 📦 LOAD DATA
         # ============================================
 
         df = fetch_all()
@@ -910,11 +910,11 @@ def app():
             if "time" in df.columns:
                 df = df.drop(columns=["time"])
 
-            # Convert date
+            # Convert date column
             df["date"] = pd.to_datetime(df["date"], dayfirst=True)
 
             # ============================================
-            # 🔽 SINGLE FILTER DROPDOWN (4 OPTIONS)
+            # 🔽 FILTER OPTIONS
             # ============================================
 
             view_option = st.selectbox(
@@ -928,7 +928,7 @@ def app():
             )
 
             # ============================================
-            # 📅 CUSTOM DATE RANGE (FROM - TO)
+            # 📅 CUSTOM DATE RANGE
             # ============================================
 
             if view_option == "Custom Date Range":
@@ -982,15 +982,11 @@ def app():
                     ]
 
             # ============================================
-            # 📅 DATE WISE SORT
+            # 📅 SORT OPTIONS
             # ============================================
 
             elif view_option == "Date Wise":
                 df = df.sort_values(by="date", ascending=False)
-
-            # ============================================
-            # 👤 NAME WISE SORT
-            # ============================================
 
             elif view_option == "Name Wise":
 
@@ -1010,13 +1006,13 @@ def app():
                 df = df.drop(columns=["name_order"])
 
             # ============================================
-            # 📅 FORMAT DATE (DD/MM/YYYY)
+            # 📅 FORMAT DATE
             # ============================================
 
             df["date"] = df["date"].dt.strftime("%d/%m/%Y")
 
             # ============================================
-            # 🔢 NUMBER FORMATTING
+            # 🔢 NUMBER FORMAT
             # ============================================
 
             numeric_cols = ["quantity", "amount", "roti", "roti_amount"]
@@ -1028,7 +1024,7 @@ def app():
                     )
 
             # ============================================
-            # 🎨 PAYMENT COLOR STYLE
+            # 🎨 PAYMENT COLOR
             # ============================================
 
             def color_payment(val):
@@ -1049,7 +1045,7 @@ def app():
                 return ""
 
             # ============================================
-            # 🎨 NAME COLOR STYLE
+            # 🎨 NAME COLOR
             # ============================================
 
             def color_name(val):
@@ -1066,13 +1062,29 @@ def app():
                 )
 
             # ============================================
-            # 📊 APPLY STYLE + SHOW TABLE
+            # 🌞🌙 DAY / NIGHT COLOR (NEW ADDITION)
+            # ============================================
+
+            def color_day_night(val):
+                val_lower = str(val).strip().lower()
+
+                if val_lower == "day":
+                    return "color: orange; font-weight:bold;"
+
+                elif val_lower == "night":
+                    return "color: #1B339E; font-weight:bold;"
+
+                return ""
+
+            # ============================================
+            # 📊 APPLY STYLES
             # ============================================
 
             styled_df = (
                 df.style
                 .map(color_payment, subset=["payment_status"])
                 .map(color_name, subset=["name"])
+                .map(color_day_night, subset=["day_night"])  # 👈 CHANGE COLUMN NAME IF NEEDED
             )
 
             st.dataframe(styled_df, use_container_width=True)
