@@ -876,78 +876,49 @@ def app():
 
     elif menu == "🔎 View Tiffin Records":
 
-        import datetime
-
-        import base64
-
-        import pandas as pd
-
-        import streamlit as st
-
         # PNG file load & encode
 
+        # PNG file load & encode
         with open("images/view.png", "rb") as f:
-
             img_bytes = f.read()
-
         img_base64 = base64.b64encode(img_bytes).decode()
 
         # Header UI
-
         st.markdown(
-
             f"""
-
-            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
-
-                <img src="data:image/png;base64,{img_base64}" width="30" />
-
-                <span>All Records</span>
-
-            </div>
-
-            """,
-
+              <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+                  <img src="data:image/png;base64,{img_base64}" width="30" />
+                  <span>All Records</span>
+              </div>
+              """,
             unsafe_allow_html=True
-
         )
 
         df = fetch_all()
 
         if df.empty:
-
             st.info("No records available")
-
 
         else:
 
             # Remove time column if exists
-
             if "time" in df.columns:
                 df = df.drop(columns=["time"])
 
             # Convert date column properly
-
             df["date"] = pd.to_datetime(df["date"], dayfirst=True)
 
             # ============================================
-
             # 🔽 FILTER OPTION (CURRENT CYCLE / DATE RANGE)
-
             # ============================================
 
             filter_type = st.selectbox(
-
                 "Filter Records",
-
                 ["Current Cycle", "Custom Date Range"]
-
             )
 
             # ============================================
-
             # ✅ CUSTOM DATE RANGE (FROM - TO)
-
             # ============================================
 
             if filter_type == "Custom Date Range":
@@ -955,38 +926,24 @@ def app():
                 col1, col2 = st.columns(2)
 
                 with col1:
-
                     from_date = st.date_input(
-
                         "From Date",
-
                         value=df["date"].min().date()
-
                     )
 
                 with col2:
-
                     to_date = st.date_input(
-
                         "To Date",
-
                         value=df["date"].max().date()
-
                     )
 
                 df = df[
-
                     (df["date"] >= pd.to_datetime(from_date))
-
                     & (df["date"] <= pd.to_datetime(to_date))
-
                     ]
 
-
             # ============================================
-
             # ✅ CURRENT CYCLE LOGIC (10 to 10)
-
             # ============================================
 
             else:
@@ -994,183 +951,121 @@ def app():
                 today = datetime.datetime.today()
 
                 if today.day >= 10:
-
                     start_date = datetime.datetime(today.year, today.month, 10)
 
                     if today.month == 12:
-
                         end_date = datetime.datetime(today.year + 1, 1, 10)
-
                     else:
-
                         end_date = datetime.datetime(today.year, today.month + 1, 10)
 
-
                 else:
-
                     if today.month == 1:
-
                         start_date = datetime.datetime(today.year - 1, 12, 10)
-
                     else:
-
                         start_date = datetime.datetime(today.year, today.month - 1, 10)
 
                     end_date = datetime.datetime(today.year, today.month, 10)
 
                 df = df[
-
                     (df["date"] >= start_date)
-
                     & (df["date"] < end_date)
-
                     ]
 
             # ============================================
-
             # 🔽 VIEW RECORD BY
-
             # ============================================
 
             view_type = st.selectbox(
-
                 "View Record By",
-
                 ["Date Wise", "Name Wise"]
-
             )
 
             # Date Wise sorting
-
             if view_type == "Date Wise":
-
                 df = df.sort_values(by="date", ascending=False)
 
-
             # Name Wise sorting
-
             elif view_type == "Name Wise":
 
                 name_order = {
-
                     "MEET": 1,
-
                     "YASH": 2,
-
                     "DHRUMIL": 3
-
                 }
 
                 df["name_order"] = df["name"].str.upper().map(name_order)
 
                 df = df.sort_values(
-
                     by=["name_order", "date"],
-
                     ascending=[True, True]
-
                 )
 
                 df = df.drop(columns=["name_order"])
 
             # ============================================
-
             # 📅 FORMAT DATE
-
             # ============================================
 
             df["date"] = df["date"].dt.strftime("%d/%m/%Y")
 
             # ============================================
-
             # 🔢 NUMBER FORMATTING
-
             # ============================================
 
             numeric_cols = ["quantity", "amount", "roti", "roti_amount"]
 
             for col in numeric_cols:
-
                 if col in df.columns:
                     df[col] = df[col].apply(
-
                         lambda x: f"{x:.2f}" if float(x) % 1 else f"{int(x)}"
-
                     )
 
             # ============================================
-
             # 🎨 PAYMENT COLOR
-
             # ============================================
 
             def color_payment(val):
-
                 val_lower = str(val).lower()
 
                 if val_lower == "payment done":
-
                     return "color: #059212; font-weight:bold;"
 
-
                 elif val_lower in ["pending", "payment pending"]:
-
                     return "color: #76153C; font-weight:bold;"
 
-
                 elif val_lower == "paid":
-
                     return "color: goldenrod; font-weight:bold;"
 
-
                 elif val_lower == "not involved":
-
                     return "color: #FCDC2A; font-weight:bold;"
 
                 return ""
 
             # ============================================
-
             # 🎨 NAME COLOR
-
             # ============================================
 
             def color_name(val):
-
                 colors = {
-
                     "MEET": "#FF0033",
-
                     "YASH": "#bfff00",
-
                     "DHRUMIL": "#00bfff"
-
                 }
 
                 return (
-
                     f"color: {colors[val.upper()]}; font-weight: bold;"
-
                     if str(val).upper() in colors
-
                     else ""
-
                 )
 
             # ============================================
-
             # 📊 STYLE APPLY
-
             # ============================================
 
             styled_df = (
-
                 df.style
-
                 .map(color_payment, subset=["payment_status"])
-
                 .map(color_name, subset=["name"])
-
             )
 
             st.dataframe(styled_df, use_container_width=True)
