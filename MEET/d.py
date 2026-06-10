@@ -878,7 +878,6 @@ def app():
 
         # PNG file load & encode
 
-        # PNG file load & encode
         with open("images/view.png", "rb") as f:
             img_bytes = f.read()
         img_base64 = base64.b64encode(img_bytes).decode()
@@ -1023,7 +1022,7 @@ def app():
                 return ""
 
             def color_payment(val):
-                val_lower = str(val).upper()
+                val_lower = str(val).lower()
 
                 if val_lower == "payment done":
                     return "color: #73FF00; font-weight:bold;"
@@ -1059,7 +1058,6 @@ def app():
             )
 
             st.dataframe(styled_df, use_container_width=True)
-
     # -------------------- Chart --------------------
 
     elif menu == "🗃️ Analytics Dashboard":
