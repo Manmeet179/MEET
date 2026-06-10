@@ -1894,7 +1894,11 @@ def app():
                         "TOTAL": "#9929EA"
                     }
 
-                    return f"color: {colors.get(str(val).upper(), 'white')}; font-weight:bold;"
+                    color = colors.get(str(val).upper(), None)
+
+                    if color:
+                        return f"color: {color}; font-weight: bold;"
+                    return ""
 
                 styled_summary = summary_df.style.map(
                     color_summary_name,
