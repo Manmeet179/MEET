@@ -876,28 +876,23 @@ def app():
 
     elif menu == "🔎 View Tiffin Records":
 
-        # ============================================
-        # 🖼 HEADER ICON
-        # ============================================
+        # PNG file load & encode
 
+        # PNG file load & encode
         with open("images/view.png", "rb") as f:
             img_bytes = f.read()
-
         img_base64 = base64.b64encode(img_bytes).decode()
 
+        # Header UI
         st.markdown(
             f"""
-                <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
-                    <img src="data:image/png;base64,{img_base64}" width="30" />
-                    <span>All Records</span>
-                </div>
-                """,
+              <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+                  <img src="data:image/png;base64,{img_base64}" width="30" />
+                  <span>All Records</span>
+              </div>
+              """,
             unsafe_allow_html=True
         )
-
-        # ============================================
-        # 📦 LOAD DATA
-        # ============================================
 
         df = fetch_all()
 
@@ -910,28 +905,23 @@ def app():
             if "time" in df.columns:
                 df = df.drop(columns=["time"])
 
-            # Convert date column
+            # Convert date column properly
             df["date"] = pd.to_datetime(df["date"], dayfirst=True)
 
             # ============================================
-            # 🔽 FILTER OPTIONS
+            # 🔽 FILTER OPTION (CURRENT CYCLE / DATE RANGE)
             # ============================================
 
-            view_option = st.selectbox(
-                "View Records",
-                [
-                    "Current Cycle",
-                    "Date Wise",
-                    "Name Wise",
-                    "Custom Date Range"
-                ]
+            filter_type = st.selectbox(
+                "Filter Records",
+                ["Current Cycle", "Custom Date Range"]
             )
 
             # ============================================
-            # 📅 CUSTOM DATE RANGE
+            # ✅ CUSTOM DATE RANGE (FROM - TO)
             # ============================================
 
-            if view_option == "Custom Date Range":
+            if filter_type == "Custom Date Range":
 
                 col1, col2 = st.columns(2)
 
@@ -953,10 +943,10 @@ def app():
                     ]
 
             # ============================================
-            # 📅 CURRENT CYCLE (10 TO 10)
+            # ✅ CURRENT CYCLE LOGIC (10 to 10)
             # ============================================
 
-            elif view_option == "Current Cycle":
+            else:
 
                 today = datetime.datetime.today()
 
@@ -982,13 +972,20 @@ def app():
                     ]
 
             # ============================================
-            # 📅 SORT OPTIONS
+            # 🔽 VIEW RECORD BY
             # ============================================
 
-            elif view_option == "Date Wise":
+            view_type = st.selectbox(
+                "View Record By",
+                ["Date Wise", "Name Wise"]
+            )
+
+            # Date Wise sorting
+            if view_type == "Date Wise":
                 df = df.sort_values(by="date", ascending=False)
 
-            elif view_option == "Name Wise":
+            # Name Wise sorting
+            elif view_type == "Name Wise":
 
                 name_order = {
                     "MEET": 1,
@@ -1012,7 +1009,7 @@ def app():
             df["date"] = df["date"].dt.strftime("%d/%m/%Y")
 
             # ============================================
-            # 🔢 NUMBER FORMAT
+            # 🔢 NUMBER FORMATTING
             # ============================================
 
             numeric_cols = ["quantity", "amount", "roti", "roti_amount"]
@@ -1062,32 +1059,17 @@ def app():
                 )
 
             # ============================================
-            # 🌞🌙 DAY / NIGHT COLOR (NEW ADDITION)
-            # ============================================
-
-            def color_day_night(val):
-                val_lower = str(val).strip().lower()
-
-                if val_lower == "day":
-                    return "color: orange; font-weight:bold;"
-
-                elif val_lower == "night":
-                    return "color: #1B339E; font-weight:bold;"
-
-                return ""
-
-            # ============================================
-            # 📊 APPLY STYLES
+            # 📊 STYLE APPLY
             # ============================================
 
             styled_df = (
                 df.style
                 .map(color_payment, subset=["payment_status"])
                 .map(color_name, subset=["name"])
-                .map(color_day_night, subset=["day_night"])  # 👈 CHANGE COLUMN NAME IF NEEDED
             )
 
             st.dataframe(styled_df, use_container_width=True)
+
     # -------------------- Chart --------------------
 
     elif menu == "🗃️ Analytics Dashboard":
