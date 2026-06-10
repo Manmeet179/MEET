@@ -1741,14 +1741,18 @@ def app():
                     val_lower = str(val).lower()
 
                     if val_lower == "payment done":
-                        return "color: #73FF00; font-weight:bold;"
+                        return "#73FF00"
+
                     elif val_lower in ["pending", "payment pending"]:
-                        return "color: #FF0095; font-weight:bold;"
+                        return "#FF0095"
+
                     elif val_lower == "paid":
-                        return "color: #73FF00; font-weight:bold;"
+                        return "#73FF00"
+
                     elif val_lower == "not involved":
-                        return "color: #FCDC2A; font-weight:bold;"
-                    return ""
+                        return "#FCDC2A"
+
+                    return None
 
                 # ---------- Streamlit Table Styling ----------
 
