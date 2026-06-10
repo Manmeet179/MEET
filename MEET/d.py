@@ -1014,16 +1014,16 @@ def app():
             # =========================
 
             def color_shift(val):
-                val_lower = str(val).lower()
+                val_str = str(val).strip()
 
-                if val_lower == "day":
+                if val_str == "DAY":
                     return "color: #FF8F00; font-weight:bold;"
-                elif val_lower == "night":
+                elif val_str == "NIGHT":
                     return "color: #3B9797; font-weight:bold;"
                 return ""
 
             def color_payment(val):
-                val_lower = str(val).lower()
+                val_lower = str(val).upper()
 
                 if val_lower == "payment done":
                     return "color: #73FF00; font-weight:bold;"
