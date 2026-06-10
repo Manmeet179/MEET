@@ -1,6 +1,5 @@
 import streamlit as st
 import datetime
-from datetime import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
 import bcrypt
@@ -919,27 +918,24 @@ def app():
 
             df["date"] = pd.to_datetime(df["date"], dayfirst=True)
 
-            # Current date
-            today = datetime.today()
+            today = datetime.datetime.today()
 
-            # Billing cycle calculate
             if today.day >= 10:
-                start_date = datetime(today.year, today.month, 10)
+                start_date = datetime.datetime(today.year, today.month, 10)
 
                 if today.month == 12:
-                    end_date = datetime(today.year + 1, 1, 10)
+                    end_date = datetime.datetime(today.year + 1, 1, 10)
                 else:
-                    end_date = datetime(today.year, today.month + 1, 10)
+                    end_date = datetime.datetime(today.year, today.month + 1, 10)
 
             else:
                 if today.month == 1:
-                    start_date = datetime(today.year - 1, 12, 10)
+                    start_date = datetime.datetime(today.year - 1, 12, 10)
                 else:
-                    start_date = datetime(today.year, today.month - 1, 10)
+                    start_date = datetime.datetime(today.year, today.month - 1, 10)
 
-                end_date = datetime(today.year, today.month, 10)
+                end_date = datetime.datetime(today.year, today.month, 10)
 
-            # Filter data between 10th and next 10th
             df = df[(df["date"] >= start_date) & (df["date"] < end_date)]
 
             # ============================================
