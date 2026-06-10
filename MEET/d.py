@@ -431,9 +431,15 @@ def login():
         unsafe_allow_html=True
     )
 
+    with open("images/icons8-authentication-32.png", "rb") as f:
+        img_bytes = f.read()
+
+    img_base64 = base64.b64encode(img_bytes).decode()
+
     st.markdown(
-        """
-        <div style="display: flex; justify-content: center; align-items: center; gap: 8px;">
+        f"""
+        <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+            <img src="data:image/png;base64,{img_base64}" width="32"/>
             <h2 style="margin:0;">LOGIN</h2>
         </div>
         """,
@@ -1912,7 +1918,7 @@ def app():
                 st.markdown(f"### Records from {from_date} to {to_date}")
 
                 # =====================================================
-                # ✅ EXCEL DOWNLOAD
+                # ✅ EXCEL DOWNLOAD (FINAL FIXED VERSION)
                 # =====================================================
 
                 if not filtered_df.empty:
@@ -1921,14 +1927,52 @@ def app():
 
                     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
 
-                        # ✅ Main Data
-                        filtered_df.to_excel(writer, index=False, sheet_name="Tiffin Records")
+                        # =========================
+                        # MAIN DATA
+                        # =========================
+                        filtered_df.to_excel(
+                            writer,
+                            index=False,
+                            sheet_name="Tiffin Records"
+                        )
 
                         workbook = writer.book
                         worksheet = writer.sheets["Tiffin Records"]
 
-                        # ---------- Formats ----------
+                        # =========================
+                        # COLOR MAP
+                        # =========================
+                        color_map = {
+                            "MEET": "#FF0033",
+                            "YASH": "#bfff00",
+                            "DHRUMIL": "#00bfff",
+                            "TOTAL": "#9929EA"
+                        }
 
+                        # =========================
+                        # PAYMENT COLOR FUNCTION (FIXED)
+                        # =========================
+                        def color_payment(val):
+
+                            v = str(val).strip().lower()
+
+                            if v == "payment done":
+                                return "#73FF00"
+
+                            elif v in ["pending", "payment pending"]:
+                                return "#FF0095"
+
+                            elif v == "paid":
+                                return "#73FF00"
+
+                            elif v == "not involved":
+                                return "#FCDC2A"
+
+                            return None
+
+                        # =========================
+                        # FORMATS
+                        # =========================
                         bold_format = workbook.add_format({
                             'bold': True,
                             'border': 1
@@ -1940,8 +1984,9 @@ def app():
                             'border': 1
                         })
 
-                        # ---------- Write Summary Table ----------
-
+                        # =========================
+                        # SUMMARY TABLE
+                        # =========================
                         start_row = len(filtered_df) + 4
 
                         worksheet.write(start_row, 0, "SUMMARY TABLE", bold_format)
@@ -1950,32 +1995,62 @@ def app():
                         for col_num, value in enumerate(summary_df.columns.values):
                             worksheet.write(start_row + 1, col_num, value, bold_format)
 
-                        # Data
+                        # Data (NAME COLOR + TOTAL FIX)
                         for row_num, row_data in enumerate(summary_df.values):
 
                             for col_num, cell_data in enumerate(row_data):
 
-                                if str(row_data[0]).upper() == "TOTAL":
+                                row_name = str(row_data[0]).upper()
+
+                                if row_name == "TOTAL":
+
                                     worksheet.write(
                                         start_row + 2 + row_num,
                                         col_num,
                                         cell_data,
                                         total_format
                                     )
+
                                 else:
-                                    worksheet.write(
-                                        start_row + 2 + row_num,
-                                        col_num,
-                                        cell_data
-                                    )
 
-                        # ---------- Main Table Name Coloring ----------
+                                    if col_num == 0:
 
+                                        color = color_map.get(row_name)
+
+                                        if color:
+                                            cell_format = workbook.add_format({
+                                                "font_color": color,
+                                                "bold": True
+                                            })
+
+                                            worksheet.write(
+                                                start_row + 2 + row_num,
+                                                col_num,
+                                                cell_data,
+                                                cell_format
+                                            )
+                                        else:
+                                            worksheet.write(
+                                                start_row + 2 + row_num,
+                                                col_num,
+                                                cell_data
+                                            )
+
+                                    else:
+                                        worksheet.write(
+                                            start_row + 2 + row_num,
+                                            col_num,
+                                            cell_data
+                                        )
+
+                        # =========================
+                        # MAIN TABLE NAME COLOR
+                        # =========================
                         name_col_idx = filtered_df.columns.get_loc("name")
 
                         for row_num, val in enumerate(filtered_df['name'], start=1):
 
-                            color = color_name(val)
+                            color = color_map.get(str(val).upper())
 
                             if color:
                                 cell_format = workbook.add_format({
@@ -1985,8 +2060,9 @@ def app():
 
                                 worksheet.write(row_num, name_col_idx, val, cell_format)
 
-                        # ---------- Payment Status Coloring ----------
-
+                        # =========================
+                        # PAYMENT STATUS COLOR (FIXED)
+                        # =========================
                         payment_col_idx = filtered_df.columns.get_loc("payment_status")
 
                         for row_num, val in enumerate(filtered_df['payment_status'], start=1):
@@ -1995,50 +2071,59 @@ def app():
 
                             if color:
                                 cell_format = workbook.add_format({
-                                    'font_color': color
+                                    'font_color': color,
+                                    'bold': True
                                 })
 
                                 worksheet.write(row_num, payment_col_idx, val, cell_format)
 
-                        # ---------- Shift Coloring ----------
+                            else:
+                                worksheet.write(row_num, payment_col_idx, val)
 
+                        # =========================
+                        # SHIFT COLOR
+                        # =========================
                         if 'shift' in filtered_df.columns:
 
                             shift_col_idx = filtered_df.columns.get_loc("shift")
 
                             for row_num, val in enumerate(filtered_df['shift'], start=1):
 
-                                color = color_shift(val)
+                                v = str(val).strip().lower()
+
+                                if v == "day":
+                                    color = "#FF8F00"
+                                elif v == "night":
+                                    color = "#3B9797"
+                                else:
+                                    color = None
 
                                 if color:
                                     cell_format = workbook.add_format({
-                                        'font_color': color
+                                        'font_color': color,
+                                        'bold': True  # ✅ THIS ADDED
                                     })
 
                                     worksheet.write(row_num, shift_col_idx, val, cell_format)
-                        # =====================================================
-                        # ✅ PIE CHART IN EXCEL (Below Summary Table)
-                        # =====================================================
 
+                                else:
+                                    worksheet.write(row_num, shift_col_idx, val)
+
+                        # =========================
+                        # PIE CHART
+                        # =========================
                         pie_data = summary_df[summary_df["Name"] != "TOTAL"]
 
                         if not pie_data.empty:
                             pie_colors = [
-                                {
-                                    "MEET": "#FF0033",
-                                    "YASH": "#bfff00",
-                                    "DHRUMIL": "#00bfff"
-                                }.get(str(name).upper(), "#FFFFFF")
+                                color_map.get(str(name).upper(), "#CCCCCC")
                                 for name in pie_data["Name"]
                             ]
 
                             fig, ax = plt.subplots(figsize=(6, 4))
 
                             ax.pie(
-                                pd.to_numeric(
-                                    pie_data["Total Tiffin"],
-                                    errors="coerce"
-                                ),
+                                pd.to_numeric(pie_data["Total Tiffin"], errors="coerce"),
                                 labels=pie_data["Name"],
                                 autopct="%1.1f%%",
                                 startangle=90,
@@ -2049,17 +2134,11 @@ def app():
 
                             chart_image = BytesIO()
 
-                            plt.savefig(
-                                chart_image,
-                                format="png",
-                                bbox_inches="tight"
-                            )
-
+                            plt.savefig(chart_image, format="png", bbox_inches="tight")
                             plt.close(fig)
 
                             chart_image.seek(0)
 
-                            # Summary table પછી chart મૂકો
                             chart_row = start_row + len(summary_df) + 6
 
                             worksheet.insert_image(
@@ -2072,7 +2151,10 @@ def app():
                                     "y_scale": 1.2
                                 }
                             )
-                        # ✅ Auto column width
+
+                        # =========================
+                        # AUTO COLUMN WIDTH
+                        # =========================
                         for i, col in enumerate(filtered_df.columns):
                             column_len = max(
                                 filtered_df[col].astype(str).map(len).max(),
@@ -2086,7 +2168,7 @@ def app():
                     st.download_button(
                         label="⬇️ Download Excel",
                         data=processed_data,
-                        file_name=f"Tiffin_Records_{from_date}_to_{to_date}.xlsx",
+                        file_name=f"I_MANMEET__'S_TIFFIN_RECORDS_{from_date}_to_{to_date}.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     )
                 # -------------------- Delete --------------------
