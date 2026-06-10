@@ -876,6 +876,14 @@ def app():
 
     elif menu == "🔎 View Tiffin Records":
 
+        import datetime
+
+        import base64
+
+        import pandas as pd
+
+        import streamlit as st
+
         # PNG file load & encode
 
         with open("images/view.png", "rb") as f:
@@ -884,13 +892,17 @@ def app():
 
         img_base64 = base64.b64encode(img_bytes).decode()
 
-        # Display icon + text side by side
+        # Header UI
 
         st.markdown(
 
             f"""
 
-            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;"><img src="data:image/png;base64,{img_base64}" width="30" /><span>All Records</span>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+
+                <img src="data:image/png;base64,{img_base64}" width="30" />
+
+                <span>All Records</span>
 
             </div>
 
@@ -909,34 +921,110 @@ def app():
 
         else:
 
-            # ✅ Remove time column if exists
+            # Remove time column if exists
 
             if "time" in df.columns:
                 df = df.drop(columns=["time"])
 
-            # ✅ Convert date column properly
+            # Convert date column properly
 
             df["date"] = pd.to_datetime(df["date"], dayfirst=True)
 
-            today = datetime.datetime.today()
+            # ============================================
 
-            if today.day >= 10:
-                start_date = datetime.datetime(today.year, today.month, 10)
+            # 🔽 FILTER OPTION (CURRENT CYCLE / DATE RANGE)
 
-                if today.month == 12:
-                    end_date = datetime.datetime(today.year + 1, 1, 10)
-                else:
-                    end_date = datetime.datetime(today.year, today.month + 1, 10)
+            # ============================================
+
+            filter_type = st.selectbox(
+
+                "Filter Records",
+
+                ["Current Cycle", "Custom Date Range"]
+
+            )
+
+            # ============================================
+
+            # ✅ CUSTOM DATE RANGE (FROM - TO)
+
+            # ============================================
+
+            if filter_type == "Custom Date Range":
+
+                col1, col2 = st.columns(2)
+
+                with col1:
+
+                    from_date = st.date_input(
+
+                        "From Date",
+
+                        value=df["date"].min().date()
+
+                    )
+
+                with col2:
+
+                    to_date = st.date_input(
+
+                        "To Date",
+
+                        value=df["date"].max().date()
+
+                    )
+
+                df = df[
+
+                    (df["date"] >= pd.to_datetime(from_date))
+
+                    & (df["date"] <= pd.to_datetime(to_date))
+
+                    ]
+
+
+            # ============================================
+
+            # ✅ CURRENT CYCLE LOGIC (10 to 10)
+
+            # ============================================
 
             else:
-                if today.month == 1:
-                    start_date = datetime.datetime(today.year - 1, 12, 10)
+
+                today = datetime.datetime.today()
+
+                if today.day >= 10:
+
+                    start_date = datetime.datetime(today.year, today.month, 10)
+
+                    if today.month == 12:
+
+                        end_date = datetime.datetime(today.year + 1, 1, 10)
+
+                    else:
+
+                        end_date = datetime.datetime(today.year, today.month + 1, 10)
+
+
                 else:
-                    start_date = datetime.datetime(today.year, today.month - 1, 10)
 
-                end_date = datetime.datetime(today.year, today.month, 10)
+                    if today.month == 1:
 
-            df = df[(df["date"] >= start_date) & (df["date"] < end_date)]
+                        start_date = datetime.datetime(today.year - 1, 12, 10)
+
+                    else:
+
+                        start_date = datetime.datetime(today.year, today.month - 1, 10)
+
+                    end_date = datetime.datetime(today.year, today.month, 10)
+
+                df = df[
+
+                    (df["date"] >= start_date)
+
+                    & (df["date"] < end_date)
+
+                    ]
 
             # ============================================
 
@@ -952,28 +1040,16 @@ def app():
 
             )
 
-            # ============================================
-
-            # ✅ DATE WISE
-
-            # ============================================
+            # Date Wise sorting
 
             if view_type == "Date Wise":
-
-                # Ascending order by date
 
                 df = df.sort_values(by="date", ascending=False)
 
 
-            # ============================================
-
-            # ✅ NAME WISE
-
-            # ============================================
+            # Name Wise sorting
 
             elif view_type == "Name Wise":
-
-                # Custom name order
 
                 name_order = {
 
@@ -987,8 +1063,6 @@ def app():
 
                 df["name_order"] = df["name"].str.upper().map(name_order)
 
-                # Sort by name first then date
-
                 df = df.sort_values(
 
                     by=["name_order", "date"],
@@ -1001,7 +1075,7 @@ def app():
 
             # ============================================
 
-            # ✅ DATE FORMAT ONLY DD/MM/YYYY
+            # 📅 FORMAT DATE
 
             # ============================================
 
@@ -1009,7 +1083,7 @@ def app():
 
             # ============================================
 
-            # ✅ NUMBER FORMATTING
+            # 🔢 NUMBER FORMATTING
 
             # ============================================
 
@@ -1026,7 +1100,7 @@ def app():
 
             # ============================================
 
-            # ✅ FONT COLOR FOR PAYMENT STATUS
+            # 🎨 PAYMENT COLOR
 
             # ============================================
 
@@ -1057,7 +1131,7 @@ def app():
 
             # ============================================
 
-            # ✅ FONT COLOR FOR NAME
+            # 🎨 NAME COLOR
 
             # ============================================
 
@@ -1085,7 +1159,7 @@ def app():
 
             # ============================================
 
-            # ✅ STYLE APPLY
+            # 📊 STYLE APPLY
 
             # ============================================
 
