@@ -1745,7 +1745,7 @@ def app():
                     elif val_lower in ["pending", "payment pending"]:
                         return "color: #FF0095; font-weight:bold;"
                     elif val_lower == "paid":
-                        return "color: goldenrod; font-weight:bold;"
+                        return "color: #73FF00; font-weight:bold;"
                     elif val_lower == "not involved":
                         return "color: #FCDC2A; font-weight:bold;"
                     return ""
