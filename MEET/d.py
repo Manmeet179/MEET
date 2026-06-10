@@ -823,7 +823,7 @@ def app():
             st.stop()
         roti_qty = {}
         roti_rate = 7
-        if shift == "Day":
+        if shift == "DAY":
             st.markdown("### Enter Roti Quantity per Person")
             for name in selected_names:
                 roti_qty[name] = st.number_input(f"{name} Roti Quantity", min_value=0, value=0, step=1)
@@ -847,7 +847,7 @@ def app():
         total_roti_amount = round(sum([roti_qty.get(name, 0) * roti_rate for name in selected_names]), 2)
         total_amount = total_tiffin_amount + total_roti_amount
         st.markdown(f"### 💰 Total Tiffin Amount: ₹{total_tiffin_amount:.2f}")
-        if shift == "Day":
+        if shift == "DAY":
             st.markdown(f"### 💰 Total Roti Amount: ₹{total_roti_amount:.2f}")
         st.markdown(f"### 🏆 Final Total Amount: ₹{total_amount:.2f}")
 
