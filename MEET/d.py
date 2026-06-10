@@ -630,7 +630,7 @@ def edit_account_page():
 
     # --- Fetch records ---
     conn = get_db()  # Replace with your DB connection
-    df = pd.read_sql("SELECT * FROM account_records ORDER BY date DESC, time DESC", conn)
+    df = pd.read_sql( "SELECT * FROM account_records ORDER BY date DESC",conn)
 
     if df.empty:
         st.info("No account records available.")
@@ -646,9 +646,9 @@ def edit_account_page():
         if val_lower == "payment done":
             return "color: #059212; font-weight:bold;"  # greenish
         elif val_lower in ["pending", "payment pending"]:
-            return "color: #76153C; font-weight:bold;"  # pink/purple
+            return "color: #03dbfc; font-weight:bold;"  # pink/purple
         elif val_lower == "paid":
-            return "color: goldenrod; font-weight:bold;"
+            return "color: #62fc03; font-weight:bold;"
         elif val_lower == "not involved":
             return "color: #FCDC2A; font-weight:bold;"  # neutral yellow-green
         return ""
