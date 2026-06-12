@@ -5,3 +5,4 @@ openpyxl
 XlsxWriter
 python-dateutil
 bcrypt
+psycopg2
