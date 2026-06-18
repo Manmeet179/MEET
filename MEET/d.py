@@ -916,7 +916,7 @@ def app():
             for name in selected_names:  
                 qty = per_person_qty
                 amount = per_person_amount
-                payment_status = PAYMENT PENDING"
+                payment_status = "PAYMENT PENDING"
 
                 roti = roti_qty.get(name, 0)
                 roti_amount = roti * roti_rate
