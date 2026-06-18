@@ -841,6 +841,7 @@ def app():
                 person_roti_qty = roti_qty.get(name, 0)
                 person_roti_amount = person_roti_qty * roti_rate
                 person_total = per_person_amount + person_roti_amount
+                st.markdown("---")
 
                 st.markdown(
                     f"""
@@ -854,9 +855,11 @@ def app():
                     - **Total Payable: ₹{person_total:.2f}**
                     """,
                     unsafe_allow_html=True
+
                 )
 
             else:
+                st.markdown("---")
                 st.markdown(
                     f"""
                     <span style='color:{color}; font-weight:700; font-size:18px;'>
