@@ -788,7 +788,7 @@ def app():
 
         current_time = datetime.datetime.now().strftime("%H:%M:%S")
 
-        shift = st.selectbox("Select Shift", ["-- SELECT DAY --", "Day", "Night"])
+        shift = st.selectbox("Select Shift", ["-- SELECT DAY --", "DAY", "NIGHT"])
 
         if shift == "-- SELECT DAY --":
             st.warning("Please select a shift")
@@ -913,10 +913,10 @@ def app():
         if st.button("Save Record"):
             data_to_insert = []
 
-            for name in selected_names:  # ✅ only selected लोग
+            for name in selected_names:  
                 qty = per_person_qty
                 amount = per_person_amount
-                payment_status = "Payment Pending"
+                payment_status = PAYMENT PENDING"
 
                 roti = roti_qty.get(name, 0)
                 roti_amount = roti * roti_rate
