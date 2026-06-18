@@ -431,7 +431,8 @@ def login():
 
     st.markdown(
         """
-        <div style="display: flex; justify-content: center; align-items: center; gap: 8px;">
+        <div style="display:flex; justify-content:center; align-items:center; gap:8px;">
+            <img src="images/icons8-authentication-100.png" width="40">
             <h2 style="margin:0;">LOGIN</h2>
         </div>
         """,
@@ -827,21 +828,84 @@ def app():
         per_person_amount = round(90 * per_person_qty, 2)
         st.markdown("### Tiffin Amount per Person")
 
+        name_colors = {
+            "MEET": "#FF0033",
+            "YASH": "#bfff00",
+            "DHRUMIL": "#00bfff"
+        }
+
         for name in names:
+            color = name_colors.get(name, "#000000")  # Default Black
+
             if name in selected_names:
-                st.write(
-                    f"{name}: Qty = {per_person_qty:.2f}, Amount = ₹{per_person_amount:.2f}, Roti = {roti_qty.get(name, 0)}")
+                person_roti_qty = roti_qty.get(name, 0)
+                person_roti_amount = person_roti_qty * roti_rate
+                person_total = per_person_amount + person_roti_amount
+
+                st.markdown(
+                    f"""
+                    <span style='color:{color}; font-size:20px; font-weight:bold;'>
+                        {name}
+                    </span>
+
+                    - Tiffin Quantity: {per_person_qty:.2f}
+                    - Tiffin Charges: ₹{per_person_amount:.2f}
+                    - Roti: {person_roti_qty} Nos (₹{person_roti_amount:.2f})
+                    - **Total Payable: ₹{person_total:.2f}**
+                    """,
+                    unsafe_allow_html=True
+                )
+
             else:
+                st.markdown(
+                    f"""
+                    <span style='color:{color}; font-weight:700; font-size:18px;'>
+                        {name}
+                    </span>
+                    — <span style='color:red; font-weight:700;'>
+                        No Tiffin Ordered Today
+                    </span>
+                    """,
+                    unsafe_allow_html=True
+                )
 
-                st.write(f"{name}: No Tiffin Today → Qty = 0.00, Amount = 0.00, Roti = 0")
+        # Billing Summary
+        total_tiffin_amount = round(
+            per_person_amount * len(selected_names), 2
+        )
 
-        total_tiffin_amount = round(per_person_amount * len(selected_names), 2)
-        total_roti_amount = round(sum([roti_qty.get(name, 0) * roti_rate for name in selected_names]), 2)
+        total_roti_amount = round(
+            sum(roti_qty.get(name, 0) * roti_rate for name in selected_names),
+            2
+        )
+
         total_amount = total_tiffin_amount + total_roti_amount
-        st.markdown(f"### 💰 Total Tiffin Amount: ₹{total_tiffin_amount:.2f}")
+
+        st.markdown("---")
+        st.markdown("### Billing Summary")
+
+        st.markdown(
+            f"**Total Tiffin Charges:** ₹{total_tiffin_amount:,.2f}"
+        )
+
         if shift == "Day":
-            st.markdown(f"### 💰 Total Roti Amount: ₹{total_roti_amount:.2f}")
-        st.markdown(f"### 🏆 Final Total Amount: ₹{total_amount:.2f}")
+            st.markdown(
+                f"**Total Roti Charges:** ₹{total_roti_amount:,.2f}"
+            )
+
+        st.markdown("---")
+
+        st.markdown(
+            f"""
+            <h3>
+                Total Amount Payable:
+                <span style='color:green;'>
+                    ₹{total_amount:,.2f}
+                </span>
+            </h3>
+            """,
+            unsafe_allow_html=True
+        )
 
         if st.button("Save Record"):
             data_to_insert = []
@@ -1550,7 +1614,7 @@ def app():
 
                 selected_payment = st.selectbox(
                     "Payment Status to Update",
-                    ["-- SELECT --", "Payment Pending", "Payment Done"]
+                    ["-- SELECT --", "PAYMENT PENDING", "PAYMENT DONE"]
                 )
 
                 # -------------------- ACTION --------------------
@@ -1710,16 +1774,26 @@ def app():
                     val_lower = str(val).lower()
 
                     if val_lower == "payment done":
-                        return "#059212"
+                        return "#73FF00"
 
                     elif val_lower in ["pending", "payment pending"]:
-                        return "#76153C"
+                        return "#FF0095"
 
                     elif val_lower == "paid":
                         return "goldenrod"
 
                     elif val_lower == "not involved":
                         return "#FCDC2A"
+
+                    if val_lower == "payment done":
+                        return "color: #73FF00; font-weight:bold;"
+                    elif val_lower in ["pending", "payment pending"]:
+                        return "color: #FF0095; font-weight:bold;"
+                    elif val_lower == "paid":
+                        return "color: goldenrod; font-weight:bold;"
+                    elif val_lower == "not involved":
+                        return "color: #FCDC2A; font-weight:bold;"
+                    return ""
 
                     return None
 
