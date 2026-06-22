@@ -9,6 +9,8 @@ import base64
 import time
 from datetime import date
 from dateutil.relativedelta import relativedelta
+from streamlit_extras.radial_menu import *
+
 # -------------------- Streamlit Config --------------------
 
 st.set_page_config(
@@ -141,9 +143,7 @@ def get_db():
 
 def create_table():
     conn = get_db()
-
     cursor = conn.cursor()
-
     cursor.execute(f"""
 
            CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
@@ -428,11 +428,13 @@ def login():
         """,
         unsafe_allow_html=True
     )
+    with open("images/icons8-authentication-100.png", "rb") as f:
+        img_base64 = base64.b64encode(f.read()).decode()
 
     st.markdown(
-        """
-        <div style="display:flex; justify-content:center; align-items:center; gap:8px;">
-            <img src="images/icons8-authentication-100.png" width="40">
+        f"""
+        <div style="text-align: center; display: flex; justify-content: center; align-items: center; gap: 10px;">
+            <img src="data:image/png;base64,{img_base64}" width="40" />
             <h2 style="margin:0;">LOGIN</h2>
         </div>
         """,
@@ -715,6 +717,388 @@ def edit_account_page():
 
 st.sidebar.image("images/me.png", use_container_width=True)
 
+# --------------------
+# Sidebar CSS
+# --------------------
+
+st.markdown("""
+  <style>
+
+  /* MAIN APP */
+  .stApp{
+  background:
+  linear-gradient(
+  180deg,
+  #081c6f 0%,
+  #06152D 40%,
+  #661414 100%
+  );
+
+  color:white;
+  }
+
+  /* Containers */
+  [data-testid="stVerticalBlock"]{
+  border-radius:20px;
+  }
+
+  /* Inputs */
+
+  .stSelectbox,
+  .stDateInput,
+  .stNumberInput{
+  background:rgba(255,255,255,.03);
+  border-radius:18px;
+  }
+
+  /* Buttons */
+
+  .stButton button{
+
+  background:
+  linear-gradient(
+  90deg,
+  #2563EB,
+  #7C3AED
+  );
+
+  color:white;
+
+  border:none;
+
+  border-radius:16px;
+
+  font-weight:700;
+
+  height:50px;
+  }
+
+  /* Dataframe */
+
+  [data-testid="stDataFrame"]{
+
+  background:
+  rgba(255,255,255,.03);
+
+  border-radius:20px;
+
+  }
+
+  </style>
+  """, unsafe_allow_html=True)
+
+st.markdown("""
+  <style>
+
+  /* Sidebar bg color */
+
+  [data-testid="stSidebar"]{
+  background:
+  linear-gradient(
+  180deg,
+  #020617,
+  #050B1C,
+  #17068E
+  );
+
+  border-right:
+  1px solid rgba(130,80,255,.4);
+  }
+
+  /* Hide default */
+
+  [data-testid="stSidebarNav"]{
+  display:none;
+  }
+
+  /* Logo */
+
+  .logo{
+  padding:25px;
+  margin-bottom:15px;
+
+  border-radius:24px;
+
+  background:
+  linear-gradient(
+  135deg,
+  rgba(10,20,50,.95),
+  rgba(80,20,140,.25)
+  );
+
+  text-align:center;
+
+  border:
+  1px solid rgba(120,120,255,.4);
+
+  backdrop-filter:blur(20px);
+
+  box-shadow:
+  0 0 35px rgba(70,70,255,.3);
+  }
+
+  .logoicon{
+  font-size:70px;
+  }
+
+  .logotitle{
+
+  font-size:42px;
+
+  font-weight:900;
+
+  background:
+  linear-gradient(
+  90deg,
+  #1DA1FF,
+  #A855F7
+  );
+
+  -webkit-background-clip:text;
+
+  color:transparent;
+  }
+
+  .subtitle{
+  color:#ddd;
+  font-size:15px;
+  }
+
+  /* Cards */
+
+  .card{
+
+  padding:15px;
+
+  margin-bottom:12px;
+
+  border-radius:18px;
+
+  background:
+  rgba(255,255,255,.03);
+
+  border:
+  1px solid rgba(255,255,255,.08);
+
+  color:white;
+
+  box-shadow:
+  0 0 18px rgba(0,0,0,.25);
+  }
+
+  .green{
+  color: #39FF14;
+  }
+
+  .red{
+  color: #FF073A;
+  }
+
+  .version{
+
+  padding:18px;
+
+  border-radius:18px;
+
+  text-align:center;
+
+  margin-top:20px;
+
+  background:
+  linear-gradient(
+  90deg,
+  #1D4ED8,
+  #7E22CE
+  );
+
+  color:white;
+
+  font-size:36px;
+
+  font-weight:900;
+
+  box-shadow:
+  0 0 30px rgba(130,80,255,.4);
+
+  }
+
+  .ver{
+  font-size:18px;
+  }
+
+  </style>
+  """, unsafe_allow_html=True)
+
+# --------------------
+# Sidebar
+# --------------------
+st.markdown("""
+  <style>
+  .logotitle {
+      font-size: 35px;  
+      font-weight: bold;
+  }
+  </style>
+  """, unsafe_allow_html=True)
+
+with st.sidebar:
+    st.markdown("""
+      <div class="logo">
+
+      <div class="logoicon">
+      🍱
+      </div>
+
+      <div class="logotitle">
+      LUNCHLOGIX
+      </div>
+
+      <div class="subtitle">
+      PREMIUM EDITION
+      <br>
+      Manage • Track • Grow
+      </div>
+
+      </div>
+      """, unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    # ======================
+    # SIDEBAR NAVIGATION
+    # ======================
+
+    menu = None
+
+    with st.sidebar:
+        # ONLY AFTER LOGIN
+        if st.session_state.get("logged_in", False):
+
+            st.markdown("""
+              <div style="
+              font-size:22px;
+              font-weight:800;
+              color:#ffffff;
+              margin-bottom:10px;
+              ">
+              📌 NAVIGATION
+              </div>
+              """, unsafe_allow_html=True)
+
+            menu = st.selectbox(
+                "",
+                [
+                    "➕ Add Tiffin Entry",
+                    "🔎 View Tiffin Records",
+                    "🗃️ Analytics Dashboard",
+                    "💳 Update Payment Status",
+                    "⬇️ Export Data",
+                    "❎ Remove Tiffin Records",
+                    "🛠️ Edit Tiffin Records",
+                    "💳 Add Expense Entry",
+                    "🔍 View Expense Records",
+                    "❎ Remove Expense Records",
+                    "✏️ Edit Expense Details",
+                ],
+                label_visibility="collapsed"
+            )
+
+            st.divider()
+
+
+    # --------------------
+    # Login Status
+    # --------------------
+    with st.sidebar:
+        is_logged = st.session_state.get("logged_in", False)
+        db_status = "Connected" if is_logged else "Not Connected"
+        db_color = "green" if is_logged else "red"
+
+        db_statu = "Responded" if is_logged else "Not Responded"
+        db_colo = "green" if is_logged else "red"
+
+        db_stats = "Completed" if is_logged else "Not Completed"
+        db_colr = "green" if is_logged else "red"
+
+        db_staus = "Connected" if is_logged else "Not Connected"
+        db_coor = "green" if is_logged else "red"
+
+        st.markdown("### ⚙️ SYSTEM STATUS")
+
+        st.markdown(
+            f"""
+            <div class='card'>
+            🗄️ Database
+
+            <span class='{db_color}'>
+            ● {db_status}
+            </span>
+
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        st.markdown(
+            f"""
+                  <div class='card'>
+                  🖥️ Server
+
+                  <span class='{db_coor}'>
+                  ● {db_staus}
+                  </span>
+
+                  </div>
+                  """,
+            unsafe_allow_html=True
+        )
+
+        st.markdown(
+            f"""
+            <div class='card'>
+            📊 Analytics
+
+            <span class='{db_colo}'>
+            ● {db_statu}
+            </span>
+
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        st.markdown(
+            f"""
+            <div class='card'>
+            🛢️ Backup
+
+            <span class='{db_colr}'>
+            ● {db_stats}
+            </span>
+
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+
+    st.markdown("""
+  <div class='version'>
+
+  LUNCHLOGIX
+
+  <div class='ver'>
+  v1.7.09
+  </div>
+
+  </div>
+  """, unsafe_allow_html=True)
+
+# st.title(menu)
+
+
+
+
 # -------------------- Run App --------------------
 
 def app():
@@ -727,7 +1111,6 @@ def app():
 
     if not st.session_state['logged_in']:
         login()
-
         return
 
     # PNG file load & encode
@@ -746,21 +1129,9 @@ def app():
         unsafe_allow_html=True
     )
 
-    menu = st.sidebar.selectbox("Navigation", [
-        "➕ Add Tiffin Entry",
-        "🔎 View Tiffin Records",
-        "🗃️ Analytics Dashboard",
-        "💳 Update Payment Status",
-        "⬇️ Export Data",
-        "❎ Remove Tiffin Records",
-        "🛠️ Edit Tiffin Records",
-        "💳 Add Expense Entry",
-        "🔍 View Expense Records",
-        "❎ Remove Expense Records",
-        "✏️ Edit Expense Details",
-
-    ])
-
+    # ======================
+    # SIDEBAR UI
+    # ======================
     if menu == "❎ Remove Tiffin Records":
         delete_tiffin_page()
 
@@ -788,7 +1159,7 @@ def app():
 
         current_time = datetime.datetime.now().strftime("%H:%M:%S")
 
-        shift = st.selectbox("Select Shift", ["-- SELECT DAY --", "DAY", "NIGHT"])
+        shift = st.selectbox("Select Shift", ["-- SELECT DAY --", "Day", "Night"])
 
         if shift == "-- SELECT DAY --":
             st.warning("Please select a shift")
@@ -913,10 +1284,10 @@ def app():
         if st.button("Save Record"):
             data_to_insert = []
 
-            for name in selected_names:  
+            for name in selected_names:  # ✅ only selected लोग
                 qty = per_person_qty
                 amount = per_person_amount
-                payment_status = "PAYMENT PENDING"
+                payment_status = "Payment Pending"
 
                 roti = roti_qty.get(name, 0)
                 roti_amount = roti * roti_rate
@@ -1703,7 +2074,7 @@ def app():
 
         st.markdown(
             f"""
-            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 30px;">
                 <img src="data:image/png;base64,{img_base64}" width="30" />
                 <span>Download Tiffin Excel</span>
             </div>
@@ -1778,16 +2149,12 @@ def app():
 
                     if val_lower == "payment done":
                         return "#73FF00"
-
                     elif val_lower in ["pending", "payment pending"]:
                         return "#FF0095"
-
                     elif val_lower == "paid":
                         return "goldenrod"
-
                     elif val_lower == "not involved":
                         return "#FCDC2A"
-
                     if val_lower == "payment done":
                         return "color: #73FF00; font-weight:bold;"
                     elif val_lower in ["pending", "payment pending"]:
