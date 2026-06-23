@@ -1187,7 +1187,7 @@ def app():
             st.stop()
         roti_qty = {}
         roti_rate = 7
-        if shift == "Day":
+        if shift == "DAY":
             st.markdown("### Enter Roti Quantity per Person")
             for name in selected_names:
                 roti_qty[name] = st.number_input(f"{name} Roti Quantity", min_value=0, value=0, step=1)
