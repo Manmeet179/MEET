@@ -1262,7 +1262,7 @@ def app():
             f"**Total Tiffin Charges:** ₹{total_tiffin_amount:,.2f}"
         )
 
-        if shift == "Day":
+        if shift == "DAY":
             st.markdown(
                 f"**Total Roti Charges:** ₹{total_roti_amount:,.2f}"
             )
