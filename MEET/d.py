@@ -729,9 +729,9 @@ st.markdown("""
   background:
   linear-gradient(
   180deg,
-  #081c6f 0%,
-  #06152D 40%,
-  #661414 100%
+  #00C1D0 0%,
+  #c98d47 40%,
+  #0a1144 100%
   );
 
   color:white;
