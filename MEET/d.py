@@ -1902,15 +1902,15 @@ def app():
                 else:
 
                     default_payment_status = values['payment_status'] if values[
-                                                                             'payment_status'].lower() != "not involved" else "Payment Pending"
+                                                                             'payment_status'].lower() != "not involved" else "PAYMENT PENDING"
 
                 payment_status = st.selectbox(
 
                     "Payment Status",
 
-                    ["Not Involved", "Payment Pending", "Payment Done"],
+                    ["Not Involved", "PAYMENT PENDING", "Payment Done"],
 
-                    index=["Not Involved", "Payment Pending", "Payment Done"].index(default_payment_status)
+                    index=["Not Involved", "PAYMENT PENDING", "PAYMENT DONE"].index(default_payment_status)
 
                 )
 
