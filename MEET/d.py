@@ -1879,7 +1879,7 @@ def app():
 
                 edit_date = st.date_input("📅 Edit Date", current_date)
 
-                edit_shift = st.selectbox("Shift", ["Day", "Night"], index=["DAY", "NIGHT"].index(values['shift']))
+                edit_shift = st.selectbox("Shift", ["DAY", "NIGHT"], index=["DAY", "NIGHT"].index(values['shift']))
 
                 edit_qty = st.number_input("Quantity", min_value=0.0, value=float(values['quantity']))
 
@@ -1908,7 +1908,7 @@ def app():
 
                     "Payment Status",
 
-                    ["Not Involved", "PAYMENT PENDING", "Payment Done"],
+                    ["Not Involved", "PAYMENT PENDING", "PAYMENT DONE"],
 
                     index=["Not Involved", "PAYMENT PENDING", "PAYMENT DONE"].index(default_payment_status)
 
