@@ -1879,7 +1879,7 @@ def app():
 
                 edit_date = st.date_input("📅 Edit Date", current_date)
 
-                edit_shift = st.selectbox("Shift", ["Day", "Night"], index=["Day", "Night"].index(values['shift']))
+                edit_shift = st.selectbox("Shift", ["Day", "Night"], index=["DAY", "NIGHT"].index(values['shift']))
 
                 edit_qty = st.number_input("Quantity", min_value=0.0, value=float(values['quantity']))
 
@@ -1889,7 +1889,7 @@ def app():
 
                 tiffin_amount = round(90 * edit_qty, 2)
 
-                final_amount = tiffin_amount + roti_amount if edit_shift == "Day" else tiffin_amount
+                final_amount = tiffin_amount + roti_amount if edit_shift == "DAY" else tiffin_amount
 
                 st.info(f"💰 Final Amount: ₹{final_amount}")
 
