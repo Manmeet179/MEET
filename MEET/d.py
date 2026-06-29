@@ -149,6 +149,7 @@ def create_table():
            CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
                id SERIAL PRIMARY KEY,
                Date DATE,
+               Day VARCHAR(12),
                Time TIME,
                Name VARCHAR(50),
                Shift VARCHAR(10),
@@ -163,6 +164,30 @@ def create_table():
     conn.commit()
     cursor.close()
 
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    ALTER TABLE tiffin
+    ADD COLUMN IF NOT EXISTS Day VARCHAR(10)
+    """)
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    UPDATE tiffin
+    SET Day = UPPER(TO_CHAR(Date, 'FMDay'))
+    WHERE Day IS NULL OR Day='';
+    """)
+
+    conn.commit()
+    cursor.close()
+    conn.close()
 
 def create_account_table():
     conn = get_db()
@@ -210,7 +235,7 @@ def fetch_all():
     conn = get_db()
 
     df = pd.read_sql(
-        f"SELECT id, Date, Time, Name, Shift, Quantity, Roti, Roti_Amount, Amount, Payment_Status FROM {TABLE_NAME}",
+        f"SELECT id, Date, Day, Time, Name, Shift, Quantity, Roti, Roti_Amount, Amount, Payment_Status FROM {TABLE_NAME}",
         conn)
 
 
@@ -226,8 +251,8 @@ def insert_record(data):
     for row in data:
         cursor.execute(f"""
 
-            INSERT INTO {TABLE_NAME} (Date, Time, Name, Shift, Quantity, Roti, Roti_Amount, Amount, Payment_Status)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            INSERT INTO {TABLE_NAME} (Date, Day, Time, Name, Shift, Quantity, Roti, Roti_Amount, Amount, Payment_Status)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
         """, row)
 
     conn.commit()
@@ -237,6 +262,7 @@ def insert_record(data):
 def update_record(record_id, date, shift, qty, roti, amount, roti_amount, payment_status):
     conn = get_db()
     cursor = conn.cursor()
+    day = date.strftime("%A").upper()
 
     query = f"""
         UPDATE {TABLE_NAME}
@@ -1292,9 +1318,11 @@ def app():
                 roti = roti_qty.get(name, 0)
                 roti_amount = roti * roti_rate
                 total_individual_amount = round(amount + roti_amount, 2)
+                day = selected_date.strftime("%A").upper()
 
                 row = [
                     selected_date,
+                    day,
                     current_time,
                     name,
                     shift,
@@ -1485,6 +1513,21 @@ def app():
                     else ""
                 )
 
+            def color_day(val):
+                colors = {
+                    "MONDAY": "#FF3B30",
+                    "TUESDAY": "#FF9500",
+                    "WEDNESDAY": "#FFD60A",
+                    "THURSDAY": "#34C759",
+                    "FRIDAY": "#00C7BE",
+                    "SATURDAY": "#007AFF",
+                    "SUNDAY": "#AF52DE"
+                }
+
+                return (
+                    f"color: {colors.get(str(val).upper(), 'white')}; font-weight:bold;"
+                )
+
             # =========================
             # APPLY STYLING
             # =========================
@@ -1492,7 +1535,9 @@ def app():
                 df.style
                 .map(color_payment, subset=["payment_status"])
                 .map(color_name, subset=["name"])
-                .map(color_shift, subset=["shift"])  # 👈 IMPORTANT
+                .map(color_shift, subset=["shift"])
+                .map(color_day, subset=["day"])
+
             )
 
             st.dataframe(styled_df, use_container_width=True)
@@ -2165,8 +2210,20 @@ def app():
                         return "color: #FCDC2A; font-weight:bold;"
                     return ""
 
-                    return None
+                def color_day(val):
+                    colors = {
+                        "MONDAY": "#FF3B30",
+                        "TUESDAY": "#FF9500",
+                        "WEDNESDAY": "#FFD60A",
+                        "THURSDAY": "#34C759",
+                        "FRIDAY": "#00C7BE",
+                        "SATURDAY": "#007AFF",
+                        "SUNDAY": "#AF52DE"
+                    }
 
+                    return (
+                        f"color: {colors.get(str(val).upper(), 'white')}; font-weight:bold;"
+                    )
                 # ---------- Streamlit Table Styling ----------
 
                 def style_table(df):
@@ -2187,6 +2244,11 @@ def app():
                             subset=['shift']
                         )
 
+                    if 'day' in df.columns:
+                        styler = styler.map(
+                            lambda v: f"color: {color_day(v)};font-weight:bold;" if color_day(v) else "",
+                            subset=['day']
+                        )
                     return styler
 
                 # ✅ SHOW MAIN TABLE
@@ -2404,7 +2466,9 @@ def app():
 
                             if color:
                                 cell_format = workbook.add_format({
-                                    'font_color': color
+                                    'font_color': color,
+                                    'bold': True
+
                                 })
 
                                 worksheet.write(row_num, payment_col_idx, val, cell_format)
@@ -2421,10 +2485,45 @@ def app():
 
                                 if color:
                                     cell_format = workbook.add_format({
-                                        'font_color': color
+                                        'font_color': color,
+                                        'bold': True
+
                                     })
 
                                     worksheet.write(row_num, shift_col_idx, val, cell_format)
+
+                        # ---------- Day Coloring ----------
+
+                        if 'day' in filtered_df.columns:
+
+                            day_col_idx = filtered_df.columns.get_loc("day")
+
+                            day_colors = {
+                                "MONDAY": "#FF3B30",
+                                "TUESDAY": "#FF9500",
+                                "WEDNESDAY": "#FFD60A",
+                                "THURSDAY": "#34C759",
+                                "FRIDAY": "#00C7BE",
+                                "SATURDAY": "#007AFF",
+                                "SUNDAY": "#AF52DE"
+                            }
+
+                            for row_num, val in enumerate(filtered_df['day'], start=1):
+
+                                color = day_colors.get(str(val).upper())
+
+                                if color:
+                                    cell_format = workbook.add_format({
+                                        'font_color': color,
+                                        'bold': True
+                                    })
+
+                                    worksheet.write(
+                                        row_num,
+                                        day_col_idx,
+                                        val,
+                                        cell_format
+                                    )
 
                         # ✅ Auto column width
                         for i, col in enumerate(filtered_df.columns):
