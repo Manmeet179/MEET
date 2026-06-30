@@ -110,44 +110,72 @@ xoper = 19632
 
 @st.cache_resource
 def get_db():
-    try:
-        return psycopg2.connect(
-            host=owert,
-            database=petoc,
-            user=lemox,
-            password=ternak,
-            port=int(xoper),
-            sslmode="require"
-        )
+    return psycopg2.connect(
+        host=owert,
+        database=petoc,
+        user=lemox,
+        password=ternak,
+        port=int(xoper),
+        sslmode="require",
+        connect_timeout=5,
+        keepalives=1,
+        keepalives_idle=30,
+        keepalives_interval=10,
+        keepalives_count=5
+    )
 
-    except psycopg2.OperationalError:
-        st.error("🔴 Database is currently offline.")
-        st.warning("PLEASE ASK MEET MEWADA FOR DB CONNECT AGAIN..!.")
-        st.stop()
 
-    except Exception:
-        st.error("❌ Unable to connect to the database.")
-        st.stop()
+# ==========================
+# DATABASE STATUS CHECK
+# Checks only every 15 seconds
+# ==========================
+@st.cache_data(ttl=0.5)
 def check_db_connection():
     try:
-        conn = psycopg2.connect(
-            host=owert,
-            database=petoc,
-            user=lemox,
-            password=ternak,
-            port=int(xoper),
-            sslmode="require",
-            connect_timeout=3
-        )
+        conn = get_db()
 
-        conn.close()
-        get_db.clear()
-        fetch_all.clear()
+        # Test cached connection
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1")
+            cur.fetchone()
 
         return True
-    except:
+
+    except (
+        psycopg2.InterfaceError,
+        psycopg2.OperationalError,
+        psycopg2.DatabaseError,
+    ):
+        # Remove broken cached connection
         get_db.clear()
         return False
+
+    except Exception:
+        get_db.clear()
+        return False
+
+
+# ==========================
+# GET DATABASE CONNECTION
+# ==========================
+try:
+    conn = get_db()
+
+except (
+    psycopg2.InterfaceError,
+    psycopg2.OperationalError,
+    psycopg2.DatabaseError,
+):
+    get_db.clear()
+
+    st.error("🔴 Database is currently offline.")
+    st.warning("Please wait a few moments and try again.")
+    st.stop()
+
+except Exception:
+    st.error("❌ Unable to connect to the database.")
+    st.stop()
+    
 @st.cache_data
 def load_image(path):
     with open(path, "rb") as f:
