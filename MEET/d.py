@@ -129,120 +129,61 @@ ternak = "AVNS_LovPCygG-7HQB0xs0Su"
 owert = "pg-e6a0b32-manmeet2756-50e1.d.aivencloud.com"
 xoper = 19632
 
-
+@st.cache_resource
 def get_db():
-    conn = psycopg2.connect(
-        host=owert,
-        database=petoc,
-        user=lemox,
-        password=ternak,
-        port=int(xoper),
-        sslmode="require"
-    )
-    return conn
+    try:
+        return psycopg2.connect(
+            host=owert,
+            database=petoc,
+            user=lemox,
+            password=ternak,
+            port=int(xoper),
+            sslmode="require"
+        )
 
-def create_table():
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute(f"""
+    except psycopg2.OperationalError:
+        st.error("🔴 Database is currently offline.")
+        st.info("Please wait a few moments and try again.")
+        st.stop()
 
-           CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
-               id SERIAL PRIMARY KEY,
-               Date DATE,
-               Day VARCHAR(12),
-               Time TIME,
-               Name VARCHAR(50),
-               Shift VARCHAR(10),
-               Quantity FLOAT,
-               Roti INT,
-               Roti_Amount FLOAT,
-               Amount FLOAT,
-               Payment_Status VARCHAR(50)
-           )
-       """)
+    except Exception:
+        st.error("❌ Unable to connect to the database.")
+        st.stop()
 
-    conn.commit()
-    cursor.close()
+@st.cache_data
+def load_image(path):
+    with open(path, "rb") as f:
+        return base64.b64encode(f.read()).decode()
 
-    conn = get_db()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    ALTER TABLE tiffin
-    ADD COLUMN IF NOT EXISTS Day VARCHAR(10)
-    """)
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-    conn = get_db()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    UPDATE tiffin
-    SET Day = UPPER(TO_CHAR(Date, 'FMDay'))
-    WHERE Day IS NULL OR Day='';
-    """)
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-def create_account_table():
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("""
-
-                   CREATE TABLE IF NOT EXISTS account_records
-                   (
-
-                       id
-                       SERIAL
-                       PRIMARY
-                       KEY,
-                       date
-                       DATE,
-                       time
-                       TIME,
-                       name
-                       VARCHAR
-                   (
-                       50
-                   ),
-                       product_name VARCHAR
-                   (
-                       100
-                   ),
-                       place_name VARCHAR
-                   (
-                       100
-                   ),
-                       total_amount FLOAT,
-                       per_person_amount FLOAT,
-                       payment_status VARCHAR
-                   (
-                       50
-                   )
-                       )
-                   """)
-
-    conn.commit()
-    cursor.close()
-
-@st.cache_data(ttl=5)
+@st.cache_data(ttl=30)
 def fetch_all():
     conn = get_db()
 
-    df = pd.read_sql(
-        f"SELECT id, Date, Day, Time, Name, Shift, Quantity, Roti, Roti_Amount, Amount, Payment_Status FROM {TABLE_NAME}",
-        conn)
+    query = f"""
+    SELECT
+        id,
+        Date,
+        Day,
+        Time,
+        Name,
+        Shift,
+        Quantity,
+        Roti,
+        Roti_Amount,
+        Amount,
+        Payment_Status
+    FROM {TABLE_NAME}
+    ORDER BY Date DESC
+    """
 
+    df = pd.read_sql(query, conn)
 
+    df.columns = [c.lower() for c in df.columns]
 
-    df.columns = [col.lower() for col in df.columns]
+    if not df.empty:
+        df["date"] = pd.to_datetime(df["date"], errors="coerce")
+
     return df
-
 
 def insert_record(data):
     conn = get_db()
@@ -257,7 +198,7 @@ def insert_record(data):
 
     conn.commit()
     cursor.close()
-
+    fetch_all.clear()
 
 def update_record(record_id, date, shift, qty, roti, amount, roti_amount, payment_status):
     conn = get_db()
@@ -282,7 +223,7 @@ def update_record(record_id, date, shift, qty, roti, amount, roti_amount, paymen
 
     conn.commit()
     cursor.close()
-
+    fetch_all.clear()
 
 def update_payment(start_date, end_date, payment_status):
     conn = get_db()
@@ -302,15 +243,13 @@ def update_payment(start_date, end_date, payment_status):
     conn.commit()
 
     cursor.close()
-
+    fetch_all.clear()
 
 
 
 def delete_tiffin_page():
     # PNG file load & encode
-    with open("images/delete.png", "rb") as f:
-        img_bytes = f.read()
-        img_base64 = base64.b64encode(img_bytes).decode()
+    img_base64 = load_image("images/delete.png")
 
     # Display icon + text side by side
     st.markdown(
@@ -372,9 +311,7 @@ def delete_tiffin_page():
 
 def delete_account_page():
     # PNG file load & encode
-    with open("images/delete.png", "rb") as f:
-        img_bytes = f.read()
-        img_base64 = base64.b64encode(img_bytes).decode()
+    img_base64 = load_image("images/delete.png")
 
     # Display icon + text side by side
     st.markdown(
@@ -435,6 +372,7 @@ def delete_account_page():
                 st.success(f"✅ Deleted {deleted_count} Account record(s) for {selected_name}.")
 
     cursor.close()
+    fetch_all.clear()
 
 # -------------------- Login --------------------
 
@@ -442,8 +380,7 @@ LOGIN_USER_HASH = b"$2b$12$tAAm6RQ775w8WJBW9brlXuHDgiYuMn3UcKI5gKRm4CCIbNp9lHXfi
 LOGIN_PASS_HASH = b"$2b$12$xfVNu267cnWT0hjsrzoWQ.AOYvxcm9GdWjjAlmcSG8IFBGf3IuP62"
 
 def login():
-    with open("images/icons8-dinner-64.png", "rb") as f:
-        img_base64 = base64.b64encode(f.read()).decode()
+    img_base64 = load_image("images/icons8-dinner-64.png")
 
     st.markdown(
         f"""
@@ -489,9 +426,7 @@ def login():
 # -------------------- Account Page --------------------
 
 def account_page():
-    with open("images/add.png", "rb") as f:
-        img_bytes = f.read()
-        img_base64 = base64.b64encode(img_bytes).decode()
+    img_base64 = load_image("images/add.png")
 
     st.markdown(
         f"""
@@ -557,17 +492,14 @@ def account_page():
 
         conn.commit()
         cursor.close()
-        conn.close()
-
+        fetch_all.clear()
         st.success(f"Expense added successfully! Each participant owes ₹{per_person_amount}")
 
 # -------------------- Account Records Page --------------------
 
 def account_records_page():
     # PNG file load & encode
-    with open("images/view.png", "rb") as f:
-        img_bytes = f.read()
-        img_base64 = base64.b64encode(img_bytes).decode()
+    img_base64 = load_image("images/view.png")
 
     # Display icon + text side by side
     st.markdown(
@@ -635,9 +567,7 @@ def account_records_page():
 
 def edit_account_page():
     # --- Load icon ---
-    with open("images/edit.png", "rb") as f:
-        img_bytes = f.read()
-        img_base64 = base64.b64encode(img_bytes).decode()
+    img_base64 = load_image("images/edit.png")
 
     st.markdown(
         f"""
@@ -739,6 +669,7 @@ def edit_account_page():
         conn.commit()
         cursor.close()
         st.success("✅ Record updated successfully!")
+        fetch_all.clear()
 # -------------------- Sidebar Logo --------------------
 
 st.sidebar.image("images/me.png", use_container_width=True)
@@ -1128,9 +1059,6 @@ with st.sidebar:
 # -------------------- Run App --------------------
 
 def app():
-    create_table()  # Ensure table exists
-
-    create_account_table()  # New account_records table
 
     if 'logged_in' not in st.session_state:
         st.session_state['logged_in'] = False
@@ -1168,9 +1096,7 @@ def app():
 
     elif menu == "➕ Add Tiffin Entry":
 
-        with open("images/add.png", "rb") as f:
-            img_bytes = f.read()
-            img_base64 = base64.b64encode(img_bytes).decode()
+        img_base64 = load_image("images/add.png")
 
         # Display icon + text side by side
         st.markdown(
@@ -1344,9 +1270,7 @@ def app():
 
         # PNG file load & encode
 
-        with open("images/view.png", "rb") as f:
-            img_bytes = f.read()
-        img_base64 = base64.b64encode(img_bytes).decode()
+        img_base64 = load_image("images/view.png")
 
         # Header UI
         st.markdown(
@@ -1545,11 +1469,7 @@ def app():
 
     elif menu == "🗃️ Analytics Dashboard":
 
-        with open("images/chart.png", "rb") as f:
-
-            img_bytes = f.read()
-
-        img_base64 = base64.b64encode(img_bytes).decode()
+        img_base64 = load_image("images/chart.png")
 
         st.markdown(
 
@@ -1827,9 +1747,8 @@ def app():
 
     elif menu == "🛠️ Edit Tiffin Records":
 
-        with open("images/edit.png", "rb") as f:
-            img_bytes = f.read()
-            img_base64 = base64.b64encode(img_bytes).decode()
+        img_base64 = load_image("images/edit.png")
+
         st.markdown(
             f"""<div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
                 <img src="data:image/png;base64,{img_base64}" width="30" />
@@ -1994,10 +1913,7 @@ def app():
 
     elif menu == "💳 Update Payment Status":
 
-        # PNG file load & encode
-        with open("images/icons8-payment-history-48.png", "rb") as f:
-            img_bytes = f.read()
-            img_base64 = base64.b64encode(img_bytes).decode()
+        img_base64 = load_image("images/icons8-payment-history-48.png")
 
         st.markdown(
             f"""
@@ -2112,10 +2028,7 @@ def app():
     if menu == "⬇️ Export Data":
 
         # PNG icon load & display
-        with open("images/icons8-microsoft-excel-2025-48.png", "rb") as f:
-            img_bytes = f.read()
-
-        img_base64 = base64.b64encode(img_bytes).decode()
+        img_base64 = load_image("images/icons8-microsoft-excel-2025-48.png")
 
         st.markdown(
             f"""
