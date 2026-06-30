@@ -128,6 +128,7 @@ def get_db():
     except Exception:
         st.error("❌ Unable to connect to the database.")
         st.stop()
+@st.cache_resource
 def check_db_connection():
     try:
         conn = psycopg2.connect(
@@ -182,6 +183,7 @@ def fetch_all():
         df["date"] = pd.to_datetime(df["date"], errors="coerce")
 
     return df
+@st.cache_resource
 def insert_record(data):
     conn = get_db()
     cursor = conn.cursor()
@@ -196,6 +198,7 @@ def insert_record(data):
     conn.commit()
     cursor.close()
     fetch_all.clear()
+@st.cache_resource
 def update_record(record_id, date, shift, qty, roti, amount, roti_amount, payment_status):
     conn = get_db()
     cursor = conn.cursor()
@@ -220,6 +223,7 @@ def update_record(record_id, date, shift, qty, roti, amount, roti_amount, paymen
     conn.commit()
     cursor.close()
     fetch_all.clear()
+@st.cache_resource
 def update_payment(start_date, end_date, payment_status):
     conn = get_db()
 
@@ -239,6 +243,7 @@ def update_payment(start_date, end_date, payment_status):
 
     cursor.close()
     fetch_all.clear()
+@st.cache_resource
 def delete_tiffin_page():
     # PNG file load & encode
     img_base64 = load_image("images/delete.png")
@@ -299,6 +304,7 @@ def delete_tiffin_page():
                 st.success(f"✅ Deleted {deleted_count} Tiffin record(s) for {selected_name}.")
 
     cursor.close()
+@st.cache_resource
 def delete_account_page():
     # PNG file load & encode
     img_base64 = load_image("images/delete.png")
@@ -363,6 +369,7 @@ def delete_account_page():
 
     cursor.close()
     fetch_all.clear()
+
 LOGIN_USER_HASH = b"$2b$12$tAAm6RQ775w8WJBW9brlXuHDgiYuMn3UcKI5gKRm4CCIbNp9lHXfi"
 LOGIN_PASS_HASH = b"$2b$12$xfVNu267cnWT0hjsrzoWQ.AOYvxcm9GdWjjAlmcSG8IFBGf3IuP62"
 def login():
@@ -1045,9 +1052,6 @@ def app():
         unsafe_allow_html=True
     )
 
-    # ======================
-    # SIDEBAR UI
-    # ======================
     if menu == "❎ Remove Tiffin Records":
         delete_tiffin_page()
 
@@ -1187,7 +1191,7 @@ def app():
             f"""
             <h3>
                 Total Amount Payable:
-                <span style='color:green;'>
+                <span style='color:#39FF14;'>
                     ₹{total_amount:,.2f}
                 </span>
             </h3>
