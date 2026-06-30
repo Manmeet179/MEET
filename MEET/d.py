@@ -1500,10 +1500,7 @@ def app():
                 to_date_default = from_date_default + relativedelta(months=1)
             else:
                 to_date_default = today.replace(day=10)
-                from_date_default = to_date_default - relativedelta(months=1)
-
-            # First Load
-            st.markdown("### 📅 Select Date Range")
+                from_date_default = to_date_default - relativedelta(months=1) 
 
             col1, col2 = st.columns(2)
 
