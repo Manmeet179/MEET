@@ -10,9 +10,6 @@ import time
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from streamlit_extras.radial_menu import *
-
-# -------------------- Streamlit Config --------------------
-
 st.set_page_config(
     page_title="LUNCHLOGIX",
     page_icon="images/d.png",
@@ -24,9 +21,6 @@ st.set_page_config(
         'About': None
     }
 )
-
-# -------------------- Custom Button CSS --------------------
-
 st.markdown("""
 
     <style>
@@ -59,13 +53,9 @@ st.markdown("""
     </style>
 
 """, unsafe_allow_html=True)
-
-# -------------------- Footer --------------------
-
 with open("images/icons8-monzo-48.png", "rb") as f:
     img_bytes = f.read()
     img_base64 = base64.b64encode(img_bytes).decode()
-
 st.markdown(
     f"""
     <style>
@@ -100,29 +90,18 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
-
-# -------------------- Hide Streamlit Menu & Settings --------------------
-
 st.markdown("""
-
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     </style>
-
 """, unsafe_allow_html=True)
-# -------------------- DB Config --------------------
 # petoc = "tiffin_db"
 # lemox = "postgres"
 # ternak = "1234"
 # owert = "localhost"
 # xoper = 5432
-
-
 TABLE_NAME = "tiffin"
-
-
 petoc = "defaultdb"
 lemox = "avnadmin"
 ternak = "AVNS_LovPCygG-7HQB0xs0Su"
@@ -143,18 +122,37 @@ def get_db():
 
     except psycopg2.OperationalError:
         st.error("🔴 Database is currently offline.")
-        st.info("Please wait a few moments and try again.")
+        st.warning("PLEASE ASK MEET MEWADA FOR DB CONNECT AGAIN..!.")
         st.stop()
 
     except Exception:
         st.error("❌ Unable to connect to the database.")
         st.stop()
+def check_db_connection():
+    try:
+        conn = psycopg2.connect(
+            host=owert,
+            database=petoc,
+            user=lemox,
+            password=ternak,
+            port=int(xoper),
+            sslmode="require",
+            connect_timeout=3
+        )
 
+        conn.close()
+        get_db.clear()
+        fetch_all.clear()
+
+        return True
+
+    except:
+        get_db.clear()
+        return False
 @st.cache_data
 def load_image(path):
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode()
-
 @st.cache_data(ttl=30)
 def fetch_all():
     conn = get_db()
@@ -184,7 +182,6 @@ def fetch_all():
         df["date"] = pd.to_datetime(df["date"], errors="coerce")
 
     return df
-
 def insert_record(data):
     conn = get_db()
     cursor = conn.cursor()
@@ -199,7 +196,6 @@ def insert_record(data):
     conn.commit()
     cursor.close()
     fetch_all.clear()
-
 def update_record(record_id, date, shift, qty, roti, amount, roti_amount, payment_status):
     conn = get_db()
     cursor = conn.cursor()
@@ -224,7 +220,6 @@ def update_record(record_id, date, shift, qty, roti, amount, roti_amount, paymen
     conn.commit()
     cursor.close()
     fetch_all.clear()
-
 def update_payment(start_date, end_date, payment_status):
     conn = get_db()
 
@@ -244,9 +239,6 @@ def update_payment(start_date, end_date, payment_status):
 
     cursor.close()
     fetch_all.clear()
-
-
-
 def delete_tiffin_page():
     # PNG file load & encode
     img_base64 = load_image("images/delete.png")
@@ -307,8 +299,6 @@ def delete_tiffin_page():
                 st.success(f"✅ Deleted {deleted_count} Tiffin record(s) for {selected_name}.")
 
     cursor.close()
-
-
 def delete_account_page():
     # PNG file load & encode
     img_base64 = load_image("images/delete.png")
@@ -373,19 +363,15 @@ def delete_account_page():
 
     cursor.close()
     fetch_all.clear()
-
-# -------------------- Login --------------------
-
 LOGIN_USER_HASH = b"$2b$12$tAAm6RQ775w8WJBW9brlXuHDgiYuMn3UcKI5gKRm4CCIbNp9lHXfi"
 LOGIN_PASS_HASH = b"$2b$12$xfVNu267cnWT0hjsrzoWQ.AOYvxcm9GdWjjAlmcSG8IFBGf3IuP62"
-
 def login():
     img_base64 = load_image("images/icons8-dinner-64.png")
 
     st.markdown(
         f"""
         <div style="text-align: center; display: flex; justify-content: center; align-items: center; gap: 10px;">
-            <img src="data:image/png;base64,{img_base64}" width="50" />
+            <img src="data:image/png;base64,{img_base64}" width="35" />
             <h2 style="margin: 0;">LUNCHLOGIX SYSTEM</h2>
         </div>
         """,
@@ -397,7 +383,7 @@ def login():
     st.markdown(
         f"""
         <div style="text-align: center; display: flex; justify-content: center; align-items: center; gap: 10px;">
-            <img src="data:image/png;base64,{img_base64}" width="40" />
+            <img src="data:image/png;base64,{img_base64}" width="30" />
             <h2 style="margin:0;">LOGIN</h2>
         </div>
         """,
@@ -420,11 +406,6 @@ def login():
             st.rerun()   # 🔥 IMPORTANT FIX
         else:
             st.error("Invalid credentials")
-
-
-
-# -------------------- Account Page --------------------
-
 def account_page():
     img_base64 = load_image("images/add.png")
 
@@ -494,9 +475,6 @@ def account_page():
         cursor.close()
         fetch_all.clear()
         st.success(f"Expense added successfully! Each participant owes ₹{per_person_amount}")
-
-# -------------------- Account Records Page --------------------
-
 def account_records_page():
     # PNG file load & encode
     img_base64 = load_image("images/view.png")
@@ -563,8 +541,6 @@ def account_records_page():
         )
 
         st.dataframe(styled_df, use_container_width=True)
-
-
 def edit_account_page():
     # --- Load icon ---
     img_base64 = load_image("images/edit.png")
@@ -670,14 +646,7 @@ def edit_account_page():
         cursor.close()
         st.success("✅ Record updated successfully!")
         fetch_all.clear()
-# -------------------- Sidebar Logo --------------------
-
 st.sidebar.image("images/me.png", use_container_width=True)
-
-# --------------------
-# Sidebar CSS
-# --------------------
-
 st.markdown("""
   <style>
 
@@ -743,7 +712,6 @@ st.markdown("""
 
   </style>
   """, unsafe_allow_html=True)
-
 st.markdown("""
   <style>
 
@@ -885,7 +853,6 @@ st.markdown("""
 
   </style>
   """, unsafe_allow_html=True)
-
 # --------------------
 # Sidebar
 # --------------------
@@ -897,7 +864,6 @@ st.markdown("""
   }
   </style>
   """, unsafe_allow_html=True)
-
 with st.sidebar:
     st.markdown("""
       <div class="logo">
@@ -967,9 +933,14 @@ with st.sidebar:
     # Login Status
     # --------------------
     with st.sidebar:
+        db_connected = check_db_connection()
+
+        # Login Status
         is_logged = st.session_state.get("logged_in", False)
-        db_status = "Connected" if is_logged else "Not Connected"
-        db_color = "green" if is_logged else "red"
+
+        # Database Status
+        db_status = "Connected" if db_connected else "Disconnected"
+        db_color = "green" if db_connected else "red"
 
         db_statu = "Responded" if is_logged else "Not Responded"
         db_colo = "green" if is_logged else "red"
@@ -1038,7 +1009,6 @@ with st.sidebar:
             unsafe_allow_html=True
         )
 
-
     st.markdown("""
   <div class='version'>
 
@@ -1050,14 +1020,6 @@ with st.sidebar:
 
   </div>
   """, unsafe_allow_html=True)
-
-# st.title(menu)
-
-
-
-
-# -------------------- Run App --------------------
-
 def app():
 
     if 'logged_in' not in st.session_state:
@@ -2463,8 +2425,15 @@ def app():
         account_records_page()
     elif menu == "✏️ Edit Expense Details":
         edit_account_page()
-
-# -------------------- Run App --------------------
-
 if __name__ == "__main__":
-    app()
+    try:
+        app()
+
+    except psycopg2.OperationalError:
+        st.error("🔴 Database is currently offline.")
+
+    except FileNotFoundError:
+        st.error("📂 Required file is missing.")
+
+    except Exception as e:
+        st.error("⚠️ Something went wrong.")
