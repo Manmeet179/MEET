@@ -128,7 +128,6 @@ def get_db():
     except Exception:
         st.error("❌ Unable to connect to the database.")
         st.stop()
-@st.cache_resource
 def check_db_connection():
     try:
         conn = psycopg2.connect(
@@ -146,7 +145,6 @@ def check_db_connection():
         fetch_all.clear()
 
         return True
-
     except:
         get_db.clear()
         return False
@@ -2438,3 +2436,5 @@ if __name__ == "__main__":
     except FileNotFoundError:
         st.error("📂 Required file is missing.")
 
+    except Exception as e:
+        st.error("⚠️ Something went wrong.")
