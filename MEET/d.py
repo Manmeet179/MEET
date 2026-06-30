@@ -243,7 +243,6 @@ def update_payment(start_date, end_date, payment_status):
 
     cursor.close()
     fetch_all.clear()
-@st.cache_resource
 def delete_tiffin_page():
     # PNG file load & encode
     img_base64 = load_image("images/delete.png")
@@ -304,7 +303,6 @@ def delete_tiffin_page():
                 st.success(f"✅ Deleted {deleted_count} Tiffin record(s) for {selected_name}.")
 
     cursor.close()
-@st.cache_resource
 def delete_account_page():
     # PNG file load & encode
     img_base64 = load_image("images/delete.png")
@@ -1027,6 +1025,7 @@ with st.sidebar:
 
   </div>
   """, unsafe_allow_html=True)
+
 def app():
 
     if 'logged_in' not in st.session_state:
