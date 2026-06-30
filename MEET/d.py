@@ -1840,7 +1840,7 @@ def app():
 
                 edit_roti = st.number_input("Roti Quantity", min_value=0, value=int(values['roti']))
 
-                roti_amount = edit_roti * 5
+                roti_amount = edit_roti * 7
 
                 tiffin_amount = round(90 * edit_qty, 2)
 
