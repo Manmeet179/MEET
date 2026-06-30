@@ -1430,13 +1430,13 @@ def app():
 
             def color_day(val):
                 colors = {
-                    "MONDAY": "#FF3B30",
-                    "TUESDAY": "#FF9500",
-                    "WEDNESDAY": "#FFD60A",
-                    "THURSDAY": "#34C759",
-                    "FRIDAY": "#00C7BE",
-                    "SATURDAY": "#007AFF",
-                    "SUNDAY": "#AF52DE"
+                    "MONDAY": "#BF00FF",
+                    "TUESDAY": "#0000FF",
+                    "WEDNESDAY": "#7DF9FF",
+                    "THURSDAY": "#72FF13",
+                    "FRIDAY": "#FFFC00",
+                    "SATURDAY": "#FF5C00",
+                    "SUNDAY": "#E60000"
                 }
 
                 return (
