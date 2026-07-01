@@ -1299,7 +1299,7 @@ def app():
                     to_default = datetime.date(today.year, today.month + 1, 9)
 
             else:
-                to_default = today.replace(day=10)
+                to_default = today.replace(day=9)
 
                 if today.month == 1:
                     from_default = datetime.date(today.year - 1, 12, 10)
