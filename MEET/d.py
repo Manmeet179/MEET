@@ -175,7 +175,7 @@ except (
 except Exception:
     st.error("❌ Unable to connect to the database.")
     st.stop()
-    
+
 @st.cache_data
 def load_image(path):
     with open(path, "rb") as f:
@@ -1288,90 +1288,66 @@ def app():
             # Convert date column properly
             df["date"] = pd.to_datetime(df["date"], dayfirst=True)
 
-            # =========================
-            # FILTER OPTION
-            # =========================
-            filter_type = st.selectbox(
-                "Filter Records",
-                ["Current Cycle", "Custom Date Range"]
-            )
+            today = datetime.date.today()
 
-            # =========================
-            # CUSTOM DATE RANGE
-            # =========================
-            if filter_type == "Custom Date Range":
+            if today.day >= 10:
+                from_default = today.replace(day=10)
 
-                col1, col2 = st.columns(2)
+                if today.month == 12:
+                    to_default = datetime.date(today.year + 1, 1, 10)
+                else:
+                    to_default = datetime.date(today.year, today.month + 1, 10)
 
-                with col1:
-                    from_date = st.date_input(
-                        "From Date",
-                        value=df["date"].min().date()
-                    )
+            else:
+                to_default = today.replace(day=10)
 
-                with col2:
-                    to_date = st.date_input(
-                        "To Date",
-                        value=df["date"].max().date()
-                    )
+                if today.month == 1:
+                    from_default = datetime.date(today.year - 1, 12, 10)
+                else:
+                    from_default = datetime.date(today.year, today.month - 1, 10)
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                from_date = st.date_input(
+                    "From Date",
+                    value=from_default
+                )
+
+            with col2:
+                to_date = st.date_input(
+                    "To Date",
+                    value=to_default
+                )
+
+                if from_date > to_date:
+                    st.error("❎ From Date cannot be greater than To Date.")
+                    st.stop()
 
                 df = df[
                     (df["date"] >= pd.to_datetime(from_date)) &
-                    (df["date"] <= pd.to_datetime(to_date))
+                    (df["date"] < pd.to_datetime(to_date))
                     ]
-
             # =========================
-            # CURRENT CYCLE (10 to 10)
+            # SEARCH BOX
             # =========================
-            else:
 
-                today = datetime.datetime.today()
+            search = st.text_input(
+                "🔍 Search",
+                placeholder="Search Records..."
+            ).strip().upper()
 
-                if today.day >= 10:
-                    start_date = datetime.datetime(today.year, today.month, 10)
-
-                    if today.month == 12:
-                        end_date = datetime.datetime(today.year + 1, 1, 10)
-                    else:
-                        end_date = datetime.datetime(today.year, today.month + 1, 10)
-
-                else:
-                    if today.month == 1:
-                        start_date = datetime.datetime(today.year - 1, 12, 10)
-                    else:
-                        start_date = datetime.datetime(today.year, today.month - 1, 10)
-
-                    end_date = datetime.datetime(today.year, today.month, 10)
-
+            if search:
                 df = df[
-                    (df["date"] >= start_date) &
-                    (df["date"] < end_date)
-                    ]
+                    df.astype(str)
+                    .apply(lambda row: row.str.upper().str.contains(search).any(), axis=1)
+                ]
 
             # =========================
-            # VIEW OPTION
+            # SORT
             # =========================
-            view_type = st.selectbox(
-                "View Record By",
-                ["Date Wise", "Name Wise"]
-            )
 
-            if view_type == "Date Wise":
-                df = df.sort_values(by="date", ascending=False)
-
-            else:
-                name_order = {
-                    "MEET": 1,
-                    "YASH": 2,
-                    "DHRUMIL": 3
-                }
-
-                df["name_order"] = df["name"].str.upper().map(name_order)
-
-                df = df.sort_values(
-                    by=["name_order", "date"],
-                    ascending=[True, True]
-                ).drop(columns=["name_order"])
+            df = df.sort_values(by="date", ascending=False)
 
             # =========================
             # FORMAT DATE
@@ -1500,7 +1476,7 @@ def app():
                 to_date_default = from_date_default + relativedelta(months=1)
             else:
                 to_date_default = today.replace(day=10)
-                from_date_default = to_date_default - relativedelta(months=1) 
+                from_date_default = to_date_default - relativedelta(months=1)
 
             col1, col2 = st.columns(2)
 
@@ -1835,7 +1811,7 @@ def app():
 
                 edit_qty = st.number_input("Quantity", min_value=0.0, value=float(values['quantity']))
 
-                edit_roti = st.number_input("Roti Quantity", min_value=0, value=int(values['roti']))
+                edit_roti = st.numFber_input("Roti Quantity", min_value=0, value=int(values['roti']))
 
                 roti_amount = edit_roti * 7
 
@@ -1853,7 +1829,7 @@ def app():
 
                 else:
 
-                    default_payment_status = values['payment_status'] if values[
+                    default_payment_status = values['payment_statusF'] if values[
                                                                              'payment_status'].lower() != "not involved" else "PAYMENT PENDING"
 
                 payment_status = st.selectbox(
@@ -2041,11 +2017,39 @@ def app():
 
             df['date'] = pd.to_datetime(df['date'], errors='coerce')
 
-            min_date = df['date'].min().date() if not df['date'].isna().all() else datetime.date.today()
-            max_date = df['date'].max().date() if not df['date'].isna().all() else datetime.date.today()
+            today = datetime.date.today()
 
-            from_date = st.date_input("From Date", value=min_date, key="download_from")
-            to_date = st.date_input("To Date", value=max_date, key="download_to")
+            if today.day >= 10:
+                from_default = today.replace(day=10)
+
+                if today.month == 12:
+                    to_default = datetime.date(today.year + 1, 1, 10)
+                else:
+                    to_default = datetime.date(today.year, today.month + 1, 10)
+
+            else:
+                to_default = today.replace(day=10)
+
+                if today.month == 1:
+                    from_default = datetime.date(today.year - 1, 12, 10)
+                else:
+                    from_default = datetime.date(today.year, today.month - 1, 10)
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                from_date = st.date_input(
+                    "From Date",
+                    value=from_default,
+                    key="download_from"
+                )
+
+            with col2:
+                to_date = st.date_input(
+                    "To Date",
+                    value=to_default,
+                    key="download_to"
+                )
 
             if from_date > to_date:
                 st.error("❎ Start Date cannot be after End Date.")
@@ -2054,7 +2058,7 @@ def app():
 
                 filtered_df = df[
                     (df['date'] >= pd.to_datetime(from_date)) &
-                    (df['date'] <= pd.to_datetime(to_date))
+                    (df['date'] < pd.to_datetime(to_date))
                     ]
 
                 # ✅ Only date show (remove time)
@@ -2113,13 +2117,13 @@ def app():
 
                 def color_day(val):
                     colors = {
-                        "MONDAY": "#FF3B30",
-                        "TUESDAY": "#FF9500",
-                        "WEDNESDAY": "#FFD60A",
-                        "THURSDAY": "#34C759",
-                        "FRIDAY": "#00C7BE",
-                        "SATURDAY": "#007AFF",
-                        "SUNDAY": "#AF52DE"
+                        "MONDAY": "#BF00FF",
+                        "TUESDAY": "#0000FF",
+                        "WEDNESDAY": "#7DF9FF",
+                        "THURSDAY": "#72FF13",
+                        "FRIDAY": "#FFFC00",
+                        "SATURDAY": "#FF5C00",
+                        "SUNDAY": "#E60000"
                     }
 
                     return (
@@ -2440,7 +2444,7 @@ def app():
                     st.download_button(
                         label="⬇️ Download Excel",
                         data=processed_data,
-                        file_name=f"Tiffin_Records_{from_date}_to_{to_date}.xlsx",
+                        file_name=f"I_MANMEET__'s_Tiffin_Records_{from_date}_to_{to_date}.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     )
                 # -------------------- Delete --------------------
