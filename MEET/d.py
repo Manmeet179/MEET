@@ -1294,9 +1294,9 @@ def app():
                 from_default = today.replace(day=10)
 
                 if today.month == 12:
-                    to_default = datetime.date(today.year + 1, 1, 10)
+                    to_default = datetime.date(today.year + 1, 1, 9)
                 else:
-                    to_default = datetime.date(today.year, today.month + 1, 10)
+                    to_default = datetime.date(today.year, today.month + 1, 9)
 
             else:
                 to_default = today.replace(day=10)
@@ -1326,7 +1326,7 @@ def app():
 
                 df = df[
                     (df["date"] >= pd.to_datetime(from_date)) &
-                    (df["date"] < pd.to_datetime(to_date))
+                    (df["date"] <= pd.to_datetime(to_date))
                     ]
             # =========================
             # SEARCH BOX
