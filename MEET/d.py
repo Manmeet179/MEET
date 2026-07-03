@@ -1473,10 +1473,10 @@ def app():
 
             if today.day >= 10:
                 from_date_default = today.replace(day=10)
-                to_date_default = from_date_default + relativedelta(months=1)
+                to_date_default = from_date_default + relativedelta(months=1) - relativedelta(days=1)
             else:
-                to_date_default = today.replace(day=10)
-                from_date_default = to_date_default - relativedelta(months=1)
+                to_date_default = today.replace(day=9)
+                from_date_default = to_date_default - relativedelta(months=1) + relativedelta(days=1)
 
             col1, col2 = st.columns(2)
 
@@ -1497,7 +1497,7 @@ def app():
             # Apply Filter
             df = df[
                 (df["date"] >= pd.to_datetime(from_date)) &
-                (df["date"] < pd.to_datetime(to_date) + pd.Timedelta(days=1))
+                (df["date"] <= pd.to_datetime(to_date))
                 ]
 
             if df.empty:
