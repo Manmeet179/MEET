@@ -2410,7 +2410,7 @@ def app():
                                 "THURSDAY": "#34C759",
                                 "FRIDAY": "#00C7BE",
                                 "SATURDAY": "#007AFF",
-                                "SUNDAY": "#AF52DE"
+                                "SUNDAY": "#AF72DE"
                             }
 
                             for row_num, val in enumerate(filtered_df['day'], start=1):
