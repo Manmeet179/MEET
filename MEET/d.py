@@ -752,9 +752,9 @@ st.markdown("""
   background:
   linear-gradient(
   180deg,
-  #020617,
-  #064E3B,
-  #00ADB5
+  #061A2B,
+  #0F766E,
+  #C98D47
   );
 
   border-right:
