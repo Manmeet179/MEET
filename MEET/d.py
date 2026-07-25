@@ -7,9 +7,11 @@ import psycopg2
 from io import BytesIO
 import base64
 import time
+import requests
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from streamlit_extras.radial_menu import *
+
 st.set_page_config(
     page_title="LUNCHLOGIX",
     page_icon="images/d.png",
@@ -21,6 +23,27 @@ st.set_page_config(
         'About': None
     }
 )
+
+st.markdown("""
+<style>
+
+/* Hide Streamlit Spinner */
+[data-testid="stSpinner"]{
+    display:none !important;
+}
+
+/* Hide Running indicator */
+[data-testid="stStatusWidget"]{
+    display:none !important;
+}
+
+/* Hide top loading animation */
+div[data-testid="stDecoration"]{
+    display:none !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
 st.markdown("""
 
     <style>
@@ -159,6 +182,7 @@ def check_db_connection():
 # GET DATABASE CONNECTION
 # ==========================
 try:
+
     conn = get_db()
 
 except (
@@ -166,11 +190,11 @@ except (
     psycopg2.OperationalError,
     psycopg2.DatabaseError,
 ):
+
     get_db.clear()
 
-    st.error("🔴 Database is currently offline.")
-    st.warning("Please wait a few moments and try again.")
-    st.stop()
+    st.session_state["db_offline"] = True
+    conn = None
 
 except Exception:
     st.error("❌ Unable to connect to the database.")
@@ -647,11 +671,28 @@ def edit_account_page():
     edit_place = st.text_input("Place Name", str(record['place_name']))
     edit_total = st.number_input("Total Amount", value=float(record['total_amount']))
     edit_per_person = st.number_input("Per Person Amount", value=float(record['per_person_amount']))
-    payment_options = ["Pending", "Payment Done", "Paid"]
+    payment_options = [
+        "Pending",
+        "Payment Done",
+        "Paid",
+        "Not involved"
+    ]
+
+    current_payment = str(record['payment_status']).strip()
+
+    # Match case insensitive
+    payment_index = next(
+        (
+            i for i, x in enumerate(payment_options)
+            if x.lower() == current_payment.lower()
+        ),
+        0
+    )
+
     edit_payment = st.selectbox(
         "Payment Status",
         payment_options,
-        index=payment_options.index(str(record['payment_status']))
+        index=payment_index
     )
 
     # --- Save changes button ---
@@ -715,8 +756,8 @@ st.markdown("""
   background:
   linear-gradient(
   90deg,
-  #2563EB,
-  #7C3AED
+  #609CE0,
+  #D188C1
   );
 
   color:white;
@@ -752,9 +793,9 @@ st.markdown("""
   background:
   linear-gradient(
   180deg,
-  #061A2B,
-  #0F766E,
-  #C98D47
+  #020617,
+  #050B1C,
+  #17068E
   );
 
   border-right:
@@ -900,7 +941,7 @@ with st.sidebar:
       <div class="logo">
 
       <div class="logoicon">
-      🍱
+      
       </div>
 
       <div class="logotitle">
@@ -953,12 +994,12 @@ with st.sidebar:
                     "🔍 View Expense Records",
                     "❎ Remove Expense Records",
                     "✏️ Edit Expense Details",
+                    "⚙️ Settings",
                 ],
                 label_visibility="collapsed"
             )
 
             st.divider()
-
 
     # --------------------
     # Login Status
@@ -1052,6 +1093,391 @@ with st.sidebar:
   </div>
   """, unsafe_allow_html=True)
 
+
+# =========================
+# AIVEN CONFIG
+# =========================
+
+TOKEN = st.secrets["AIVEN_TOKEN"]
+PROJECT = st.secrets["AIVEN_PROJECT"]
+SERVICE = st.secrets["AIVEN_SERVICE"]
+
+
+HEADERS = {
+    "Authorization": f"aivenv1 {TOKEN}",
+    "Content-Type": "application/json"
+}
+
+
+AIVEN_URL = (
+    f"https://api.aiven.io/v1/project/"
+    f"{PROJECT}/service/{SERVICE}"
+)
+
+
+
+# =========================
+# FAST STATUS CHECK
+# =========================
+
+@st.cache_data(ttl=1)
+def check_aiven_status():
+
+    try:
+
+        response = requests.get(
+            AIVEN_URL,
+            headers=HEADERS,
+            timeout=10
+        )
+
+
+        if response.status_code == 200:
+
+            return response.json()["service"]["state"]
+
+
+    except:
+
+        return None
+
+
+    return None
+
+
+
+
+# =========================
+# DATABASE ACTION
+# =========================
+
+def database_power(action):
+
+
+    payload = {
+        "powered": action
+    }
+
+
+    try:
+
+        response = requests.put(
+            AIVEN_URL,
+            headers=HEADERS,
+            json=payload,
+            timeout=(3, 30)
+        )
+
+
+        return response.status_code in [200,202], response.text
+
+
+    except Exception as e:
+
+        return False, str(e)
+
+
+
+
+
+# =========================
+# SETTINGS PAGE
+# =========================
+
+
+
+def database_settings_page():
+    st.markdown("""
+    <h4 style="margin-bottom:0;">
+    ⚙️ Settings
+    </h4>
+    """, unsafe_allow_html=True)
+
+    st.divider()
+
+
+
+    if "db_action_running" not in st.session_state:
+
+        st.session_state.db_action_running = False
+
+
+
+
+    col1, col2 = st.columns(2)
+
+
+
+    # =========================
+    # START
+    # =========================
+
+    with col1:
+
+        if st.button(
+                "🟢 START DATABASE",
+                use_container_width=True,
+                disabled=st.session_state.db_action_running,
+                key="start_database_btn"
+        ):
+            # Lock button immediately
+            st.session_state.db_action_running = True
+            st.rerun()
+
+        # =========================
+        # START PROCESS
+        # =========================
+
+        if st.session_state.db_action_running:
+
+            success, error = database_power(True)
+
+            if success:
+
+                progress = st.progress(0)
+
+                status_box = st.empty()
+
+                caption_box = st.empty()
+
+                percentage = 0
+
+                messages = [
+
+                    "⏳ Starting database...",
+                    "🔄 Preparing database server...",
+                    "🌐 Checking Aiven status...",
+                    "⚙️ Loading database environment...",
+                    "🔐 Creating secure connection..."
+
+                ]
+
+                msg = 0
+
+                while True:
+
+                    state = check_aiven_status()
+
+                    if state == "RUNNING":
+
+                        progress.progress(100)
+
+                        caption_box.caption(
+                            "🟢 LUNCHLOGIX Database Control • Connected"
+                        )
+
+                        status_box.success(
+                            "Database Ready 🚀"
+                        )
+
+                        st.cache_resource.clear()
+
+                        st.session_state.db_action_running = False
+
+                        st.rerun()
+
+                    else:
+
+                        percentage = min(
+                            percentage + 5,
+                            97
+                        )
+
+                        progress.progress(percentage)
+
+                        status_box.info(
+                            f"🟢 {state} ... {percentage}%"
+                        )
+
+                        if msg < len(messages):
+                            caption_box.caption(messages[msg])
+                            msg += 1
+
+                    time.sleep(1)
+
+            else:
+
+                st.session_state.db_action_running = False
+                st.error(error)
+
+
+
+    # =========================
+    # STOP
+    # =========================
+
+    with col2:
+
+
+        if st.button(
+            "🔴 STOP DATABASE",
+            use_container_width=True,
+            disabled=st.session_state.db_action_running
+        ):
+
+
+            st.session_state.db_action_running = True
+
+
+            success, error = database_power(False)
+
+
+
+            if success:
+
+
+                progress = st.progress(0)
+
+                status_box = st.empty()
+
+                caption_box = st.empty()
+
+
+
+                percentage = 0
+
+
+
+                messages = [
+
+                    "⏳ Stopping database...",
+                    "🔄 Closing connections...",
+                    "🌐 Checking server status...",
+                    "⚙️ Saving database state...",
+                    "🔒 Shutdown safely..."
+
+                ]
+
+
+                msg = 0
+
+
+
+                while True:
+
+
+                    state = check_aiven_status()
+
+
+
+                    if state in [
+                        "POWEROFF",
+                        "STOPPED"
+                    ]:
+
+
+                        progress.progress(100)
+
+
+                        caption_box.caption(
+                            "🔴 LUNCHLOGIX Database Control • Stopped"
+                        )
+
+
+                        status_box.success(
+                            "Database Shutdown Completed 🚀"
+                        )
+
+
+                        st.cache_resource.clear()
+
+
+                        st.session_state.db_action_running = False
+
+
+                        st.rerun()
+
+
+
+                    else:
+
+
+                        percentage = min(
+                            percentage + 5,
+                            97
+                        )
+
+
+                        progress.progress(
+                            percentage
+                        )
+
+
+                        status_box.warning(
+                            f"🔴 {state} ... {percentage}%"
+                        )
+
+
+
+                        if msg < len(messages):
+
+                            caption_box.caption(
+                                messages[msg]
+                            )
+
+                            msg += 1
+
+
+
+                    time.sleep(1)
+
+
+
+            else:
+
+
+                st.session_state.db_action_running = False
+
+                st.error(error)
+
+
+
+
+    st.divider()
+
+
+
+    # =========================
+    # CURRENT STATUS
+    # =========================
+
+
+    state = check_aiven_status()
+
+
+
+    if state == "RUNNING":
+
+
+        st.success(
+            "🟢 LUNCHLOGIX Database Control • Running"
+        )
+
+
+    elif state in [
+        "REBUILDING",
+        "POWERING_ON",
+        "BUILDING"
+    ]:
+
+
+        st.warning(
+            f"🟡 LUNCHLOGIX Database Control • {state}"
+        )
+
+
+    else:
+
+
+        st.error(
+            f"🔴 LUNCHLOGIX Database Control • {state}"
+        )
+
+
+
+    st.caption(
+        "LUNCHLOGIX Database Control • MANMEET'S DATABASE"
+    )
 def app():
 
     if 'logged_in' not in st.session_state:
@@ -1714,10 +2140,13 @@ def app():
         img_base64 = load_image("images/edit.png")
 
         st.markdown(
-            f"""<div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
-                <img src="data:image/png;base64,{img_base64}" width="30" />
-                <span>Edit Existing Record</span>
+
+            f"""
+
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;"><img src="data:image/png;base64,{img_base64}" width="30" /><span>Edit Existing Record</span>
+
             </div>
+
             """,
 
             unsafe_allow_html=True
@@ -1732,122 +2161,326 @@ def app():
 
             st.info("No records to edit.")
 
+
         else:
 
             df_reset = df.copy()
 
-            # --- Color functions ---
+            # -------------------------
+
+            # Color Functions
+
+            # -------------------------
 
             def color_name(val):
 
-                colors = {"MEET": "#FF0033", "YASH": "#bfff00", "DHRUMIL": "#00bfff"}
+                colors = {
 
-                return f"color: {colors[val.upper()]}; font-weight: bold;" if str(val).upper() in colors else ""
+                    "MEET": "#FF0033",
 
-            def color_payment(val):
+                    "YASH": "#bfff00",
 
-                val_lower = str(val).lower()
+                    "DHRUMIL": "#00bfff"
 
-                if val_lower == "payment done":
+                }
 
-                    return "color: #059212; font-weight:bold;"  # greenish
+                name = str(val).upper()
 
-                elif val_lower in ["pending", "payment pending"]:
-
-                    return "color: #76153C; font-weight:bold;"  # pink/purple
-
-                elif val_lower == "paid":
-
-                    return "color: goldenrod; font-weight:bold;"
-
-                elif val_lower == "not involved":
-
-                    return "color: #FCDC2A; font-weight:bold;"  # neutral yellow-green
+                if name in colors:
+                    return f"color:{colors[name]}; font-weight:bold;"
 
                 return ""
 
-            # --- Display styled dataframe ---
+            def color_payment(val):
 
-            styled_df = df_reset.style.map(color_name, subset=["name"]).map(color_payment,
-                                                                                      subset=["payment_status"])
+                val = str(val).upper()
 
-            st.dataframe(styled_df, use_container_width=True)
+                if val == "PAYMENT DONE":
 
-            # --- Selectbox to choose record ---
+                    return "color:#059212;font-weight:bold;"
 
-            record_options = [f"{row['id']} - {row['name']} - {row['date']}" for _, row in df_reset.iterrows()]
 
-            selected_record = st.selectbox("Select Record for Edit", ["-- Select --"] + record_options)
+                elif val in ["PAYMENT PENDING", "PENDING"]:
 
-            # --- Show edit fields only after selection ---
+                    return "color:#76153C;font-weight:bold;"
+
+
+                elif val == "NOT INVOLVED":
+
+                    return "color:#FCDC2A;font-weight:bold;"
+
+                return ""
+
+            styled_df = (
+
+                df_reset.style
+
+                .map(color_name, subset=["name"])
+
+                .map(color_payment, subset=["payment_status"])
+
+            )
+
+            st.dataframe(
+
+                styled_df,
+
+                use_container_width=True
+
+            )
+
+            # -------------------------
+
+            # Select Record
+
+            # -------------------------
+
+            record_options = [
+
+                f"{row['id']} - {row['name']} - {row['date']}"
+
+                for _, row in df_reset.iterrows()
+
+            ]
+
+            selected_record = st.selectbox(
+
+                "Select Record for Edit",
+
+                ["-- Select --"] + record_options
+
+            )
 
             if selected_record != "-- Select --":
 
-                selected_id = int(selected_record.split(" - ")[0])
+                selected_id = int(
 
-                record = df_reset[df_reset['id'] == selected_id].iloc[0]
+                    selected_record.split(" - ")[0]
 
-                st.session_state['edit_record_id'] = record['id']
+                )
 
-                st.session_state['edit_values'] = record
+                record = (
 
-                values = st.session_state['edit_values']
+                    df_reset[df_reset["id"] == selected_id]
 
-                # Convert string date to datetime.date object
+                    .iloc[0]
 
-                if isinstance(values['date'], str):
+                )
 
-                    current_date = datetime.datetime.strptime(values['date'], "%Y-%m-%d").date()
+                # Session
+
+                st.session_state["edit_record_id"] = record["id"]
+
+                st.session_state["edit_values"] = record
+
+                values = st.session_state["edit_values"]
+
+                # -------------------------
+
+                # Date
+
+                # -------------------------
+
+                if isinstance(values["date"], str):
+
+                    current_date = datetime.datetime.strptime(
+
+                        values["date"],
+
+                        "%Y-%m-%d"
+
+                    ).date()
+
 
                 else:
 
-                    current_date = values['date']
+                    current_date = values["date"]
 
-                # --- Editable fields ---
+                edit_date = st.date_input(
 
-                edit_date = st.date_input("📅 Edit Date", current_date)
+                    "📅 Edit Date",
 
-                edit_shift = st.selectbox("Shift", ["DAY", "NIGHT"], index=["DAY", "NIGHT"].index(values['shift']))
+                    current_date
 
-                edit_qty = st.number_input("Quantity", min_value=0.0, value=float(values['quantity']))
+                )
 
-                edit_roti = st.numFber_input("Roti Quantity", min_value=0, value=int(values['roti']))
+                # -------------------------
+
+                # Shift
+
+                # -------------------------
+
+                shift_options = [
+
+                    "DAY",
+
+                    "NIGHT"
+
+                ]
+
+                current_shift = str(
+
+                    values["shift"]
+
+                ).upper()
+
+                shift_index = (
+
+                    shift_options.index(current_shift)
+
+                    if current_shift in shift_options
+
+                    else 0
+
+                )
+
+                edit_shift = st.selectbox(
+
+                    "Shift",
+
+                    shift_options,
+
+                    index=shift_index
+
+                )
+
+                # -------------------------
+
+                # Quantity
+
+                # -------------------------
+
+                edit_qty = st.number_input(
+
+                    "Quantity",
+
+                    min_value=0.0,
+
+                    value=float(values["quantity"])
+
+                )
+
+                # -------------------------
+
+                # Roti
+
+                # -------------------------
+
+                edit_roti = st.number_input(
+
+                    "Roti Quantity",
+
+                    min_value=0,
+
+                    value=int(values["roti"])
+
+                )
+
+                # -------------------------
+
+                # Amount Calculation
+
+                # -------------------------
 
                 roti_amount = edit_roti * 7
 
-                tiffin_amount = round(90 * edit_qty, 2)
+                tiffin_amount = round(
 
-                final_amount = tiffin_amount + roti_amount if edit_shift == "DAY" else tiffin_amount
+                    90 * edit_qty,
 
-                st.info(f"💰 Final Amount: ₹{final_amount}")
+                    2
 
-                # --- Determine payment status ---
+                )
 
-                if edit_qty == 0 and edit_roti == 0:
+                if edit_shift == "DAY":
 
-                    default_payment_status = "Not Involved"
+                    final_amount = (
+
+                            tiffin_amount + roti_amount
+
+                    )
+
 
                 else:
 
-                    default_payment_status = values['payment_statusF'] if values[
-                                                                             'payment_status'].lower() != "not involved" else "PAYMENT PENDING"
+                    final_amount = tiffin_amount
+
+                st.info(
+
+                    f"💰 Final Amount: ₹{final_amount}"
+
+                )
+
+                # -------------------------
+
+                # Payment Status
+
+                # -------------------------
+
+                if edit_qty == 0 and edit_roti == 0:
+
+                    default_payment_status = "NOT INVOLVED"
+
+
+                else:
+
+                    default_payment_status = str(
+
+                        values["payment_status"]
+
+                    ).upper()
+
+                    if default_payment_status == "NOT INVOLVED":
+                        default_payment_status = "PAYMENT PENDING"
+
+                payment_options = [
+
+                    "NOT INVOLVED",
+
+                    "PAYMENT PENDING",
+
+                    "PAYMENT DONE"
+
+                ]
+
+                payment_index = (
+
+                    payment_options.index(
+
+                        default_payment_status
+
+                    )
+
+                    if default_payment_status in payment_options
+
+                    else 1
+
+                )
 
                 payment_status = st.selectbox(
 
                     "Payment Status",
 
-                    ["Not Involved", "PAYMENT PENDING", "PAYMENT DONE"],
+                    payment_options,
 
-                    index=["Not Involved", "PAYMENT PENDING", "PAYMENT DONE"].index(default_payment_status)
+                    index=payment_index
 
                 )
 
-                # --- Save changes ---
+                # -------------------------
+
+                # Save
+
+                # -------------------------
 
                 if st.button("Save Changes"):
                     update_record(
 
-                        record_id=int(st.session_state['edit_record_id']),
+                        record_id=int(
+
+                            st.session_state["edit_record_id"]
+
+                        ),
 
                         date=edit_date,
 
@@ -1865,13 +2498,29 @@ def app():
 
                     )
 
-                    st.success("Record updated successfully!")
+                    st.success(
 
-                    # Clear session state
+                        "✅ Record updated successfully!"
 
-                    del st.session_state['edit_values']
+                    )
 
-                    del st.session_state['edit_record_id']
+                    st.session_state.pop(
+
+                        "edit_values",
+
+                        None
+
+                    )
+
+                    st.session_state.pop(
+
+                        "edit_record_id",
+
+                        None
+
+                    )
+
+                    st.rerun()
 
     # -------------------- Payment Method --------------------
 
@@ -2410,7 +3059,7 @@ def app():
                                 "THURSDAY": "#34C759",
                                 "FRIDAY": "#00C7BE",
                                 "SATURDAY": "#007AFF",
-                                "SUNDAY": "#AF72DE"
+                                "SUNDAY": "#AF52DE"
                             }
 
                             for row_num, val in enumerate(filtered_df['day'], start=1):
@@ -2455,6 +3104,9 @@ def app():
         account_records_page()
     elif menu == "✏️ Edit Expense Details":
         edit_account_page()
+    elif menu == "⚙️ Settings":
+        database_settings_page()
+
 if __name__ == "__main__":
     try:
         app()
