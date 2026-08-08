@@ -62,7 +62,9 @@ st.markdown("""
 [data-theme="light"] .custom-header{
     color:#111111;
 }
-
+.st-emotion-cache-tn0cau {
+    gap: 0 !important;
+}
 
 /* Mobile Responsive */
 @media(max-width:600px){
