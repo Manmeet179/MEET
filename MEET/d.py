@@ -11,6 +11,7 @@ import requests
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from streamlit_extras.radial_menu import *
+from streamlit_option_menu import option_menu
 
 st.set_page_config(
     page_title="LUNCHLOGIX",
@@ -23,27 +24,89 @@ st.set_page_config(
         'About': None
     }
 )
-
 st.markdown("""
 <style>
 
-/* Hide Streamlit Spinner */
-[data-testid="stSpinner"]{
-    display:none !important;
+/* Custom Responsive Header */
+
+.custom-header{
+    position:fixed;
+    top:8px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:999999;
+
+    font-size:clamp(14px, 2vw, 22px);
+    font-weight:800;
+    letter-spacing:1px;
+
+    color:var(--text-color);
+
+    background:transparent !important;
+    backdrop-filter:none !important;
+
+    padding:0;
+    margin:0;
+
+    white-space:nowrap;
 }
 
-/* Hide Running indicator */
-[data-testid="stStatusWidget"]{
-    display:none !important;
+
+/* Dark Theme */
+[data-theme="dark"] .custom-header{
+    color:white;
 }
 
-/* Hide top loading animation */
-div[data-testid="stDecoration"]{
-    display:none !important;
+
+/* Light Theme */
+[data-theme="light"] .custom-header{
+    color:#111111;
+}
+
+
+/* Mobile Responsive */
+@media(max-width:600px){
+
+.custom-header{
+    top:10px;
+    font-size:14px;
+    letter-spacing:0.5px;
+}
+
+}
+header[data-testid="stHeader"]{
+    background:transparent !important;
+}
+html[data-theme="dark"] .custom-header{
+    color:white !important;
+}
+
+html[data-theme="light"] .custom-header{
+    color:#111111 !important;
 }
 
 </style>
 """, unsafe_allow_html=True)
+# st.markdown("""
+# <style>
+#
+# /* Hide Streamlit Spinner */
+# [data-testid="stSpinner"]{
+#     display:none !important;
+# }
+#
+# /* Hide Running indicator */
+# [data-testid="stStatusWidget"]{
+#     display:none !important;
+# }
+#
+# /* Hide top loading animation */
+# div[data-testid="stDecoration"]{
+#     display:none !important;
+# }
+#
+# </style>
+# # """, unsafe_allow_html=True)
 st.markdown("""
 
     <style>
@@ -131,6 +194,7 @@ ternak = "AVNS_LovPCygG-7HQB0xs0Su"
 owert = "pg-e6a0b32-manmeet2756-50e1.d.aivencloud.com"
 xoper = 19632
 
+
 @st.cache_resource
 def get_db():
     return psycopg2.connect(
@@ -165,9 +229,9 @@ def check_db_connection():
         return True
 
     except (
-        psycopg2.InterfaceError,
-        psycopg2.OperationalError,
-        psycopg2.DatabaseError,
+            psycopg2.InterfaceError,
+            psycopg2.OperationalError,
+            psycopg2.DatabaseError,
     ):
         # Remove broken cached connection
         get_db.clear()
@@ -186,9 +250,9 @@ try:
     conn = get_db()
 
 except (
-    psycopg2.InterfaceError,
-    psycopg2.OperationalError,
-    psycopg2.DatabaseError,
+        psycopg2.InterfaceError,
+        psycopg2.OperationalError,
+        psycopg2.DatabaseError,
 ):
 
     get_db.clear()
@@ -200,10 +264,13 @@ except Exception:
     st.error("❌ Unable to connect to the database.")
     st.stop()
 
+
 @st.cache_data
 def load_image(path):
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode()
+
+
 @st.cache_data(ttl=30)
 def fetch_all():
     conn = get_db()
@@ -233,6 +300,8 @@ def fetch_all():
         df["date"] = pd.to_datetime(df["date"], errors="coerce")
 
     return df
+
+
 @st.cache_resource
 def insert_record(data):
     conn = get_db()
@@ -248,6 +317,8 @@ def insert_record(data):
     conn.commit()
     cursor.close()
     fetch_all.clear()
+
+
 @st.cache_resource
 def update_record(record_id, date, shift, qty, roti, amount, roti_amount, payment_status):
     conn = get_db()
@@ -273,6 +344,8 @@ def update_record(record_id, date, shift, qty, roti, amount, roti_amount, paymen
     conn.commit()
     cursor.close()
     fetch_all.clear()
+
+
 @st.cache_resource
 def update_payment(start_date, end_date, payment_status):
     conn = get_db()
@@ -293,6 +366,8 @@ def update_payment(start_date, end_date, payment_status):
 
     cursor.close()
     fetch_all.clear()
+
+
 def delete_tiffin_page():
     # PNG file load & encode
     img_base64 = load_image("images/delete.png")
@@ -353,6 +428,8 @@ def delete_tiffin_page():
                 st.success(f"✅ Deleted {deleted_count} Tiffin record(s) for {selected_name}.")
 
     cursor.close()
+
+
 def delete_account_page():
     # PNG file load & encode
     img_base64 = load_image("images/delete.png")
@@ -370,7 +447,6 @@ def delete_account_page():
     conn = get_db()
     df = pd.read_sql("SELECT * FROM account_records ORDER BY date DESC, time DESC", conn)
     names = df['name'].unique().tolist() if not df.empty else []
-
 
     if df.empty:
         st.info("No Account records available to delete.")
@@ -418,8 +494,11 @@ def delete_account_page():
     cursor.close()
     fetch_all.clear()
 
+
 LOGIN_USER_HASH = b"$2b$12$tAAm6RQ775w8WJBW9brlXuHDgiYuMn3UcKI5gKRm4CCIbNp9lHXfi"
 LOGIN_PASS_HASH = b"$2b$12$xfVNu267cnWT0hjsrzoWQ.AOYvxcm9GdWjjAlmcSG8IFBGf3IuP62"
+
+
 def login():
     img_base64 = load_image("images/icons8-dinner-64.png")
 
@@ -454,13 +533,15 @@ def login():
 
     if st.button("Login"):
         if bcrypt.checkpw(username.encode(), LOGIN_USER_HASH) and \
-           bcrypt.checkpw(password.encode(), LOGIN_PASS_HASH):
+                bcrypt.checkpw(password.encode(), LOGIN_PASS_HASH):
 
             st.session_state["logged_in"] = True
             st.success("Logged in successfully!")
-            st.rerun()   # 🔥 IMPORTANT FIX
+            st.rerun()  # 🔥 IMPORTANT FIX
         else:
             st.error("Invalid credentials")
+
+
 def account_page():
     img_base64 = load_image("images/add.png")
 
@@ -530,6 +611,8 @@ def account_page():
         cursor.close()
         fetch_all.clear()
         st.success(f"Expense added successfully! Each participant owes ₹{per_person_amount}")
+
+
 def account_records_page():
     # PNG file load & encode
     img_base64 = load_image("images/view.png")
@@ -596,6 +679,8 @@ def account_records_page():
         )
 
         st.dataframe(styled_df, use_container_width=True)
+
+
 def edit_account_page():
     # --- Load icon ---
     img_base64 = load_image("images/edit.png")
@@ -611,66 +696,148 @@ def edit_account_page():
     )
 
     # --- Fetch records ---
-    conn = get_db()  # Replace with your DB connection
-    df = pd.read_sql("SELECT * FROM account_records ORDER BY date DESC, time DESC", conn)
+    conn = get_db()
+    df = pd.read_sql(
+        "SELECT * FROM account_records ORDER BY date DESC, time DESC",
+        conn
+    )
 
     if df.empty:
         st.info("No account records available.")
         st.stop()
 
+    # ----------------------------
+    # Remove Time Column
+    # ----------------------------
+    if "time" in df.columns:
+        df = df.drop(columns=["time"])
+
+    # ----------------------------
+    # Remove extra .0000
+    # ----------------------------
+    numeric_cols = ["total_amount", "per_person_amount"]
+
+    for col in numeric_cols:
+        if col in df.columns:
+            df[col] = df[col].apply(
+                lambda x: int(x) if pd.notna(x) and float(x).is_integer() else round(float(x), 2)
+            )
+
     # --- Color functions ---
     def color_name(val):
-        colors = {"MEET": "#FF0033", "YASH": "#bfff00", "DHRUMIL": "#00bfff"}
-        return f"color: {colors[val.upper()]}; font-weight: bold;" if str(val).upper() in colors else ""
+        colors = {
+            "MEET": "#FF0033",
+            "YASH": "#bfff00",
+            "DHRUMIL": "#00bfff"
+        }
+        return (
+            f"color: {colors[val.upper()]}; font-weight: bold;"
+            if str(val).upper() in colors
+            else ""
+        )
 
     def color_payment(val):
         val_lower = str(val).lower()
+
         if val_lower == "payment done":
-            return "color: #059212; font-weight:bold;"  # greenish
+            return "color:#73FF00;font-weight:bold;"
         elif val_lower in ["pending", "payment pending"]:
-            return "color: #76153C; font-weight:bold;"  # pink/purple
+            return "color:#FF0095;font-weight:bold;"
         elif val_lower == "paid":
-            return "color: goldenrod; font-weight:bold;"
+            return "color:#1aff00;font-weight:bold;"
         elif val_lower == "not involved":
-            return "color: #FCDC2A; font-weight:bold;"  # neutral yellow-green
+            return "color:#FCDC2A;font-weight:bold;"
         return ""
 
-    # --- Show all records on top with color ---
-    styled_df = df.style.map(color_name, subset=["name"]).map(color_payment, subset=["payment_status"])
-    st.dataframe(styled_df)
+    # --- Show all records ---
+    styled_df = (
+        df.style
+        .map(color_name, subset=["name"])
+        .map(color_payment, subset=["payment_status"])
+    )
 
-    # --- Single selectbox with all Name-Date-Place combinations ---
-    record_options = [f"{row['name']} - {row['date']} - {row['place_name']}" for _, row in df.iterrows()]
-    selected_record = st.selectbox("Select Record to Edit", ["-- TYPE OR  SELECT --"] + record_options)
+    st.dataframe(
+        styled_df,
+        use_container_width=True,
+        hide_index=True
+    )
 
-    # --- Stop if no selection ---
-    if selected_record == "-- TYPE OR  SELECT --":
+    # --- Select Record ---
+    record_options = [
+        f"{row['name']} - {row['date']} - {row['place_name']}"
+        for _, row in df.iterrows()
+    ]
+
+    selected_record = st.selectbox(
+        "Select Record to Edit",
+        ["-- TYPE OR SELECT --"] + record_options
+    )
+
+    if selected_record == "-- TYPE OR SELECT --":
         st.warning("⚠️ Please select a record to edit.")
         st.stop()
 
-    # --- Extract record based on selection ---
+    # --- Extract selected record ---
     name, date_str, place = selected_record.split(" - ")
     date_obj = pd.to_datetime(date_str).date()
+
     filtered_df = df[
-        (df['name'] == name) &
-        (pd.to_datetime(df['date']).dt.date == date_obj) &
-        (df['place_name'] == place)
+        (df["name"] == name)
+        & (pd.to_datetime(df["date"]).dt.date == date_obj)
+        & (df["place_name"] == place)
     ]
 
     if filtered_df.empty:
         st.warning("⚠️ Selected record not found!")
         st.stop()
 
-    # --- Show filtered record ---
-    st.dataframe(filtered_df)
+    # Remove time column if exists
+    if "time" in filtered_df.columns:
+        filtered_df = filtered_df.drop(columns=["time"])
 
-    # --- Editable inputs ---
+    # ----------------------------
+    # Format Amount Columns
+    # ----------------------------
+    numeric_cols = ["total_amount", "per_person_amount"]
+
+    for col in numeric_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce").round(2)
+
+    st.dataframe(
+        filtered_df,
+        use_container_width=True,
+        hide_index=True
+    )
+
+    # --- Edit Section ---
     record = filtered_df.iloc[0]
+
     st.write("### ✏️ Edit Selected Record")
-    edit_product = st.text_input("Product Name", str(record['product_name']))
-    edit_place = st.text_input("Place Name", str(record['place_name']))
-    edit_total = st.number_input("Total Amount", value=float(record['total_amount']))
-    edit_per_person = st.number_input("Per Person Amount", value=float(record['per_person_amount']))
+
+    edit_product = st.text_input(
+        "Product Name",
+        str(record["product_name"])
+    )
+
+    edit_place = st.text_input(
+        "Place Name",
+        str(record["place_name"])
+    )
+
+    edit_total = st.number_input(
+        "Total Amount",
+        value=float(record["total_amount"])
+    )
+
+    edit_per_person = st.number_input(
+        "Per Person Amount",
+        value=float(record["per_person_amount"]),
+        step=0.01,
+        format="%.2f"
+
+    )
+
     payment_options = [
         "Pending",
         "Payment Done",
@@ -678,12 +845,12 @@ def edit_account_page():
         "Not involved"
     ]
 
-    current_payment = str(record['payment_status']).strip()
+    current_payment = str(record["payment_status"]).strip()
 
-    # Match case insensitive
     payment_index = next(
         (
-            i for i, x in enumerate(payment_options)
+            i
+            for i, x in enumerate(payment_options)
             if x.lower() == current_payment.lower()
         ),
         0
@@ -695,30 +862,91 @@ def edit_account_page():
         index=payment_index
     )
 
-    # --- Save changes button ---
+    # --- Save Changes ---
     if st.button("Save Changes"):
         cursor = conn.cursor()
-        cursor.execute("""
+
+        cursor.execute(
+            """
             UPDATE account_records
-            SET product_name=%s,
+            SET
+                product_name=%s,
                 place_name=%s,
                 total_amount=%s,
                 per_person_amount=%s,
                 payment_status=%s
-            WHERE id = %s
-        """, (
-            str(edit_product),
-            str(edit_place),
-            float(edit_total),
-            float(edit_per_person),
-            str(edit_payment),
-            int(record['id'])
-        ))
+            WHERE id=%s
+            """,
+            (
+                str(edit_product),
+                str(edit_place),
+                float(edit_total),
+                float(edit_per_person),
+                str(edit_payment),
+                int(record["id"]),
+            ),
+        )
+
         conn.commit()
         cursor.close()
+
         st.success("✅ Record updated successfully!")
+
         fetch_all.clear()
-st.sidebar.image("images/me.png", use_container_width=True)
+
+    st.sidebar.image(
+        "images/me.png",
+        use_container_width=True
+    )
+
+
+st.markdown("""
+
+<style>
+
+/* Option Menu Container */
+.nav-link{
+    border-radius:16px !important;
+    margin:8px 0 !important;
+    padding:12px 18px !important;
+    transition:0.3s;
+    font-size:16px !important;
+    font-weight:600 !important;
+    color:white !important;
+}
+
+/* Hover */
+.nav-link:hover{
+    background:rgba(56,189,248,.15)!important;
+    transform:translateX(6px);
+    box-shadow:0 0 15px rgba(56,189,248,.25);
+}
+
+/* Selected */
+.nav-pills .nav-link.active{
+    background:linear-gradient(
+        90deg,
+        #38BDF8,
+        #8B5CF6
+    )!important;
+
+    color:white!important;
+
+    border-radius:18px!important;
+
+    box-shadow:
+    0 0 20px rgba(56,189,248,.45),
+    0 0 40px rgba(139,92,246,.35);
+}
+
+/* Icon */
+.nav-link i{
+    font-size:18px!important;
+    margin-right:10px!important;
+}
+
+</style>
+""", unsafe_allow_html=True)
 st.markdown("""
   <style>
 
@@ -776,155 +1004,584 @@ st.markdown("""
   [data-testid="stDataFrame"]{
 
   background:
-  rgba(255,255,255,.03);
+  rgba(8,14,34,.1);
 
-  border-radius:20px;
+  border-radius:-2px;
 
   }
 
   </style>
   """, unsafe_allow_html=True)
 st.markdown("""
-  <style>
+<style>
 
-  /* Sidebar bg color */
+/* ===============================
+   PREMIUM SIDEBAR BACKGROUND
+================================ */
 
-  [data-testid="stSidebar"]{
-  background:
-  linear-gradient(
-  180deg,
-  #020617,
-  #050B1C,
-  #17068E
-  );
+[data-testid="stSidebar"]{
 
-  border-right:
-  1px solid rgba(130,80,255,.4);
-  }
+background:
+radial-gradient(
+circle at top left,
+rgba(56,189,248,.25),
+transparent 35%
+),
 
-  /* Hide default */
+linear-gradient(
+180deg,
+#020617,
+#07111F,
+#0B0828
+);
 
-  [data-testid="stSidebarNav"]{
-  display:none;
-  }
+border-right:
+1px solid rgba(255,255,255,.12);
 
-  /* Logo */
+}
 
-  .logo{
-  padding:25px;
-  margin-bottom:15px;
 
-  border-radius:24px;
+/* Hide Streamlit Navigation */
 
-  background:
-  linear-gradient(
-  135deg,
-  rgba(10,20,50,.95),
-  rgba(80,20,140,.25)
-  );
+[data-testid="stSidebarNav"]{
+display:none;
+}
 
-  text-align:center;
 
-  border:
-  1px solid rgba(120,120,255,.4);
+/* ===============================
+        LOGO CARD
+================================ */
 
-  backdrop-filter:blur(20px);
+.logo{
 
-  box-shadow:
-  0 0 35px rgba(70,70,255,.3);
-  }
+padding:28px 15px;
 
-  .logoicon{
-  font-size:70px;
-  }
+border-radius:10px;
 
-  .logotitle{
+background:
 
-  font-size:42px;
+linear-gradient(
+145deg,
+rgba(255,255,255,.12),
+rgba(255,255,255,.03)
+);
 
-  font-weight:900;
+border:
 
-  background:
-  linear-gradient(
-  90deg,
-  #1DA1FF,
-  #A855F7
-  );
+1px solid rgba(255,255,255,.18);
 
-  -webkit-background-clip:text;
+backdrop-filter:
+blur(25px);
 
-  color:transparent;
-  }
 
-  .subtitle{
-  color:#ddd;
-  font-size:15px;
-  }
+box-shadow:
 
-  /* Cards */
+0 20px 50px rgba(0,0,0,.5),
 
-  .card{
+inset
+0 0 30px rgba(56,189,248,.15);
 
-  padding:15px;
 
-  margin-bottom:12px;
+text-align:center;
 
-  border-radius:18px;
+margin-bottom:25px;
 
-  background:
-  rgba(255,255,255,.03);
+}
 
-  border:
-  1px solid rgba(255,255,255,.08);
 
-  color:white;
+/* Logo Icon */
 
-  box-shadow:
-  0 0 18px rgba(0,0,0,.25);
-  }
+.logoicon{
 
-  .green{
-  color: #39FF14;
-  }
+font-size:75px;
 
-  .red{
-  color: #FF073A;
-  }
+filter:
+drop-shadow(
+0 0 25px #38BDF8
+);
 
-  .version{
+}
 
-  padding:18px;
 
-  border-radius:18px;
+/* Logo Text */
 
-  text-align:center;
+.logotitle{
 
-  margin-top:20px;
+font-size:38px;
 
-  background:
-  linear-gradient(
-  90deg,
-  #1D4ED8,
-  #7E22CE
-  );
+font-weight:950;
 
-  color:white;
+letter-spacing:2px;
 
-  font-size:36px;
 
-  font-weight:900;
+background:
 
-  box-shadow:
-  0 0 30px rgba(130,80,255,.4);
+linear-gradient(
+90deg,
+#38BDF8,
+#A855F7,
+#F472B6
+);
 
-  }
 
-  .ver{
-  font-size:18px;
-  }
+-webkit-background-clip:text;
 
-  </style>
-  """, unsafe_allow_html=True)
+color:transparent;
+
+
+}
+
+
+/* Subtitle */
+
+.subtitle{
+
+font-size:14px;
+
+letter-spacing:3px;
+
+color:#CBD5E1;
+
+margin-top:5px;
+
+}
+
+
+/* ===============================
+        SIDEBAR CARDS
+================================ */
+
+
+.card{
+
+padding:18px;
+
+margin-bottom:15px;
+
+
+border-radius:10px;
+
+
+background:
+
+rgba(255,255,255,.06);
+
+
+border:
+
+1px solid rgba(255,255,255,.12);
+
+
+backdrop-filter:
+
+blur(20px);
+
+
+box-shadow:
+
+0 15px 40px rgba(0,0,0,.35);
+
+
+transition:.3s;
+
+color:white;
+
+}
+
+
+
+.card:hover{
+
+
+transform:
+translateY(-4px);
+
+
+border-color:
+
+rgba(56,189,248,.5);
+
+
+box-shadow:
+
+0 0 35px rgba(56,189,248,.25);
+
+
+}
+
+
+/* ===============================
+       STATUS COLORS
+================================ */
+
+
+.green{
+
+color:#22C55E;
+
+font-weight:800;
+
+text-shadow:
+
+0 0 15px #22C55E;
+
+}
+
+
+
+.red{
+
+color:#EF4444;
+
+font-weight:800;
+
+text-shadow:
+
+0 0 15px #EF4444;
+
+}
+
+
+/* ===============================
+       DATABASE LIVE CARD
+================================ */
+
+
+.live-dot{
+
+height:12px;
+
+width:12px;
+
+background:#22C55E;
+
+border-radius:50%;
+
+display:inline-block;
+
+
+box-shadow:
+
+0 0 20px #22C55E;
+
+
+animation:
+
+pulse 1.5s infinite;
+
+}
+
+
+@keyframes pulse{
+
+0%{
+
+opacity:1;
+
+}
+
+50%{
+
+opacity:.3;
+
+}
+
+100%{
+
+opacity:1;
+
+}
+
+}
+
+
+
+/* ===============================
+        PREMIUM VERSION BOX
+================================ */
+
+.version{
+
+position:relative;
+
+padding:25px 15px;
+
+border-radius:10px;
+
+
+background:
+
+linear-gradient(
+145deg,
+rgba(255,255,255,0.14),
+rgba(255,255,255,0.04)
+);
+
+
+border:
+
+1px solid rgba(255,255,255,.22);
+
+
+backdrop-filter:
+
+blur(25px);
+
+
+
+box-shadow:
+
+0 20px 50px rgba(0,0,0,.45),
+
+inset 0 0 35px rgba(56,189,248,.15),
+
+0 0 40px rgba(168,85,247,.35);
+
+
+
+text-align:center;
+
+color:white;
+
+
+overflow:hidden;
+
+
+margin-top:35px;
+
+}
+
+
+/* Animated Glow Line */
+
+.version::before{
+
+content:"";
+
+position:absolute;
+
+top:0;
+
+left:-50%;
+
+
+width:200%;
+
+height:2px;
+
+
+background:
+
+linear-gradient(
+90deg,
+transparent,
+#38BDF8,
+#A855F7,
+transparent
+);
+
+
+animation:
+
+moveLine 3s linear infinite;
+
+}
+
+
+
+@keyframes moveLine{
+
+0%{
+
+transform:translateX(-30%);
+
+}
+
+100%{
+
+transform:translateX(30%);
+
+}
+
+}
+
+
+
+/* App Name */
+
+.appname{
+
+
+font-size:32px;
+
+
+font-weight:950;
+
+
+letter-spacing:3px;
+
+
+
+background:
+
+linear-gradient(
+90deg,
+#38BDF8,
+#A855F7,
+#F472B6
+);
+
+
+
+-webkit-background-clip:text;
+
+
+color:transparent;
+
+
+
+text-shadow:
+
+0 0 30px rgba(56,189,248,.4);
+
+
+}
+
+
+
+/* Premium Edition */
+
+.edition{
+
+
+font-size:12px;
+
+
+letter-spacing:5px;
+
+
+margin-top:8px;
+
+
+color:#CBD5E1;
+
+
+font-weight:700;
+
+}
+
+
+
+/* Divider */
+
+.version-line{
+
+
+height:1px;
+
+
+margin:18px 25px;
+
+
+background:
+
+linear-gradient(
+90deg,
+transparent,
+rgba(255,255,255,.5),
+transparent
+);
+
+}
+
+
+
+/* Version Number */
+
+.ver{
+
+
+font-size:20px;
+
+
+font-weight:900;
+
+
+letter-spacing:2px;
+
+
+color:white;
+
+
+
+}
+
+
+
+/* Status */
+
+.status{
+
+
+display:inline-block;
+
+
+margin-top:15px;
+
+
+padding:7px 18px;
+
+
+border-radius:50px;
+
+
+
+background:
+
+rgba(34,197,94,.15);
+
+
+
+border:
+
+1px solid rgba(34,197,94,.4);
+
+
+
+color:#22C55E;
+
+
+font-size:13px;
+
+
+font-weight:800;
+
+
+
+box-shadow:
+
+0 0 20px rgba(34,197,94,.35);
+
+
+}
+}
+
+
+/* ===============================
+     REMOVE PADDING
+================================ */
+
+
+section[data-testid="stSidebar"] > div{
+
+padding-top:1rem;
+
+}
+
+
+
+</style>
+""", unsafe_allow_html=True)
 # --------------------
 # Sidebar
 # --------------------
@@ -941,7 +1598,7 @@ with st.sidebar:
       <div class="logo">
 
       <div class="logoicon">
-      
+
       </div>
 
       <div class="logotitle">
@@ -962,45 +1619,66 @@ with st.sidebar:
     # ======================
     # SIDEBAR NAVIGATION
     # ======================
-
-    menu = None
-
     with st.sidebar:
-        # ONLY AFTER LOGIN
+
         if st.session_state.get("logged_in", False):
 
-            st.markdown("""
-              <div style="
-              font-size:22px;
-              font-weight:800;
-              color:#ffffff;
-              margin-bottom:10px;
-              ">
-              📌 NAVIGATION
-              </div>
-              """, unsafe_allow_html=True)
+            st.markdown("### 📌 Navigation")
 
-            menu = st.selectbox(
-                "",
-                [
-                    "➕ Add Tiffin Entry",
-                    "🔎 View Tiffin Records",
-                    "🗃️ Analytics Dashboard",
-                    "💳 Update Payment Status",
-                    "⬇️ Export Data",
-                    "❎ Remove Tiffin Records",
-                    "🛠️ Edit Tiffin Records",
-                    "💳 Add Expense Entry",
-                    "🔍 View Expense Records",
-                    "❎ Remove Expense Records",
-                    "✏️ Edit Expense Details",
-                    "⚙️ Settings",
+            menu = option_menu(
+                menu_title=None,
+                options=[
+                    "Add Tiffin Entry",
+                    "View Tiffin Records",
+                    "Analytics Dashboard",
+                    "Update Payment Status",
+                    "Export Data",
+                    "Remove Tiffin Records",
+                    "Edit Tiffin Records",
+                    "Add Expense Entry",
+                    "View Expense Records",
+                    "Remove Expenses",
+                    "Edit Expense Details",
+                    "Settings",
                 ],
-                label_visibility="collapsed"
+
+icons=[
+    "plus-circle",
+    "search",
+    "bar-chart",
+    "credit-card",
+    "download",
+    "trash",
+    "pencil-square",
+    "wallet2",
+    "search-heart",
+    "trash3",
+    "pencil",
+    "gear",
+                ],
+                default_index=0,
+                styles={
+                    "container": {
+                        "padding": "6px",
+                        "background-color": "rgba(7 16 30)",
+                        "border-radius": "-2px",
+                    },
+                    "nav-link": {
+                        "font-size": "15px",
+                        "font-weight": "600",
+                        "border-radius": "-2px",
+                        "margin": "6px 0",
+                        "--hover-color": "rgba(72 48 22)",
+                    },
+                    "nav-link-selected": {
+                        "background": "#ff741a",
+                        "color": "white",
+                    },
+                },
             )
 
-            st.divider()
-
+        else:
+            menu = None
     # --------------------
     # Login Status
     # --------------------
@@ -1093,7 +1771,6 @@ with st.sidebar:
   </div>
   """, unsafe_allow_html=True)
 
-
 # =========================
 # AIVEN CONFIG
 # =========================
@@ -1102,18 +1779,15 @@ TOKEN = st.secrets["AIVEN_TOKEN"]
 PROJECT = st.secrets["AIVEN_PROJECT"]
 SERVICE = st.secrets["AIVEN_SERVICE"]
 
-
 HEADERS = {
     "Authorization": f"aivenv1 {TOKEN}",
     "Content-Type": "application/json"
 }
 
-
 AIVEN_URL = (
     f"https://api.aiven.io/v1/project/"
     f"{PROJECT}/service/{SERVICE}"
 )
-
 
 
 # =========================
@@ -1122,7 +1796,6 @@ AIVEN_URL = (
 
 @st.cache_data(ttl=1)
 def check_aiven_status():
-
     try:
 
         response = requests.get(
@@ -1131,9 +1804,7 @@ def check_aiven_status():
             timeout=10
         )
 
-
         if response.status_code == 200:
-
             return response.json()["service"]["state"]
 
 
@@ -1141,10 +1812,7 @@ def check_aiven_status():
 
         return None
 
-
     return None
-
-
 
 
 # =========================
@@ -1152,12 +1820,9 @@ def check_aiven_status():
 # =========================
 
 def database_power(action):
-
-
     payload = {
         "powered": action
     }
-
 
     try:
 
@@ -1168,8 +1833,7 @@ def database_power(action):
             timeout=(3, 30)
         )
 
-
-        return response.status_code in [200,202], response.text
+        return response.status_code in [200, 202], response.text
 
 
     except Exception as e:
@@ -1177,13 +1841,9 @@ def database_power(action):
         return False, str(e)
 
 
-
-
-
 # =========================
 # SETTINGS PAGE
 # =========================
-
 
 
 def database_settings_page():
@@ -1195,18 +1855,10 @@ def database_settings_page():
 
     st.divider()
 
-
-
     if "db_action_running" not in st.session_state:
-
         st.session_state.db_action_running = False
 
-
-
-
     col1, col2 = st.columns(2)
-
-
 
     # =========================
     # START
@@ -1300,31 +1952,23 @@ def database_settings_page():
                 st.session_state.db_action_running = False
                 st.error(error)
 
-
-
     # =========================
     # STOP
     # =========================
 
     with col2:
 
-
         if st.button(
-            "🔴 STOP DATABASE",
-            use_container_width=True,
-            disabled=st.session_state.db_action_running
+                "🔴 STOP DATABASE",
+                use_container_width=True,
+                disabled=st.session_state.db_action_running
         ):
-
 
             st.session_state.db_action_running = True
 
-
             success, error = database_power(False)
 
-
-
             if success:
-
 
                 progress = st.progress(0)
 
@@ -1332,11 +1976,7 @@ def database_settings_page():
 
                 caption_box = st.empty()
 
-
-
                 percentage = 0
-
-
 
                 messages = [
 
@@ -1348,42 +1988,30 @@ def database_settings_page():
 
                 ]
 
-
                 msg = 0
-
-
 
                 while True:
 
-
                     state = check_aiven_status()
-
-
 
                     if state in [
                         "POWEROFF",
                         "STOPPED"
                     ]:
 
-
                         progress.progress(100)
-
 
                         caption_box.caption(
                             "🔴 LUNCHLOGIX Database Control • Stopped"
                         )
 
-
                         status_box.success(
                             "Database Shutdown Completed 🚀"
                         )
 
-
                         st.cache_resource.clear()
 
-
                         st.session_state.db_action_running = False
-
 
                         st.rerun()
 
@@ -1391,33 +2019,25 @@ def database_settings_page():
 
                     else:
 
-
                         percentage = min(
                             percentage + 5,
                             97
                         )
 
-
                         progress.progress(
                             percentage
                         )
-
 
                         status_box.warning(
                             f"🔴 {state} ... {percentage}%"
                         )
 
-
-
                         if msg < len(messages):
-
                             caption_box.caption(
                                 messages[msg]
                             )
 
                             msg += 1
-
-
 
                     time.sleep(1)
 
@@ -1425,29 +2045,19 @@ def database_settings_page():
 
             else:
 
-
                 st.session_state.db_action_running = False
 
                 st.error(error)
 
-
-
-
     st.divider()
-
-
 
     # =========================
     # CURRENT STATUS
     # =========================
 
-
     state = check_aiven_status()
 
-
-
     if state == "RUNNING":
-
 
         st.success(
             "🟢 LUNCHLOGIX Database Control • Running"
@@ -1460,7 +2070,6 @@ def database_settings_page():
         "BUILDING"
     ]:
 
-
         st.warning(
             f"🟡 LUNCHLOGIX Database Control • {state}"
         )
@@ -1468,18 +2077,16 @@ def database_settings_page():
 
     else:
 
-
         st.error(
             f"🔴 LUNCHLOGIX Database Control • {state}"
         )
 
-
-
     st.caption(
         "LUNCHLOGIX Database Control • MANMEET'S DATABASE"
     )
-def app():
 
+
+def app():
     if 'logged_in' not in st.session_state:
         st.session_state['logged_in'] = False
 
@@ -1503,15 +2110,15 @@ def app():
         unsafe_allow_html=True
     )
 
-    if menu == "❎ Remove Tiffin Records":
+    if menu == "Remove Tiffin Records":
         delete_tiffin_page()
 
-    elif menu == "❎ Remove Expense Records":
+    elif menu == "Remove Expenses":
         delete_account_page()
 
     # -------------------- Add Record --------------------
 
-    elif menu == "➕ Add Tiffin Entry":
+    elif menu == "Add Tiffin Entry":
 
         img_base64 = load_image("images/add.png")
 
@@ -1683,7 +2290,7 @@ def app():
 
     # -------------------- Records --------------------
 
-    elif menu == "🔎 View Tiffin Records":
+    elif menu == "View Tiffin Records":
 
         # PNG file load & encode
 
@@ -1860,7 +2467,8 @@ def app():
             st.dataframe(styled_df, use_container_width=True)
     # -------------------- Chart --------------------
 
-    elif menu == "🗃️ Analytics Dashboard":
+
+    elif menu == "Analytics Dashboard":
 
         img_base64 = load_image("images/chart.png")
 
@@ -2135,7 +2743,7 @@ def app():
                     st.pyplot(fig)
     # -------------------- Edit --------------------
 
-    elif menu == "🛠️ Edit Tiffin Records":
+    elif menu == "Edit Tiffin Records":
 
         img_base64 = load_image("images/edit.png")
 
@@ -2192,23 +2800,16 @@ def app():
                 return ""
 
             def color_payment(val):
+                val_lower = str(val).lower()
 
-                val = str(val).upper()
-
-                if val == "PAYMENT DONE":
-
-                    return "color:#059212;font-weight:bold;"
-
-
-                elif val in ["PAYMENT PENDING", "PENDING"]:
-
-                    return "color:#76153C;font-weight:bold;"
-
-
-                elif val == "NOT INVOLVED":
-
-                    return "color:#FCDC2A;font-weight:bold;"
-
+                if val_lower == "payment done":
+                    return "color: #73FF00; font-weight:bold;"
+                elif val_lower in ["pending", "payment pending"]:
+                    return "color: #FF0095; font-weight:bold;"
+                elif val_lower == "paid":
+                    return "color: goldenrod; font-weight:bold;"
+                elif val_lower == "not involved":
+                    return "color: #FCDC2A; font-weight:bold;"
                 return ""
 
             styled_df = (
@@ -2524,7 +3125,7 @@ def app():
 
     # -------------------- Payment Method --------------------
 
-    elif menu == "💳 Update Payment Status":
+    elif menu == "Update Payment Status":
 
         img_base64 = load_image("images/icons8-payment-history-48.png")
 
@@ -2638,7 +3239,7 @@ def app():
 
     # --- Streamlit menu ---
 
-    if menu == "⬇️ Export Data":
+    if menu == "Export Data":
 
         # PNG icon load & display
         img_base64 = load_image("images/icons8-microsoft-excel-2025-48.png")
@@ -2778,6 +3379,7 @@ def app():
                     return (
                         f"color: {colors.get(str(val).upper(), 'white')}; font-weight:bold;"
                     )
+
                 # ---------- Streamlit Table Styling ----------
 
                 def style_table(df):
@@ -3098,14 +3700,15 @@ def app():
                     )
                 # -------------------- Delete --------------------
 
-    elif menu == "💳 Add Expense Entry":
+    elif menu == "Add Expense Entry":
         account_page()
-    elif menu == "🔍 View Expense Records":
+    elif menu == "View Expense Records":
         account_records_page()
-    elif menu == "✏️ Edit Expense Details":
+    elif menu == "Edit Expense Details":
         edit_account_page()
-    elif menu == "⚙️ Settings":
+    elif menu == "Settings":
         database_settings_page()
+
 
 if __name__ == "__main__":
     try:
