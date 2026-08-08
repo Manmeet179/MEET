@@ -7,3 +7,4 @@ python-dateutil
 bcrypt
 psycopg2-binary
 streamlit-extras
+streamlit-option-menu
