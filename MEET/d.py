@@ -87,26 +87,26 @@ html[data-theme="light"] .custom-header{
 
 </style>
 """, unsafe_allow_html=True)
-# st.markdown("""
-# <style>
-#
-# /* Hide Streamlit Spinner */
-# [data-testid="stSpinner"]{
-#     display:none !important;
-# }
-#
-# /* Hide Running indicator */
-# [data-testid="stStatusWidget"]{
-#     display:none !important;
-# }
-#
-# /* Hide top loading animation */
-# div[data-testid="stDecoration"]{
-#     display:none !important;
-# }
-#
-# </style>
-# # """, unsafe_allow_html=True)
+st.markdown("""
+<style>
+
+/* Hide Streamlit Spinner */
+[data-testid="stSpinner"]{
+    display:none !important;
+}
+
+/* Hide Running indicator */
+[data-testid="stStatusWidget"]{
+    display:none !important;
+}
+
+/* Hide top loading animation */
+div[data-testid="stDecoration"]{
+    display:none !important;
+}
+
+</style>
+# """, unsafe_allow_html=True)
 st.markdown("""
 
     <style>
