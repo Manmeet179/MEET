@@ -24,120 +24,71 @@ st.set_page_config(
         'About': None
     }
 )
+
 st.markdown("""
 <style>
 
-/* Custom Responsive Header */
+/* ================================
+   GLOBAL TOP SPACING - 20px
+   ================================ */
 
-.custom-header{
-    position:fixed;
-    top:8px;
-    left:50%;
-    transform:translateX(-50%);
-    z-index:999999;
-
-    font-size:clamp(14px, 2vw, 22px);
-    font-weight:800;
-    letter-spacing:1px;
-
-    color:var(--text-color);
-
-    background:transparent !important;
-    backdrop-filter:none !important;
-
-    padding:0;
-    margin:0;
-
-    white-space:nowrap;
+[data-testid="stAppViewContainer"] .main .block-container {
+    padding-top: 20px !important;
 }
 
-
-/* Dark Theme */
-[data-theme="dark"] .custom-header{
-    color:white;
-}
-
-
-/* Light Theme */
-[data-theme="light"] .custom-header{
-    color:#111111;
-}
-
-
-/* Mobile Responsive */
-@media(max-width:600px){
-
-.custom-header{
-    top:10px;
-    font-size:14px;
-    letter-spacing:0.5px;
-}
-
-}
-header[data-testid="stHeader"]{
-    background:transparent !important;
-}
-html[data-theme="dark"] .custom-header{
-    color:white !important;
-}
-
-html[data-theme="light"] .custom-header{
-    color:#111111 !important;
-}
-
-</style>
-""", unsafe_allow_html=True)
-st.markdown("""
-<style>
 
 /* Hide Streamlit Spinner */
-[data-testid="stSpinner"]{
-    display:none !important;
+[data-testid="stSpinner"] {
+    display: none !important;
 }
 
 /* Hide Running indicator */
-[data-testid="stStatusWidget"]{
-    display:none !important;
+[data-testid="stStatusWidget"] {
+    display: none !important;
 }
 
 /* Hide top loading animation */
-div[data-testid="stDecoration"]{
-    display:none !important;
+div[data-testid="stDecoration"] {
+    display: none !important;
+}
+
+
+/* ================================
+   BUTTON DESIGN
+   ================================ */
+
+div.stButton > button {
+    background-color: red !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 0.6em 1em !important;
+    font-weight: bold !important;
+}
+
+div.stButton > button:hover {
+    background-color: darkred !important;
+    color: white !important;
+}
+
+
+/* Download Button */
+
+div.stDownloadButton > button {
+    background-color: red !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 0.6em 1em !important;
+    font-weight: bold !important;
+}
+
+div.stDownloadButton > button:hover {
+    background-color: darkred !important;
+    color: white !important;
 }
 
 </style>
-# """, unsafe_allow_html=True)
-st.markdown("""
-
-    <style>
-    div.stButton > button {
-        background-color: red !important;
-        color: white !important;
-        border: none;
-        border-radius: 8px;
-        padding: 0.6em 1em;
-        font-weight: bold;
-    }
-
-    div.stButton > button:hover {
-        background-color: darkred !important;
-        color: white !important;
-    }
-
-    div.stDownloadButton > button {
-        background-color: red !important;
-        color: white !important;
-        border: none;
-        border-radius: 8px;
-        padding: 0.6em 1em;
-        font-weight: bold;
-    }
-    div.stDownloadButton > button:hover {
-        background-color: darkred !important;
-        color: white !important;
-    }
-    </style>
-
 """, unsafe_allow_html=True)
 with open("images/icons8-monzo-48.png", "rb") as f:
     img_bytes = f.read()
