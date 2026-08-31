@@ -138,7 +138,12 @@ st.markdown("""
 # ternak = "1234"
 # owert = "localhost"
 # xoper = 5432
-
+TABLE_NAME = "tiffin"
+petoc = "defaultdb"
+lemox = "avnadmin"
+ternak = "AVNS_LovPCygG-7HQB0xs0Su"
+owert = "pg-e6a0b32-manmeet2756-50e1.d.aivencloud.com"
+xoper = 19632
 
 
 @st.cache_resource
