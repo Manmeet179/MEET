@@ -3278,9 +3278,9 @@ icons=[
 # AIVEN CONFIG
 # =========================
 
-TOKEN = st.secrets["TOKEN"]
-PROJECT = st.secrets["PROJECT"]
-SERVICE = st.secrets["SERVICE"]
+TOKEN = st.secrets["AIVEN_TOKEN"]
+PROJECT = st.secrets["AIVEN_PROJECT"]
+SERVICE = st.secrets["AIVEN_SERVICE"]
 
 HEADERS = {
     "Authorization": f"aivenv1 {TOKEN}",
