@@ -24,7 +24,57 @@ st.set_page_config(
         'About': None
     }
 )
+st.markdown("""
+<style>
 
+/* =========================================================
+   SIDEBAR = FIXED HEIGHT / NO VISIBLE SECOND SCROLLBAR
+   ========================================================= */
+
+/* Sidebar outer container */
+section[data-testid="stSidebar"] {
+    height: 100vh !important;
+    overflow: hidden !important;
+}
+
+/* Sidebar main content */
+section[data-testid="stSidebar"] > div {
+    height: 100vh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+
+    /* Hide scrollbar - Chrome / Edge */
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+/* Hide scrollbar - Chrome / Edge / Safari */
+section[data-testid="stSidebar"] > div::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+}
+
+/* Keep sidebar content inside viewport */
+section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
+    min-height: 100vh !important;
+    overflow-x: hidden !important;
+}
+
+/* Prevent horizontal overflow */
+section[data-testid="stSidebar"] * {
+    max-width: 100%;
+}
+
+/* =========================================================
+   MAIN PAGE
+   ========================================================= */
+
+.main {
+    overflow-x: hidden !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
 st.markdown("""
 <style>
 
@@ -71,6 +121,20 @@ div.stButton > button:hover {
     color: white !important;
 }
 
+/* =========================================================
+   SAVE BUTTON - ALWAYS REACHABLE
+   ========================================================= */
+div[data-testid="stButton"]:has(button[kind="primary"]) {
+    position: sticky !important;
+    bottom: 12px !important;
+    z-index: 9999 !important;
+    padding: 6px 0 !important;
+    background: rgba(2, 6, 23, 0.90) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 10px;
+}
+
 
 /* Download Button */
 
@@ -86,6 +150,57 @@ div.stDownloadButton > button {
 div.stDownloadButton > button:hover {
     background-color: darkred !important;
     color: white !important;
+}
+
+
+
+/* =========================================================
+   REUSABLE LOADER BAR
+   ========================================================= */
+.loaderWrap {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.loaderBar {
+    width: calc(160px / 0.707);
+    height: 10px;
+    background: #F9F9F9;
+    border-radius: 10px;
+    border: 1px solid #006DFE;
+    position: relative;
+    overflow: hidden;
+}
+
+.loaderBar::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    border-radius: 5px;
+    background: repeating-linear-gradient(45deg, #0031F2 0 30px, #006DFE 0 40px) right/200% 100%;
+    animation: fillProgress 6s ease-in-out infinite, lightEffect 1s infinite linear;
+    animation-fill-mode: forwards;
+}
+
+@keyframes fillProgress {
+    0% { width: 0; }
+    33% { width: 33.333%; }
+    66% { width: 66.67%; }
+    100% { width: 100%; }
+}
+
+@keyframes lightEffect {
+    0%, 20%, 40%, 60%, 80%, 100% {
+        background: repeating-linear-gradient(45deg, #0031F2 0 30px, #006DFE 0 40px) right/200% 100%;
+    }
+    10%, 30%, 50%, 70%, 90% {
+        background: repeating-linear-gradient(45deg, #0031F2 0 30px, #006DFE 0 40px, rgba(255, 255, 255, 0.3) 0 40px) right/200% 100%;
+    }
 }
 
 </style>
@@ -138,6 +253,62 @@ st.markdown("""
 # ternak = "1234"
 # owert = "localhost"
 # xoper = 5432
+def show_loader(target):
+    """Render the supplied loader inside a placeholder."""
+    target.markdown(
+        """
+        <div class="loaderWrap">
+            <div class="loaderBar"></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def fetch_all_with_loader():
+    """Fetch cached tiffin records while showing the reusable loader."""
+    loader_box = st.empty()
+    show_loader(loader_box)
+    try:
+        return fetch_all()
+    finally:
+        loader_box.empty()
+
+
+def fetch_account_records_with_loader():
+    """Fetch account records while showing the reusable loader."""
+    loader_box = st.empty()
+    show_loader(loader_box)
+    try:
+        conn = get_db()
+        return pd.read_sql(
+            "SELECT * FROM account_records ORDER BY date DESC, time DESC",
+            conn,
+        )
+    finally:
+        loader_box.empty()
+
+
+def insert_record_with_loader(data):
+    """Insert records while showing the reusable loader."""
+    loader_box = st.empty()
+    show_loader(loader_box)
+    try:
+        insert_record(data)
+    finally:
+        loader_box.empty()
+
+
+def run_with_loader(func, *args, **kwargs):
+    """Run a database operation while showing the same loader."""
+    loader_box = st.empty()
+    show_loader(loader_box)
+    try:
+        return func(*args, **kwargs)
+    finally:
+        loader_box.empty()
+
+
 TABLE_NAME = "tiffin"
 petoc = "defaultdb"
 lemox = "avnadmin"
@@ -167,7 +338,7 @@ def get_db():
 # DATABASE STATUS CHECK
 # Checks only every 15 seconds
 # ==========================
-@st.cache_data(ttl=0.5)
+@st.cache_data(ttl=15, show_spinner=False)
 def check_db_connection():
     try:
         conn = get_db()
@@ -193,36 +364,102 @@ def check_db_connection():
         return False
 
 
-# ==========================
-# GET DATABASE CONNECTION
-# ==========================
-try:
-
-    conn = get_db()
-
-except (
-        psycopg2.InterfaceError,
-        psycopg2.OperationalError,
-        psycopg2.DatabaseError,
-):
-
-    get_db.clear()
-
-    st.session_state["db_offline"] = True
-    conn = None
-
-except Exception:
-    st.error("❌ Unable to connect to the database.")
-    st.stop()
-
-
 @st.cache_data
 def load_image(path):
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode()
 
 
-@st.cache_data(ttl=30)
+# =========================================================
+# CENTRALIZED COLORS / TABLE STYLING
+# =========================================================
+# All name/payment/shift/day colors live here only once.
+# Every table reuses these same functions.
+
+NAME_COLORS = {
+    "MEET": "#FF0033",
+    "YASH": "#bfff00",
+    "DHRUMIL": "#00bfff",
+    "TOTAL": "#9929EA",
+}
+
+PAYMENT_COLORS = {
+    "PAYMENT DONE": "#73FF00",
+    "PENDING": "#FF0095",
+    "PAYMENT PENDING": "#FF0095",
+    "PAID": "goldenrod",
+    "NOT INVOLVED": "#FCDC2A",
+}
+
+SHIFT_COLORS = {
+    "DAY": "#FF8F00",
+    "NIGHT": "#3B9797",
+}
+
+DAY_COLORS = {
+    "MONDAY": "#BF00FF",
+    "TUESDAY": "#0000FF",
+    "WEDNESDAY": "#7DF9FF",
+    "THURSDAY": "#72FF13",
+    "FRIDAY": "#FFFC00",
+    "SATURDAY": "#FF5C00",
+    "SUNDAY": "#E60000",
+}
+
+
+def get_name_color(value):
+    return NAME_COLORS.get(str(value).upper())
+
+
+def get_payment_color(value):
+    return PAYMENT_COLORS.get(str(value).upper())
+
+
+def get_shift_color(value):
+    return SHIFT_COLORS.get(str(value).upper())
+
+
+def get_day_color(value):
+    return DAY_COLORS.get(str(value).upper())
+
+
+def color_name(value):
+    color = get_name_color(value)
+    return f"color: {color}; font-weight: bold;" if color else ""
+
+
+def color_payment(value):
+    color = get_payment_color(value)
+    return f"color: {color}; font-weight: bold;" if color else ""
+
+
+def color_shift(value):
+    color = get_shift_color(value)
+    return f"color: {color}; font-weight: bold;" if color else ""
+
+
+def color_day(value):
+    color = get_day_color(value)
+    return f"color: {color}; font-weight: bold;" if color else ""
+
+
+def style_table(df):
+    """Apply common colors to every matching column automatically."""
+    styler = df.style
+    if "name" in df.columns:
+        styler = styler.map(color_name, subset=["name"])
+    if "Name" in df.columns:
+        styler = styler.map(color_name, subset=["Name"])
+    if "payment_status" in df.columns:
+        styler = styler.map(color_payment, subset=["payment_status"])
+    if "shift" in df.columns:
+        styler = styler.map(color_shift, subset=["shift"])
+    if "day" in df.columns:
+        styler = styler.map(color_day, subset=["day"])
+    return styler
+
+
+@st.cache_data(ttl=30, show_spinner=False)
 def fetch_all():
     conn = get_db()
 
@@ -253,24 +490,24 @@ def fetch_all():
     return df
 
 
-@st.cache_resource
 def insert_record(data):
     conn = get_db()
     cursor = conn.cursor()
 
-    for row in data:
-        cursor.execute(f"""
-
-            INSERT INTO {TABLE_NAME} (Date, Day, Time, Name, Shift, Quantity, Roti, Roti_Amount, Amount, Payment_Status)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-        """, row)
+    cursor.executemany(
+        f"""
+        INSERT INTO {TABLE_NAME}
+        (Date, Day, Time, Name, Shift, Quantity, Roti, Roti_Amount, Amount, Payment_Status)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """,
+        data
+    )
 
     conn.commit()
     cursor.close()
     fetch_all.clear()
 
 
-@st.cache_resource
 def update_record(record_id, date, shift, qty, roti, amount, roti_amount, payment_status):
     conn = get_db()
     cursor = conn.cursor()
@@ -297,7 +534,6 @@ def update_record(record_id, date, shift, qty, roti, amount, roti_amount, paymen
     fetch_all.clear()
 
 
-@st.cache_resource
 def update_payment(start_date, end_date, payment_status):
     conn = get_db()
 
@@ -320,6 +556,7 @@ def update_payment(start_date, end_date, payment_status):
 
 
 def delete_tiffin_page():
+
     # PNG file load & encode
     img_base64 = load_image("images/delete.png")
 
@@ -333,51 +570,287 @@ def delete_tiffin_page():
         """,
         unsafe_allow_html=True
     )
-    df = fetch_all()
+
+    # Fetch all records
+    df = fetch_all_with_loader()
     if df.empty:
         st.info("No Tiffin records available to delete.")
         return
 
+    # Convert date column
     df['date'] = pd.to_datetime(df['date'], errors='coerce')
-    min_date = df['date'].min().date()
-    max_date = df['date'].max().date()
-    names = df['name'].unique().tolist()
 
-    option = st.radio("Delete by:", ["Date Range", "Name"], index=0)
+    # Remove invalid dates
+    df = df.dropna(subset=['date'])
+
+    if df.empty:
+        st.info("No valid Tiffin records available to delete.")
+        return
+
+    # Available names
+    names = sorted(df['name'].dropna().unique().tolist())
+
+    # Delete option
+    option = st.radio(
+        "Delete by:",
+        [
+            "Date Range",
+            "Name",
+            "Specific Record"
+        ],
+        index=0
+    )
 
     conn = get_db()
     cursor = conn.cursor()
 
-    if option == "Date Range":
-        from_date = st.date_input("From Date", value=min_date, min_value=min_date, max_value=max_date)
-        to_date = st.date_input("To Date", value=max_date, min_value=min_date, max_value=max_date)
+    # =========================================================
+    # 1. DELETE BY DATE RANGE
+    # =========================================================
 
-        if st.button("Delete Tiffin Records by Date"):
+    if option == "Date Range":
+
+        min_date = df['date'].min().date()
+        max_date = df['date'].max().date()
+
+        from_date = st.date_input(
+            "From Date",
+            value=min_date,
+            min_value=min_date,
+            max_value=max_date
+        )
+
+        to_date = st.date_input(
+            "To Date",
+            value=max_date,
+            min_value=min_date,
+            max_value=max_date
+        )
+
+        if st.button(
+            "Delete Tiffin Records by Date",
+            type="primary"
+        ):
+
             if from_date > to_date:
-                st.error("❎ Start Date cannot be after End Date.")
+
+                st.error(
+                    "❎ Start Date cannot be after End Date."
+                )
+
             else:
-                cursor.execute("""
+
+                cursor.execute(
+                    """
                     DELETE FROM tiffin
                     WHERE date BETWEEN %s AND %s
-                """, (from_date, to_date))
-                deleted_count = cursor.rowcount
-                conn.commit()
-                st.success(f"✅ Deleted {deleted_count} Tiffin record(s) from {from_date} to {to_date}.")
+                    """,
+                    (
+                        from_date,
+                        to_date
+                    )
+                )
 
-    else:  # Delete by Name
-        selected_name = st.selectbox("Select Name", ["-- SELECT --"] + names)
-        if st.button("Delete Tiffin Records by Name"):
+                deleted_count = cursor.rowcount
+
+                conn.commit()
+
+                st.success(
+                    f"✅ Deleted {deleted_count} Tiffin record(s) "
+                    f"from {from_date} to {to_date}."
+                )
+
+    # =========================================================
+    # 2. DELETE BY NAME
+    # =========================================================
+
+    elif option == "Name":
+
+        selected_name = st.selectbox(
+            "Select Name",
+            ["-- SELECT --"] + names
+        )
+
+        if st.button(
+            "Delete Tiffin Records by Name",
+            type="primary"
+        ):
+
             if selected_name == "-- SELECT --":
-                st.warning("⚠️ Please select a name.")
+
+                st.warning(
+                    "⚠️ Please select a name."
+                )
+
             else:
-                cursor.execute("""
+
+                cursor.execute(
+                    """
                     DELETE FROM tiffin
                     WHERE name = %s
-                """, (selected_name,))
-                deleted_count = cursor.rowcount
-                conn.commit()
-                st.success(f"✅ Deleted {deleted_count} Tiffin record(s) for {selected_name}.")
+                    """,
+                    (selected_name,)
+                )
 
+                deleted_count = cursor.rowcount
+
+                conn.commit()
+
+                st.success(
+                    f"✅ Deleted {deleted_count} Tiffin record(s) "
+                    f"for {selected_name}."
+                )
+
+    # =========================================================
+    # 3. DELETE SPECIFIC RECORD
+    # =========================================================
+
+    else:
+
+        st.markdown(
+            "### 🎯 Delete Specific Tiffin Record"
+        )
+
+        # -----------------------------
+        # Select Name
+        # -----------------------------
+
+        selected_name = st.selectbox(
+            "Select Name",
+            ["-- SELECT --"] + names,
+            key="delete_specific_name"
+        )
+
+        if selected_name != "-- SELECT --":
+
+            # Filter records for selected person
+            person_df = df[
+                df['name'] == selected_name
+            ].copy()
+
+            # -----------------------------
+            # Select Date
+            # -----------------------------
+
+            available_dates = sorted(
+                person_df['date']
+                .dt.date
+                .unique()
+                .tolist()
+            )
+
+            selected_date = st.selectbox(
+                "Select Date",
+                available_dates,
+                key="delete_specific_date"
+            )
+
+            # Filter date
+            date_df = person_df[
+                person_df['date'].dt.date == selected_date
+            ].copy()
+
+            # -----------------------------
+            # Select Shift
+            # -----------------------------
+
+            if 'shift' in date_df.columns:
+
+                shifts = sorted(
+                    date_df['shift']
+                    .dropna()
+                    .astype(str)
+                    .unique()
+                    .tolist()
+                )
+
+            else:
+                shifts = []
+
+            if not shifts:
+
+                st.warning(
+                    "⚠️ No shift found for this record."
+                )
+
+            else:
+
+                selected_shift = st.selectbox(
+                    "Select Shift",
+                    shifts,
+                    key="delete_specific_shift"
+                )
+
+                # -----------------------------
+                # Show selected record
+                # -----------------------------
+
+                selected_record = date_df[
+                    date_df['shift'].astype(str)
+                    == str(selected_shift)
+                ]
+
+                st.markdown("#### Selected Record")
+
+                st.dataframe(
+                    selected_record,
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+                st.warning(
+                    f"⚠️ You are about to delete: "
+                    f"**{selected_name} | "
+                    f"{selected_date.strftime('%d-%m-%Y')} | "
+                    f"{selected_shift}**"
+                )
+
+                # -----------------------------
+                # Delete button
+                # -----------------------------
+
+                if st.button(
+                    "🗑️ Delete This Record",
+                    type="primary",
+                    key="delete_specific_record"
+                ):
+
+                    cursor.execute(
+                        """
+                        DELETE FROM tiffin
+                        WHERE name = %s
+                          AND date = %s
+                          AND shift = %s
+                        """,
+                        (
+                            selected_name,
+                            selected_date,
+                            selected_shift
+                        )
+                    )
+
+                    deleted_count = cursor.rowcount
+
+                    conn.commit()
+
+                    if deleted_count > 0:
+
+                        st.success(
+                            f"✅ Deleted successfully: "
+                            f"{selected_name} | "
+                            f"{selected_date.strftime('%d-%m-%Y')} | "
+                            f"{selected_shift}"
+                        )
+
+                        st.rerun()
+
+                    else:
+
+                        st.error(
+                            "❌ Record not found or already deleted."
+                        )
+
+    # Close cursor only. The connection is cached and must remain open.
     cursor.close()
 
 
@@ -395,8 +868,7 @@ def delete_account_page():
         """,
         unsafe_allow_html=True
     )
-    conn = get_db()
-    df = pd.read_sql("SELECT * FROM account_records ORDER BY date DESC, time DESC", conn)
+    df = fetch_account_records_with_loader()
     names = df['name'].unique().tolist() if not df.empty else []
 
     if df.empty:
@@ -532,6 +1004,9 @@ def account_page():
 
         per_person_amount = round(total_amount / len(participants), 2)
 
+        loader_box = st.empty()
+        show_loader(loader_box)
+
         conn = get_db()
         cursor = conn.cursor()
 
@@ -561,6 +1036,7 @@ def account_page():
         conn.commit()
         cursor.close()
         fetch_all.clear()
+        loader_box.empty()
         st.success(f"Expense added successfully! Each participant owes ₹{per_person_amount}")
 
 
@@ -578,12 +1054,7 @@ def account_records_page():
         """,
         unsafe_allow_html=True
     )
-    conn = get_db()
-
-    df = pd.read_sql(
-        "SELECT * FROM account_records ORDER BY date DESC, time DESC",
-        conn
-    )
+    df = fetch_account_records_with_loader()
 
     df = df.drop(columns=["time"], errors="ignore")
 
@@ -597,37 +1068,13 @@ def account_records_page():
 
         # --- Name wise color ---
 
-        def color_name(val):
-
-            colors = {
-                "MEET": "#FF0033",
-                "YASH": "#bfff00",
-                "DHRUMIL": "#00bfff"
-            }
-            if str(val).upper() in colors:
-                return f"color: {colors[str(val).upper()]}; font-weight: bold;"
-
-            return ""
 
         # --- Payment Status wise color ---
 
-        def color_payment(val):
-            if str(val).lower() == "payment done":
-                return "color: #83FFE6; font-weight:bold"
-            elif str(val).lower() == "pending":
-                return "color: #C768FF; font-weight:bold"
-            elif str(val).lower() == "paid":
-                return "color: #0046FF; font-weight:bold"
-            return ""
 
         # --- Apply both styles ---
 
-        styled_df = (
-            df.style
-            .format(precision=0)
-            .map(color_name, subset=["name"])
-            .map(color_payment, subset=["payment_status"])
-        )
+        styled_df = style_table(df).format(precision=0)
 
         st.dataframe(styled_df, use_container_width=True)
 
@@ -647,11 +1094,7 @@ def edit_account_page():
     )
 
     # --- Fetch records ---
-    conn = get_db()
-    df = pd.read_sql(
-        "SELECT * FROM account_records ORDER BY date DESC, time DESC",
-        conn
-    )
+    df = fetch_account_records_with_loader()
 
     if df.empty:
         st.info("No account records available.")
@@ -675,37 +1118,10 @@ def edit_account_page():
             )
 
     # --- Color functions ---
-    def color_name(val):
-        colors = {
-            "MEET": "#FF0033",
-            "YASH": "#bfff00",
-            "DHRUMIL": "#00bfff"
-        }
-        return (
-            f"color: {colors[val.upper()]}; font-weight: bold;"
-            if str(val).upper() in colors
-            else ""
-        )
 
-    def color_payment(val):
-        val_lower = str(val).lower()
-
-        if val_lower == "payment done":
-            return "color:#73FF00;font-weight:bold;"
-        elif val_lower in ["pending", "payment pending"]:
-            return "color:#FF0095;font-weight:bold;"
-        elif val_lower == "paid":
-            return "color:#1aff00;font-weight:bold;"
-        elif val_lower == "not involved":
-            return "color:#FCDC2A;font-weight:bold;"
-        return ""
 
     # --- Show all records ---
-    styled_df = (
-        df.style
-        .map(color_name, subset=["name"])
-        .map(color_payment, subset=["payment_status"])
-    )
+    styled_df = style_table(df)
 
     st.dataframe(
         styled_df,
@@ -898,71 +1314,1207 @@ st.markdown("""
 
 </style>
 """, unsafe_allow_html=True)
+
+
 st.markdown("""
-  <style>
+<style>
 
-  /* MAIN APP */
-  .stApp{
-  background:
-  linear-gradient(
-  180deg,
-  #00C1D0 0%,
-  #c98d47 40%,
-  #0a1144 100%
-  );
+/* =========================================================
+   🌌 REALISTIC DAY → SUNSET → NIGHT → DAWN → DAY
+   ========================================================= */
 
-  color:white;
-  }
+.stApp {
+    position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+    background: #020617;
+}
 
-  /* Containers */
-  [data-testid="stVerticalBlock"]{
-  border-radius:20px;
-  }
+.block-container {
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+}
 
-  /* Inputs */
+footer {
+    display: none !important;
+}
+/* =========================================================
+   🌤️ MAIN SKY + 4 CORNERS
+   ========================================================= */
 
-  .stSelectbox,
-  .stDateInput,
-  .stNumberInput{
-  background:rgba(255,255,255,.03);
-  border-radius:18px;
-  }
+.stApp::before {
 
-  /* Buttons */
+    content: "";
 
-  .stButton button{
+    position: fixed;
+    inset: -3%;
 
-  background:
-  linear-gradient(
-  90deg,
-  #609CE0,
-  #D188C1
-  );
+    z-index: 0;
+    pointer-events: none;
 
-  color:white;
+    background:
 
-  border:none;
+        radial-gradient(
+            circle at 0% 0%,
+            rgba(255,255,255,.18),
+            transparent 32%
+        ),
 
-  border-radius:16px;
+        radial-gradient(
+            circle at 100% 0%,
+            rgba(255,255,255,.14),
+            transparent 34%
+        ),
 
-  font-weight:700;
+        radial-gradient(
+            circle at 0% 100%,
+            rgba(255,180,100,.12),
+            transparent 38%
+        ),
 
-  height:50px;
-  }
+        radial-gradient(
+            circle at 100% 100%,
+            rgba(255,140,100,.12),
+            transparent 38%
+        ),
 
-  /* Dataframe */
+        linear-gradient(
+            180deg,
+            #4B9FD4 0%,
+            #86C5E5 45%,
+            #DCEEF5 100%
+        );
 
-  [data-testid="stDataFrame"]{
+    background-size:
+        150% 150%,
+        150% 150%,
+        160% 160%,
+        160% 160%,
+        100% 100%;
 
-  background:
-  rgba(8,14,34,.1);
+    background-position:
+        0% 0%,
+        100% 0%,
+        0% 100%,
+        100% 100%,
+        center;
 
-  border-radius:-2px;
+    animation:
+        skyCycle 80s linear infinite,
+        cornerMove 25s ease-in-out infinite alternate;
 
-  }
+    will-change:
+        background,
+        background-position,
+        filter,
+        transform;
+}
 
-  </style>
-  """, unsafe_allow_html=True)
+
+/* =========================================================
+   🌌 NIGHT ATMOSPHERE
+   ========================================================= */
+
+.stApp::after {
+
+    content: "";
+
+    position: fixed;
+    inset: -5%;
+
+    z-index: 1;
+
+    pointer-events: none;
+
+    opacity: 0;
+
+    background:
+
+        radial-gradient(
+            circle at 50% 15%,
+            rgba(80,110,180,.16),
+            transparent 40%
+        ),
+
+        radial-gradient(
+            circle at 0% 0%,
+            rgba(35,70,135,.18),
+            transparent 38%
+        ),
+
+        radial-gradient(
+            circle at 100% 0%,
+            rgba(35,65,125,.18),
+            transparent 38%
+        );
+
+    animation:
+        nightLayer 80s linear infinite;
+}
+
+
+/* =========================================================
+   ☀️ SUN — FIXED SIZE
+   ========================================================= */
+
+.stApp .sun {
+
+    position: fixed;
+
+    z-index: 5;
+
+    pointer-events: none;
+
+    font-size: 82px;
+
+    line-height: 1;
+
+    width: auto;
+    height: auto;
+
+    background: none;
+
+    border: none;
+
+    box-shadow: none;
+
+    text-shadow:
+        0 0 4px rgba(255,255,255,1),
+        0 0 10px rgba(255,250,190,1),
+        0 0 20px rgba(255,225,90,1),
+        0 0 38px rgba(255,200,55,.90),
+        0 0 60px rgba(255,165,25,.65);
+
+    animation:
+        sunPath 80s linear infinite;
+}
+
+
+/* =========================================================
+   🌕 MOON — FIXED SIZE
+   ========================================================= */
+
+.stApp .moon {
+
+    position: fixed;
+
+    z-index: 5;
+
+    pointer-events: none;
+
+    font-size: 68px;
+
+    line-height: 1;
+
+    width: auto;
+    height: auto;
+
+    background: none;
+
+    border: none;
+
+    box-shadow: none;
+
+    opacity: 0;
+
+    text-shadow:
+        0 0 5px rgba(255,255,255,1),
+        0 0 14px rgba(240,245,255,1),
+        0 0 28px rgba(215,230,255,.90),
+        0 0 45px rgba(175,200,255,.70),
+        0 0 70px rgba(140,175,255,.40);
+
+    animation:
+        moonPath 80s linear infinite;
+}
+
+
+/* =========================================================
+   ⭐ STARS
+   STATIC SIZE + STATIC POSITION
+   NO ZOOM
+   NO TWINKLE
+   ========================================================= */
+
+.stApp .stars {
+
+    position: fixed;
+
+    width: 3px;
+    height: 3px;
+
+    left: 0;
+    top: 0;
+
+    z-index: 4;
+
+    pointer-events: none;
+
+    border-radius: 50%;
+
+    background: white;
+
+    opacity: 0;
+
+    box-shadow:
+
+        7vw 15vh 0 white,
+        15vw 28vh 0 rgba(255,255,255,.9),
+        22vw 11vh 0 white,
+        29vw 23vh 0 rgba(225,235,255,.9),
+        37vw 8vh 0 white,
+
+        44vw 20vh 0 rgba(255,255,255,.95),
+        52vw 13vh 0 white,
+        59vw 28vh 0 rgba(225,235,255,.9),
+        67vw 9vh 0 white,
+        75vw 22vh 0 rgba(255,255,255,.9),
+
+        84vw 14vh 0 white,
+        92vw 29vh 0 rgba(225,235,255,.9),
+
+        12vw 43vh 0 white,
+        34vw 38vh 0 rgba(255,255,255,.9),
+        71vw 42vh 0 white;
+
+    animation:
+        starsVisibility 80s linear infinite;
+}
+
+
+/* =========================================================
+   ☁️ CLOUDS
+   ========================================================= */
+
+.stApp .clouds {
+
+    position: fixed;
+
+    width: 170px;
+    height: 48px;
+
+    border-radius: 50px;
+
+    z-index: 4;
+
+    pointer-events: none;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(255,255,255,.94),
+            rgba(225,237,244,.70)
+        );
+
+    filter: blur(1px);
+
+    box-shadow:
+        0 8px 20px rgba(60,90,110,.12);
+
+    opacity: 0;
+
+    animation:
+        cloudVisibility 80s linear infinite,
+        cloudMove 48s linear infinite;
+}
+
+
+/* =========================================================
+   ☁️ CLOUD BUMPS
+   ========================================================= */
+
+.stApp .clouds::before {
+
+    content: "";
+
+    position: absolute;
+
+    width: 70px;
+    height: 70px;
+
+    left: 25px;
+    bottom: 10px;
+
+    border-radius: 50%;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(255,255,255,.97),
+            rgba(225,237,244,.72)
+        );
+}
+
+
+.stApp .clouds::after {
+
+    content: "";
+
+    position: absolute;
+
+    width: 82px;
+    height: 82px;
+
+    left: 75px;
+    bottom: 8px;
+
+    border-radius: 50%;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(255,255,255,.97),
+            rgba(225,237,244,.72)
+        );
+}
+
+
+/* =========================================================
+   ☁️ CLOUD POSITIONS
+   ========================================================= */
+
+.stApp .cloud1 {
+    top: 17%;
+    left: -220px;
+    transform: scale(.85);
+    animation-delay: 0s, 0s;
+}
+
+.stApp .cloud2 {
+    top: 29%;
+    left: -260px;
+    transform: scale(.62);
+    animation-delay: 0s, -12s;
+}
+
+.stApp .cloud3 {
+    top: 11%;
+    left: -240px;
+    transform: scale(.55);
+    animation-delay: 0s, -23s;
+}
+
+.stApp .cloud4 {
+    top: 39%;
+    left: -280px;
+    transform: scale(.75);
+    animation-delay: 0s, -30s;
+}
+
+.stApp .cloud5 {
+    top: 24%;
+    left: -200px;
+    transform: scale(.48);
+    animation-delay: 0s, -38s;
+}
+
+.stApp .cloud6 {
+    top: 47%;
+    left: -250px;
+    transform: scale(.58);
+    animation-delay: 0s, -18s;
+}
+
+
+/* =========================================================
+   🌈 SKY COLOR CYCLE
+   ========================================================= */
+
+@keyframes skyCycle {
+
+    /* =====================================================
+       ☀️ DAY
+       ===================================================== */
+
+    0% {
+
+        background:
+            radial-gradient(
+                circle at 0% 0%,
+                rgba(255,255,255,.18),
+                transparent 32%
+            ),
+
+            radial-gradient(
+                circle at 100% 0%,
+                rgba(255,255,255,.14),
+                transparent 34%
+            ),
+
+            radial-gradient(
+                circle at 0% 100%,
+                rgba(120,200,255,.10),
+                transparent 38%
+            ),
+
+            radial-gradient(
+                circle at 100% 100%,
+                rgba(100,180,240,.10),
+                transparent 38%
+            ),
+
+            linear-gradient(
+                180deg,
+                #3D95D0 0%,
+                #79BDE2 43%,
+                #D9EDF5 100%
+            );
+
+        filter:
+            brightness(1.08)
+            saturate(1.05);
+    }
+
+
+    /* =====================================================
+       ☀️ MID DAY
+       ===================================================== */
+
+    18% {
+
+        background:
+            radial-gradient(
+                circle at 0% 0%,
+                rgba(255,255,255,.20),
+                transparent 32%
+            ),
+
+            radial-gradient(
+                circle at 100% 0%,
+                rgba(255,255,255,.16),
+                transparent 34%
+            ),
+
+            linear-gradient(
+                180deg,
+                #469DD5 0%,
+                #82C4E7 48%,
+                #E1F0F6 100%
+            );
+
+        filter:
+            brightness(1.06)
+            saturate(1.08);
+    }
+
+
+    /* =====================================================
+       🌇 SUNSET START
+       ===================================================== */
+
+    27% {
+
+        background:
+            radial-gradient(
+                circle at 78% 55%,
+                rgba(255,190,100,.42),
+                transparent 34%
+            ),
+
+            radial-gradient(
+                circle at 15% 80%,
+                rgba(255,135,90,.20),
+                transparent 38%
+            ),
+
+            linear-gradient(
+                180deg,
+                #3D78A6 0%,
+                #C07B70 48%,
+                #F0A060 72%,
+                #F5C078 100%
+            );
+
+        filter:
+            brightness(1)
+            saturate(1.18);
+    }
+
+
+    /* =====================================================
+       🌇 SUNSET
+       ===================================================== */
+
+    34% {
+
+        background:
+            radial-gradient(
+                circle at 82% 60%,
+                rgba(255,190,90,.62),
+                transparent 30%
+            ),
+
+            linear-gradient(
+                180deg,
+                #315474 0%,
+                #865E69 32%,
+                #D06F62 56%,
+                #F09A61 76%,
+                #F5C17D 100%
+            );
+
+        filter:
+            brightness(.94)
+            saturate(1.22);
+    }
+
+
+    /* =====================================================
+       🌆 DUSK
+       ===================================================== */
+
+    40% {
+
+        background:
+            radial-gradient(
+                circle at 70% 65%,
+                rgba(210,120,100,.25),
+                transparent 32%
+            ),
+
+            linear-gradient(
+                180deg,
+                #243A59 0%,
+                #4E4864 30%,
+                #77536A 55%,
+                #A66B68 78%,
+                #C4816B 100%
+            );
+
+        filter:
+            brightness(.76)
+            saturate(1.08);
+    }
+
+
+    /* =====================================================
+       🌌 NIGHT
+       ===================================================== */
+
+    46% {
+
+        background:
+            radial-gradient(
+                circle at 50% 20%,
+                rgba(65,90,150,.20),
+                transparent 42%
+            ),
+
+            linear-gradient(
+                180deg,
+                #071329 0%,
+                #0A1B35 38%,
+                #102746 70%,
+                #172C48 100%
+            );
+
+        filter:
+            brightness(.62)
+            saturate(.95);
+    }
+
+
+    /* =====================================================
+       🌙 DEEP NIGHT
+       ===================================================== */
+
+    55% {
+
+        background:
+            radial-gradient(
+                circle at 50% 18%,
+                rgba(75,105,175,.16),
+                transparent 38%
+            ),
+
+            linear-gradient(
+                180deg,
+                #020817 0%,
+                #061226 35%,
+                #091A31 68%,
+                #0C2039 100%
+            );
+
+        filter:
+            brightness(.50)
+            saturate(.88);
+    }
+
+
+    /* =====================================================
+       🌌 MIDNIGHT
+       ===================================================== */
+
+    68% {
+
+        background:
+            radial-gradient(
+                circle at 52% 18%,
+                rgba(75,105,175,.12),
+                transparent 40%
+            ),
+
+            linear-gradient(
+                180deg,
+                #010611 0%,
+                #030B1B 38%,
+                #061226 70%,
+                #08172B 100%
+            );
+
+        filter:
+            brightness(.46)
+            saturate(.82);
+    }
+
+
+    /* =====================================================
+       🌙 PRE DAWN
+       ===================================================== */
+
+    76% {
+
+        background:
+            radial-gradient(
+                circle at 15% 72%,
+                rgba(100,90,150,.18),
+                transparent 38%
+            ),
+
+            linear-gradient(
+                180deg,
+                #030B1D 0%,
+                #101A36 38%,
+                #292743 68%,
+                #4B3850 100%
+            );
+
+        filter:
+            brightness(.55)
+            saturate(.92);
+    }
+
+
+    /* =====================================================
+       🌄 DAWN
+       ===================================================== */
+
+    84% {
+
+        background:
+            radial-gradient(
+                circle at 8% 75%,
+                rgba(255,155,100,.28),
+                transparent 38%
+            ),
+
+            linear-gradient(
+                180deg,
+                #172642 0%,
+                #4B4964 35%,
+                #B26D6B 68%,
+                #E6A06D 100%
+            );
+
+        filter:
+            brightness(.72)
+            saturate(1.05);
+    }
+
+
+    /* =====================================================
+       🌅 SUNRISE
+       ===================================================== */
+
+    91% {
+
+        background:
+            radial-gradient(
+                circle at 8% 65%,
+                rgba(255,190,100,.40),
+                transparent 32%
+            ),
+
+            linear-gradient(
+                180deg,
+                #3479A9 0%,
+                #76AFCB 40%,
+                #D58A6E 75%,
+                #F0B477 100%
+            );
+
+        filter:
+            brightness(.92)
+            saturate(1.08);
+    }
+
+
+    /* =====================================================
+       ☀️ DAY AGAIN
+       ===================================================== */
+
+    100% {
+
+        background:
+            radial-gradient(
+                circle at 0% 0%,
+                rgba(255,255,255,.18),
+                transparent 32%
+            ),
+
+            radial-gradient(
+                circle at 100% 0%,
+                rgba(255,255,255,.14),
+                transparent 34%
+            ),
+
+            linear-gradient(
+                180deg,
+                #3D95D0 0%,
+                #79BDE2 43%,
+                #D9EDF5 100%
+            );
+
+        filter:
+            brightness(1.08)
+            saturate(1.05);
+    }
+}
+
+
+/* =========================================================
+   🌌 NIGHT ATMOSPHERE
+   ========================================================= */
+
+@keyframes nightLayer {
+
+    0%,
+    40% {
+        opacity: 0;
+    }
+
+    47% {
+        opacity: .30;
+    }
+
+    55%,
+    70% {
+        opacity: .85;
+    }
+
+    78% {
+        opacity: .40;
+    }
+
+    85%,
+    100% {
+        opacity: 0;
+    }
+}
+
+
+/* =========================================================
+   ☀️ SUN MOVEMENT
+   SAME SPEED — NO ZOOM
+   ========================================================= */
+
+@keyframes sunPath {
+
+    /* Day */
+
+    0% {
+        left: 47%;
+        top: 9%;
+        opacity: 1;
+    }
+
+    /* Afternoon */
+
+    18% {
+        left: 58%;
+        top: 20%;
+        opacity: 1;
+    }
+
+    /* Sunset approach */
+
+    30% {
+        left: 70%;
+        top: 38%;
+        opacity: 1;
+    }
+
+    /* Sunset */
+
+    37% {
+        left: 82%;
+        top: 58%;
+        opacity: .85;
+    }
+
+    /* Gone */
+
+    40% {
+        left: 105%;
+        top: 75%;
+        opacity: 0;
+    }
+
+    /* Night */
+
+    40%,
+    82% {
+        left: 105%;
+        top: 75%;
+        opacity: 0;
+    }
+
+    /* Sunrise */
+
+    83% {
+        left: -10%;
+        top: 76%;
+        opacity: 0;
+    }
+
+    88% {
+        left: 5%;
+        top: 61%;
+        opacity: .55;
+    }
+
+    94% {
+        left: 25%;
+        top: 29%;
+        opacity: .90;
+    }
+
+    /* Day */
+
+    100% {
+        left: 47%;
+        top: 9%;
+        opacity: 1;
+    }
+}
+
+
+/* =========================================================
+   🌕 MOON MOVEMENT
+   SAME SPEED — NO ZOOM
+   ========================================================= */
+
+@keyframes moonPath {
+
+    /* Day */
+
+    0%,
+    38% {
+        left: -10%;
+        top: 72%;
+        opacity: 0;
+    }
+
+    /* Moonrise */
+
+    40% {
+        left: 5%;
+        top: 62%;
+        opacity: .35;
+    }
+
+    /* Night */
+
+    50% {
+        left: 27%;
+        top: 35%;
+        opacity: .80;
+    }
+
+    /* Midnight */
+
+    60% {
+        left: 50%;
+        top: 12%;
+        opacity: 1;
+    }
+
+    /* Late night */
+
+    70% {
+        left: 70%;
+        top: 30%;
+        opacity: .95;
+    }
+
+    /* Moonset */
+
+    78% {
+        left: 88%;
+        top: 58%;
+        opacity: .65;
+    }
+
+    /* Gone */
+
+    82% {
+        left: 105%;
+        top: 76%;
+        opacity: 0;
+    }
+
+    /* Day */
+
+    82%,
+    100% {
+        left: 105%;
+        top: 76%;
+        opacity: 0;
+    }
+}
+
+
+/* =========================================================
+   ⭐ STARS
+   STATIC — ONLY FADE IN/OUT
+   ========================================================= */
+
+@keyframes starsVisibility {
+
+    0%,
+    38% {
+        opacity: 0;
+    }
+
+    44% {
+        opacity: .30;
+    }
+
+    50% {
+        opacity: .70;
+    }
+
+    56%,
+    72% {
+        opacity: 1;
+    }
+
+    78% {
+        opacity: .50;
+    }
+
+    84%,
+    100% {
+        opacity: 0;
+    }
+}
+
+
+/* =========================================================
+   ☁️ CLOUD VISIBILITY
+   ========================================================= */
+
+@keyframes cloudVisibility {
+
+    0% {
+        opacity: .78;
+    }
+
+    20% {
+        opacity: .82;
+    }
+
+    28% {
+        opacity: .72;
+    }
+
+    35% {
+        opacity: .45;
+    }
+
+    42% {
+        opacity: .12;
+    }
+
+    48%,
+    100% {
+        opacity: 0;
+    }
+}
+
+
+/* =========================================================
+   ☁️ CLOUD MOVEMENT
+   ========================================================= */
+
+@keyframes cloudMove {
+
+    from {
+        margin-left: -220px;
+    }
+
+    to {
+        margin-left: 125vw;
+    }
+}
+
+
+/* =========================================================
+   🌈 VERY SLOW CORNER LIGHT
+   ========================================================= */
+
+@keyframes cornerMove {
+
+    0% {
+        transform:
+            scale(1)
+            translate3d(0,0,0);
+    }
+
+    50% {
+        transform:
+            scale(1.018)
+            translate3d(.25%,-.2%,0);
+    }
+
+    100% {
+        transform:
+            scale(1.035)
+            translate3d(-.25%,.2%,0);
+    }
+}
+
+
+/* =========================================================
+   ✨ CONTENT ABOVE SKY
+   ========================================================= */
+
+.stApp > * {
+    position: relative;
+    z-index: 10;
+}
+
+
+/* =========================================================
+   🧹 STREAMLIT CLEANUP
+   ========================================================= */
+
+html,
+body {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+[data-testid="stAppViewContainer"] {
+    padding-bottom: 0 !important;
+}
+
+[data-testid="stAppViewContainer"] .main {
+    padding-bottom: 0 !important;
+}
+
+.block-container {
+    padding-bottom: 0 !important;
+}
+
+footer {
+    display: none !important;
+}
+
+[data-testid="stDecoration"] {
+    display: none !important;
+}
+
+
+/* =========================================================
+   INPUTS
+   ========================================================= */
+
+div[data-baseweb="select"] > div,
+div[data-baseweb="input"] > div {
+
+    background:
+        rgba(5,12,24,.72);
+
+    border:
+        1px solid rgba(255,255,255,.12);
+
+    border-radius: 14px;
+}
+
+
+/* =========================================================
+   BUTTON
+   ========================================================= */
+
+.stButton button {
+
+    background:
+        linear-gradient(
+            135deg,
+            #FF1744,
+            #E91E63,
+            #9C5DE5
+        );
+
+    color: white;
+
+    border: none;
+
+    border-radius: 15px;
+
+    font-weight: 700;
+
+    height: 50px;
+
+    box-shadow:
+        0 8px 28px rgba(255,23,68,.25);
+}
+
+
+/* =========================================================
+   METRIC CARDS
+   ========================================================= */
+
+[data-testid="stMetric"] {
+
+    background:
+        rgba(5,12,24,.30);
+
+    border:
+        1px solid rgba(255,255,255,.12);
+
+    border-radius: 18px;
+
+    padding: 16px;
+
+    backdrop-filter: blur(10px);
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+
+# =========================================================
+# ☀️ 🌕 ⭐ ☁️ SKY OBJECTS
+# =========================================================
+
+st.markdown("""
+<div class="sun">☀️</div>
+
+<div class="moon">🌕</div>
+
+<div class="stars"></div>
+
+<div class="clouds cloud1"></div>
+<div class="clouds cloud2"></div>
+<div class="clouds cloud3"></div>
+<div class="clouds cloud4"></div>
+<div class="clouds cloud5"></div>
+<div class="clouds cloud6"></div>
+""", unsafe_allow_html=True)
+
+
 st.markdown("""
 <style>
 
@@ -1726,9 +3278,9 @@ icons=[
 # AIVEN CONFIG
 # =========================
 
-TOKEN = st.secrets["AIVEN_TOKEN"]
-PROJECT = st.secrets["AIVEN_PROJECT"]
-SERVICE = st.secrets["AIVEN_SERVICE"]
+TOKEN = st.secrets["TOKEN"]
+PROJECT = st.secrets["PROJECT"]
+SERVICE = st.secrets["SERVICE"]
 
 HEADERS = {
     "Authorization": f"aivenv1 {TOKEN}",
@@ -2037,6 +3589,454 @@ def database_settings_page():
     )
 
 
+
+
+# =========================================================
+# FAST ADD TIFFIN PAGE
+# =========================================================
+# Only this page reruns when its widgets change.
+# Existing calculations, billing and database logic remain unchanged.
+@st.fragment
+def add_tiffin_page():
+
+    # =========================================================
+    # SESSION STATE - DUPLICATE SAVE PROTECTION
+    # =========================================================
+
+    if "tiffin_saved_signature" not in st.session_state:
+        st.session_state.tiffin_saved_signature = None
+
+    if "tiffin_save_message" not in st.session_state:
+        st.session_state.tiffin_save_message = None
+
+    # =========================================================
+    # CURRENT TIME
+    # =========================================================
+
+    current_time = datetime.datetime.now().strftime("%H:%M:%S")
+
+    # =========================================================
+    # ORDER OVERVIEW
+    # =========================================================
+
+    st.subheader("📋 Order Overview")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+
+        shift = st.selectbox(
+            "🌓 Shift",
+            [
+                "-- SELECT DAY --",
+                "DAY",
+                "NIGHT"
+            ],
+            key="tiffin_shift"
+        )
+
+    with col2:
+
+        selected_date = st.date_input(
+            "📅 Billing Date",
+            datetime.date.today(),
+            key="tiffin_date"
+        )
+
+    with col3:
+
+        tiffin_qty = st.selectbox(
+            "🍱 Tiffin Quantity",
+            [
+                "-- SELECT Quantity --"
+            ] + [1, 2, 3, 4, 5, 6],
+            key="tiffin_quantity"
+        )
+
+    # =========================================================
+    # VALIDATION
+    # =========================================================
+
+    if shift == "-- SELECT DAY --":
+        st.warning(
+            "⚠️ Please select a shift"
+        )
+
+        st.stop()
+
+    if tiffin_qty == "-- SELECT Quantity --":
+        st.warning(
+            "⚠️ Please select tiffin quantity"
+        )
+
+        st.stop()
+
+    st.divider()
+
+    # =========================================================
+    # PERSON SELECTION
+    # =========================================================
+
+    st.subheader("👥 Who ordered today?")
+
+    names = [
+        "MEET",
+        "YASH",
+        "DHRUMIL"
+    ]
+
+    cols = st.columns(3)
+
+    selected_names = []
+
+    for i, name in enumerate(names):
+
+        with cols[i]:
+
+            selected = st.checkbox(
+                f"👤 {name}",
+                key=f"person_{name}"
+            )
+
+            if selected:
+                selected_names.append(name)
+
+    # =========================================================
+    # VALIDATION
+    # =========================================================
+
+    if not selected_names:
+        st.warning(
+            "⚠️ Please select at least one person"
+        )
+
+        st.stop()
+
+    st.divider()
+
+    # =========================================================
+    # ROTI
+    # =========================================================
+
+    roti_qty = {}
+
+    roti_rate = 7
+
+    if shift == "DAY":
+
+        st.subheader("🫓 Roti Details")
+
+        roti_cols = st.columns(
+            len(selected_names)
+        )
+
+        for i, name in enumerate(selected_names):
+            with roti_cols[i]:
+                roti_qty[name] = st.number_input(
+                    f"{name} Roti Quantity",
+                    min_value=0,
+                    value=0,
+                    step=1,
+                    key=f"roti_{name}"
+                )
+
+
+    else:
+
+        for name in selected_names:
+            roti_qty[name] = 0
+
+    # =========================================================
+    # CALCULATION
+    # =========================================================
+
+    per_person_qty = round(
+        float(tiffin_qty)
+        / len(selected_names),
+        2
+    )
+
+    per_person_amount = round(
+        90 * per_person_qty,
+        2
+    )
+
+    # =========================================================
+    # INDIVIDUAL BILLING
+    # =========================================================
+
+    st.subheader("💳 Individual Billing")
+
+    name_icons = {
+        "MEET": "🔴",
+        "YASH": "🟢",
+        "DHRUMIL": "🔵"
+    }
+
+    for name in names:
+
+        if name in selected_names:
+
+            person_roti_qty = roti_qty.get(
+                name,
+                0
+            )
+
+            person_roti_amount = (
+                    person_roti_qty
+                    * roti_rate
+            )
+
+            person_total = (
+                    per_person_amount
+                    + person_roti_amount
+            )
+
+            person_col1, person_col2 = st.columns(
+                [3, 1]
+            )
+
+            with person_col1:
+
+                st.markdown(
+                    f"### {name_icons.get(name, '👤')} {name}"
+                )
+
+            with person_col2:
+
+                st.success(
+                    "ACTIVE ORDER"
+                )
+
+            bill1, bill2, bill3, bill4 = st.columns(4)
+
+            with bill1:
+
+                st.metric(
+                    "🍱 Tiffin",
+                    f"{per_person_qty:.2f}"
+                )
+
+            with bill2:
+
+                st.metric(
+                    "₹ Tiffin",
+                    f"₹{per_person_amount:,.2f}"
+                )
+
+            with bill3:
+
+                st.metric(
+                    "🫓 Roti",
+                    f"{person_roti_qty} Nos"
+                )
+
+            with bill4:
+
+                st.metric(
+                    "💰 Total",
+                    f"₹{person_total:,.2f}"
+                )
+
+            st.divider()
+
+
+        else:
+
+            st.info(
+                f"ℹ️ {name} — No Tiffin Ordered Today"
+            )
+
+    # =========================================================
+    # BILLING CALCULATION
+    # =========================================================
+
+    total_tiffin_amount = round(
+        per_person_amount
+        * len(selected_names),
+        2
+    )
+
+    total_roti_amount = round(
+        sum(
+            roti_qty.get(name, 0)
+            * roti_rate
+            for name in selected_names
+        ),
+        2
+    )
+
+    total_amount = (
+            total_tiffin_amount
+            + total_roti_amount
+    )
+
+    # =========================================================
+    # BILLING SUMMARY
+    # =========================================================
+
+    st.subheader("🧾 Final Billing Summary")
+
+    summary1, summary2 = st.columns(2)
+
+    with summary1:
+
+        st.metric(
+            "🍱 Total Tiffin Charges",
+            f"₹{total_tiffin_amount:,.2f}"
+        )
+
+    with summary2:
+
+        st.metric(
+            "🫓 Total Roti Charges",
+            f"₹{total_roti_amount:,.2f}"
+        )
+
+    st.success(
+        f"💰 TOTAL AMOUNT PAYABLE: ₹{total_amount:,.2f}"
+    )
+
+    status1, status2 = st.columns(2)
+
+    with status1:
+
+        st.info(
+            "🕐 Payment Status: PAYMENT PENDING"
+        )
+
+    with status2:
+
+        st.info(
+            f"📅 {selected_date.strftime('%d %B %Y')}"
+        )
+
+    st.divider()
+
+    # =========================================================
+    # CREATE CURRENT DATA SIGNATURE
+    # =========================================================
+
+    current_signature = (
+        str(selected_date),
+        str(shift),
+        str(tiffin_qty),
+        tuple(sorted(selected_names)),
+        tuple(
+            (
+                name,
+                roti_qty.get(name, 0)
+            )
+            for name in sorted(selected_names)
+        )
+    )
+
+    # =========================================================
+    # CHECK WHETHER SAME DATA WAS ALREADY SAVED
+    # =========================================================
+
+    already_saved = (
+            st.session_state.tiffin_saved_signature
+            == current_signature
+    )
+
+    # =========================================================
+    # SAVE BUTTON
+    # =========================================================
+
+    if already_saved:
+
+        st.success(
+            "✅ This billing record is already saved."
+        )
+
+    # Keep the SAVE button in exactly the same place after every
+    # fragment rerun. Disable it after the exact same record is saved.
+    if st.button(
+            "💾 SAVE BILLING RECORD",
+            use_container_width=True,
+            key="save_tiffin_record",
+            disabled=already_saved,
+            type="primary"
+    ):
+
+            # -------------------------------------------------
+            # IMPORTANT:
+            # Mark BEFORE INSERT
+            # This prevents accidental double-click inserts.
+            # -------------------------------------------------
+
+            st.session_state.tiffin_saved_signature = (
+                current_signature
+            )
+
+            # -------------------------------------------------
+            # CREATE DATA
+            # -------------------------------------------------
+
+            data_to_insert = []
+
+            for name in selected_names:
+                qty = per_person_qty
+
+                amount = per_person_amount
+
+                payment_status = "PAYMENT PENDING"
+
+                roti = roti_qty.get(
+                    name,
+                    0
+                )
+
+                roti_amount = (
+                        roti * roti_rate
+                )
+
+                total_individual_amount = round(
+                    amount + roti_amount,
+                    2
+                )
+
+                day = selected_date.strftime(
+                    "%A"
+                ).upper()
+
+                row = [
+                    selected_date,
+                    day,
+                    current_time,
+                    name,
+                    shift,
+                    qty,
+                    roti,
+                    roti_amount,
+                    total_individual_amount,
+                    payment_status
+                ]
+
+                data_to_insert.append(
+                    row
+                )
+
+            # -------------------------------------------------
+            # INSERT
+            # -------------------------------------------------
+
+            insert_record_with_loader(data_to_insert)
+
+            # -------------------------------------------------
+            # SUCCESS
+            # -------------------------------------------------
+
+            st.success(
+                "✅ Record(s) added successfully!"
+            )
+
+            st.info(
+                "🔒 This record is locked. "
+                "Change any billing parameter to save again."
+            )
+
 def app():
     if 'logged_in' not in st.session_state:
         st.session_state['logged_in'] = False
@@ -2068,182 +4068,14 @@ def app():
         delete_account_page()
 
     # -------------------- Add Record --------------------
-
     elif menu == "Add Tiffin Entry":
-
-        img_base64 = load_image("images/add.png")
-
-        # Display icon + text side by side
-        st.markdown(
-            f"""
-            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;">
-                <img src="data:image/png;base64,{img_base64}" width="30" />
-                <span>Add New Record</span>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        current_time = datetime.datetime.now().strftime("%H:%M:%S")
-
-        shift = st.selectbox("Select Shift", ["-- SELECT DAY --", "DAY", "NIGHT"])
-
-        if shift == "-- SELECT DAY --":
-            st.warning("Please select a shift")
-            st.stop()
-
-        # ⬇️ Add this to let user pick a date
-        selected_date = st.date_input("📅 Select Date", datetime.date.today())
-
-        tiffin_qty = st.selectbox("Select Tiffin Quantity", ["-- SELECT Quantity --"] + [1, 2, 3, 4, 5, 6])
-
-        if tiffin_qty == "-- SELECT Quantity --":
-            st.warning("Please select tiffin quantity")
-            st.stop()
-
-        st.markdown("### Select Name(s)")
-        names = ["MEET", "YASH", "DHRUMIL"]
-        cols = st.columns(len(names))
-        selected_names = []
-        for i, name in enumerate(names):
-            if cols[i].checkbox(name):
-                selected_names.append(name)
-        if not selected_names:
-            st.warning("Please select at least one name")
-
-            st.stop()
-        roti_qty = {}
-        roti_rate = 7
-        if shift == "DAY":
-            st.markdown("### Enter Roti Quantity per Person")
-            for name in selected_names:
-                roti_qty[name] = st.number_input(f"{name} Roti Quantity", min_value=0, value=0, step=1)
-        else:
-            for name in selected_names:
-                roti_qty[name] = 0
-
-        per_person_qty = round(float(tiffin_qty) / len(selected_names), 2)
-        per_person_amount = round(90 * per_person_qty, 2)
-        st.markdown("### Tiffin Amount per Person")
-
-        name_colors = {
-            "MEET": "#FF0033",
-            "YASH": "#bfff00",
-            "DHRUMIL": "#00bfff"
-        }
-
-        for name in names:
-            color = name_colors.get(name, "#000000")  # Default Black
-
-            if name in selected_names:
-                person_roti_qty = roti_qty.get(name, 0)
-                person_roti_amount = person_roti_qty * roti_rate
-                person_total = per_person_amount + person_roti_amount
-                st.markdown("---")
-
-                st.markdown(
-                    f"""
-                    <span style='color:{color}; font-size:20px; font-weight:bold;'>
-                        {name}
-                    </span>
-
-                    - Tiffin Quantity: {per_person_qty:.2f}
-                    - Tiffin Charges: ₹{per_person_amount:.2f}
-                    - Roti: {person_roti_qty} Nos (₹{person_roti_amount:.2f})
-                    - **Total Payable: ₹{person_total:.2f}**
-                    """,
-                    unsafe_allow_html=True
-
-                )
-
-            else:
-                st.markdown("---")
-                st.markdown(
-                    f"""
-                    <span style='color:{color}; font-weight:700; font-size:18px;'>
-                        {name}
-                    </span>
-                    — <span style='color:red; font-weight:700;'>
-                        No Tiffin Ordered Today
-                    </span>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-        # Billing Summary
-        total_tiffin_amount = round(
-            per_person_amount * len(selected_names), 2
-        )
-
-        total_roti_amount = round(
-            sum(roti_qty.get(name, 0) * roti_rate for name in selected_names),
-            2
-        )
-
-        total_amount = total_tiffin_amount + total_roti_amount
-
-        st.markdown("---")
-        st.markdown("### Billing Summary")
-
-        st.markdown(
-            f"**Total Tiffin Charges:** ₹{total_tiffin_amount:,.2f}"
-        )
-
-        if shift == "DAY":
-            st.markdown(
-                f"**Total Roti Charges:** ₹{total_roti_amount:,.2f}"
-            )
-
-        st.markdown("---")
-
-        st.markdown(
-            f"""
-            <h3>
-                Total Amount Payable:
-                <span style='color:#39FF14;'>
-                    ₹{total_amount:,.2f}
-                </span>
-            </h3>
-            """,
-            unsafe_allow_html=True
-        )
-
-        if st.button("Save Record"):
-            data_to_insert = []
-
-            for name in selected_names:  # ✅ only selected लोग
-                qty = per_person_qty
-                amount = per_person_amount
-                payment_status = "PAYMENT PENDING"
-
-                roti = roti_qty.get(name, 0)
-                roti_amount = roti * roti_rate
-                total_individual_amount = round(amount + roti_amount, 2)
-                day = selected_date.strftime("%A").upper()
-
-                row = [
-                    selected_date,
-                    day,
-                    current_time,
-                    name,
-                    shift,
-                    qty,
-                    roti,
-                    roti_amount,
-                    total_individual_amount,
-                    payment_status
-                ]
-
-                data_to_insert.append(row)
-
-            insert_record(data_to_insert)
-            st.success("Record(s) added successfully!")
+        add_tiffin_page()
 
     # -------------------- Records --------------------
 
     elif menu == "View Tiffin Records":
 
-        # PNG file load & encode
+      # PNG file load & encode
 
         img_base64 = load_image("images/view.png")
 
@@ -2258,8 +4090,7 @@ def app():
             unsafe_allow_html=True
         )
 
-        df = fetch_all()
-
+        df = fetch_all_with_loader()
         if df.empty:
             st.info("No records available")
 
@@ -2353,67 +4184,14 @@ def app():
             # COLORS
             # =========================
 
-            def color_shift(val):
-                val_lower = str(val).lower()
 
-                if val_lower == "day":
-                    return "color: #FF8F00; font-weight:bold;"
-                elif val_lower == "night":
-                    return "color: #3B9797; font-weight:bold;"
-                return ""
 
-            def color_payment(val):
-                val_lower = str(val).lower()
 
-                if val_lower == "payment done":
-                    return "color: #73FF00; font-weight:bold;"
-                elif val_lower in ["pending", "payment pending"]:
-                    return "color: #FF0095; font-weight:bold;"
-                elif val_lower == "paid":
-                    return "color: goldenrod; font-weight:bold;"
-                elif val_lower == "not involved":
-                    return "color: #FCDC2A; font-weight:bold;"
-                return ""
-
-            def color_name(val):
-                colors = {
-                    "MEET": "#FF0033",
-                    "YASH": "#bfff00",
-                    "DHRUMIL": "#00bfff"
-                }
-
-                return (
-                    f"color: {colors.get(val.upper())}; font-weight: bold;"
-                    if str(val).upper() in colors
-                    else ""
-                )
-
-            def color_day(val):
-                colors = {
-                    "MONDAY": "#BF00FF",
-                    "TUESDAY": "#0000FF",
-                    "WEDNESDAY": "#7DF9FF",
-                    "THURSDAY": "#72FF13",
-                    "FRIDAY": "#FFFC00",
-                    "SATURDAY": "#FF5C00",
-                    "SUNDAY": "#E60000"
-                }
-
-                return (
-                    f"color: {colors.get(str(val).upper(), 'white')}; font-weight:bold;"
-                )
 
             # =========================
             # APPLY STYLING
             # =========================
-            styled_df = (
-                df.style
-                .map(color_payment, subset=["payment_status"])
-                .map(color_name, subset=["name"])
-                .map(color_shift, subset=["shift"])
-                .map(color_day, subset=["day"])
-
-            )
+            styled_df = style_table(df)
 
             st.dataframe(styled_df, use_container_width=True)
     # -------------------- Chart --------------------
@@ -2437,8 +4215,7 @@ def app():
 
         )
 
-        df = fetch_all()
-
+        df = fetch_all_with_loader()
         if df.empty:
 
             st.info("No records to plot.")
@@ -2606,11 +4383,6 @@ def app():
                     "TOTAL": "#9929EA"
                 }
 
-                def color_name(val):
-                    return (
-                        f"color: {color_map.get(str(val).upper(), 'white')}; "
-                        f"font-weight: bold;"
-                    )
 
                 # ======================================================
                 # ✅ SHOW SUMMARY TABLE
@@ -2619,10 +4391,7 @@ def app():
                 st.markdown("### 📝 Summary")
 
                 try:
-                    styled_df = (
-                        display_df.style
-                        .map(color_name, subset=["Name"])
-                    )
+                    styled_df = style_table(display_df)
 
                     st.dataframe(
                         styled_df,
@@ -2714,8 +4483,7 @@ def app():
 
         # --- Fetch records ---
 
-        df = fetch_all()
-
+        df = fetch_all_with_loader()
         if df.empty:
 
             st.info("No records to edit.")
@@ -2731,47 +4499,9 @@ def app():
 
             # -------------------------
 
-            def color_name(val):
 
-                colors = {
 
-                    "MEET": "#FF0033",
-
-                    "YASH": "#bfff00",
-
-                    "DHRUMIL": "#00bfff"
-
-                }
-
-                name = str(val).upper()
-
-                if name in colors:
-                    return f"color:{colors[name]}; font-weight:bold;"
-
-                return ""
-
-            def color_payment(val):
-                val_lower = str(val).lower()
-
-                if val_lower == "payment done":
-                    return "color: #73FF00; font-weight:bold;"
-                elif val_lower in ["pending", "payment pending"]:
-                    return "color: #FF0095; font-weight:bold;"
-                elif val_lower == "paid":
-                    return "color: goldenrod; font-weight:bold;"
-                elif val_lower == "not involved":
-                    return "color: #FCDC2A; font-weight:bold;"
-                return ""
-
-            styled_df = (
-
-                df_reset.style
-
-                .map(color_name, subset=["name"])
-
-                .map(color_payment, subset=["payment_status"])
-
-            )
+            styled_df = style_table(df_reset)
 
             st.dataframe(
 
@@ -3091,8 +4821,7 @@ def app():
         )
 
         # -------------------- LOAD DATA --------------------
-        df = fetch_all()
-
+        df = fetch_all_with_loader()
         if df.empty:
             st.info("No records available.")
 
@@ -3164,29 +4893,7 @@ def app():
 
     # -------------------- Download --------------------
 
-    def color_name(val):
 
-        colors = {"MEET": "#FF0033", "YASH": "#bfff00", "DHRUMIL": "#00bfff"}
-
-        return colors.get(str(val).upper(), None)
-
-    def color_payment(val):
-
-        val_lower = str(val).lower()
-
-        if val_lower == "PAYMENT DONE":
-            return "#059212"
-
-        elif val_lower in ["pending", "PAYMENT PENDING"]:
-            return "#76153C"
-
-        elif val_lower == "paid":
-            return "goldenrod"
-
-        elif val_lower == "not involved":
-            return "#FCDC2A"
-
-        return None
 
     # --- Streamlit menu ---
 
@@ -3205,8 +4912,7 @@ def app():
             unsafe_allow_html=True
         )
 
-        df = fetch_all()
-
+        df = fetch_all_with_loader()
         if df.empty:
             st.info("No records available for download")
 
@@ -3276,87 +4982,12 @@ def app():
 
                 # ---------- Color Functions ----------
 
-                def color_shift(val):
-                    if str(val).lower() == "day":
-                        return "#FF8F00"
-                    elif str(val).lower() == "night":
-                        return "#3B9797"
-                    return None
 
-                def color_name(val):
 
-                    colors = {
-                        "MEET": "#FF0033",
-                        "YASH": "#bfff00",
-                        "DHRUMIL": "#00bfff",
-                        "TOTAL": "#9929EA"
-                    }
 
-                    return colors.get(str(val).upper(), None)
-
-                def color_payment(val):
-
-                    val_lower = str(val).lower()
-
-                    if val_lower == "payment done":
-                        return "#73FF00"
-                    elif val_lower in ["pending", "payment pending"]:
-                        return "#FF0095"
-                    elif val_lower == "paid":
-                        return "goldenrod"
-                    elif val_lower == "not involved":
-                        return "#FCDC2A"
-                    if val_lower == "payment done":
-                        return "color: #73FF00; font-weight:bold;"
-                    elif val_lower in ["pending", "payment pending"]:
-                        return "color: #FF0095; font-weight:bold;"
-                    elif val_lower == "paid":
-                        return "color: goldenrod; font-weight:bold;"
-                    elif val_lower == "not involved":
-                        return "color: #FCDC2A; font-weight:bold;"
-                    return ""
-
-                def color_day(val):
-                    colors = {
-                        "MONDAY": "#BF00FF",
-                        "TUESDAY": "#0000FF",
-                        "WEDNESDAY": "#7DF9FF",
-                        "THURSDAY": "#72FF13",
-                        "FRIDAY": "#FFFC00",
-                        "SATURDAY": "#FF5C00",
-                        "SUNDAY": "#E60000"
-                    }
-
-                    return (
-                        f"color: {colors.get(str(val).upper(), 'white')}; font-weight:bold;"
-                    )
 
                 # ---------- Streamlit Table Styling ----------
 
-                def style_table(df):
-
-                    styler = df.style.map(
-                        lambda v: f"color: {color_name(v)}; font-weight:bold;" if color_name(v) else "",
-                        subset=['name']
-                    )
-
-                    styler = styler.map(
-                        lambda v: f"color: {color_payment(v)};font-weight:bold;" if color_payment(v) else "",
-                        subset=['payment_status']
-                    )
-
-                    if 'shift' in df.columns:
-                        styler = styler.map(
-                            lambda v: f"color: {color_shift(v)};font-weight:bold;" if color_shift(v) else "",
-                            subset=['shift']
-                        )
-
-                    if 'day' in df.columns:
-                        styler = styler.map(
-                            lambda v: f"color: {color_day(v)};font-weight:bold;" if color_day(v) else "",
-                            subset=['day']
-                        )
-                    return styler
 
                 # ✅ SHOW MAIN TABLE
                 st.dataframe(style_table(filtered_df), use_container_width=True)
@@ -3467,19 +5098,9 @@ def app():
 
                 st.markdown("<br><br>", unsafe_allow_html=True)
 
-                def color_summary_name(val):
-
-                    colors = {
-                        "MEET": "#FF0033",
-                        "YASH": "#bfff00",
-                        "DHRUMIL": "#00bfff",
-                        "TOTAL": "#9929EA"
-                    }
-
-                    return f"color: {colors.get(str(val).upper(), 'white')}; font-weight:bold;"
 
                 styled_summary = summary_df.style.map(
-                    color_summary_name,
+                    color_name,
                     subset=["Name"]
                 )
 
@@ -3553,7 +5174,7 @@ def app():
 
                         for row_num, val in enumerate(filtered_df['name'], start=1):
 
-                            color = color_name(val)
+                            color = get_name_color(val)
 
                             if color:
                                 cell_format = workbook.add_format({
@@ -3569,7 +5190,7 @@ def app():
 
                         for row_num, val in enumerate(filtered_df['payment_status'], start=1):
 
-                            color = color_payment(val)
+                            color = get_payment_color(val)
 
                             if color:
                                 cell_format = workbook.add_format({
@@ -3588,7 +5209,7 @@ def app():
 
                             for row_num, val in enumerate(filtered_df['shift'], start=1):
 
-                                color = color_shift(val)
+                                color = get_shift_color(val)
 
                                 if color:
                                     cell_format = workbook.add_format({
@@ -3605,19 +5226,9 @@ def app():
 
                             day_col_idx = filtered_df.columns.get_loc("day")
 
-                            day_colors = {
-                                "MONDAY": "#FF3B30",
-                                "TUESDAY": "#FF9500",
-                                "WEDNESDAY": "#FFD60A",
-                                "THURSDAY": "#34C759",
-                                "FRIDAY": "#00C7BE",
-                                "SATURDAY": "#007AFF",
-                                "SUNDAY": "#AF52DE"
-                            }
-
                             for row_num, val in enumerate(filtered_df['day'], start=1):
 
-                                color = day_colors.get(str(val).upper())
+                                color = get_day_color(val)
 
                                 if color:
                                     cell_format = workbook.add_format({
