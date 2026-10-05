@@ -1,3 +1,4 @@
+
 import streamlit as st
 import datetime
 import pandas as pd
@@ -8,6 +9,7 @@ from io import BytesIO
 import base64
 import time
 import requests
+import re
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from streamlit_extras.radial_menu import *
@@ -3132,6 +3134,7 @@ with st.sidebar:
                 menu_title=None,
                 options=[
                     "Add Tiffin Entry",
+                    "LogSync",
                     "View Tiffin Records",
                     "Analytics Dashboard",
                     "Update Payment Status",
@@ -3147,6 +3150,7 @@ with st.sidebar:
 
 icons=[
     "plus-circle",
+    "magic",
     "search",
     "bar-chart",
     "credit-card",
@@ -3349,12 +3353,111 @@ def database_power(action):
 # =========================
 
 
+def get_billing_rates():
+    """Return global tiffin and roti rates stored in PostgreSQL."""
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS app_settings (
+                setting_key TEXT PRIMARY KEY,
+                setting_value NUMERIC NOT NULL
+            )
+        """)
+        cur.execute("""
+            INSERT INTO app_settings (setting_key, setting_value)
+            VALUES (%s, %s)
+            ON CONFLICT (setting_key) DO NOTHING
+        """, ("tiffin_rate", 90))
+        cur.execute("""
+            INSERT INTO app_settings (setting_key, setting_value)
+            VALUES (%s, %s)
+            ON CONFLICT (setting_key) DO NOTHING
+        """, ("roti_rate", 7))
+        conn.commit()
+        cur.execute("""
+            SELECT setting_key, setting_value
+            FROM app_settings
+            WHERE setting_key IN ('tiffin_rate', 'roti_rate')
+        """)
+        values = {k: float(v) for k, v in cur.fetchall()}
+        return values.get("tiffin_rate", 90.0), values.get("roti_rate", 7.0)
+    finally:
+        cur.close()
+
+
+def save_billing_rates(tiffin_rate, roti_rate):
+    """Persist global billing rates."""
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS app_settings (
+                setting_key TEXT PRIMARY KEY,
+                setting_value NUMERIC NOT NULL
+            )
+        """)
+        for key, value in (("tiffin_rate", tiffin_rate), ("roti_rate", roti_rate)):
+            cur.execute("""
+                INSERT INTO app_settings (setting_key, setting_value)
+                VALUES (%s, %s)
+                ON CONFLICT (setting_key)
+                DO UPDATE SET setting_value = EXCLUDED.setting_value
+            """, (key, float(value)))
+        conn.commit()
+    finally:
+        cur.close()
+
+
 def database_settings_page():
     st.markdown("""
     <h4 style="margin-bottom:0;">
     ⚙️ Settings
     </h4>
     """, unsafe_allow_html=True)
+
+    st.divider()
+
+    # =========================================================
+    # GLOBAL BILLING RATES
+    # =========================================================
+
+    current_tiffin_rate, current_roti_rate = get_billing_rates()
+
+    st.subheader("💰 Global Billing Rates")
+
+    rate_col1, rate_col2 = st.columns(2)
+
+    with rate_col1:
+        new_tiffin_rate = st.number_input(
+            "🍱 Tiffin Rate (₹)",
+            min_value=0.0,
+            value=float(current_tiffin_rate),
+            step=1.0,
+            key="global_tiffin_rate"
+        )
+
+    with rate_col2:
+        new_roti_rate = st.number_input(
+            "🫓 Roti Rate (₹)",
+            min_value=0.0,
+            value=float(current_roti_rate),
+            step=1.0,
+            key="global_roti_rate"
+        )
+
+    if st.button("💾 Save Billing Rates", use_container_width=True, key="save_global_billing_rates"):
+        if new_tiffin_rate <= 0 or new_roti_rate <= 0:
+            st.error("⚠️ Rates must be greater than 0.")
+        else:
+            save_billing_rates(new_tiffin_rate, new_roti_rate)
+            st.success("✅ Global billing rates updated successfully.")
+            st.rerun()
+
+    st.caption(
+        f"Current rates: Tiffin ₹{current_tiffin_rate:g} • Roti ₹{current_roti_rate:g}. "
+        "These rates are used throughout LUNCHLOGIX."
+    )
 
     st.divider()
 
@@ -3720,7 +3823,7 @@ def add_tiffin_page():
 
     roti_qty = {}
 
-    roti_rate = 7
+    tiffin_rate, roti_rate = get_billing_rates()
 
     if shift == "DAY":
 
@@ -3757,7 +3860,7 @@ def add_tiffin_page():
     )
 
     per_person_amount = round(
-        90 * per_person_qty,
+        tiffin_rate * per_person_qty,
         2
     )
 
@@ -4037,6 +4140,399 @@ def add_tiffin_page():
                 "Change any billing parameter to save again."
             )
 
+# =========================================================
+# LogSync
+# =========================================================
+
+SMART_PERSONS = {
+    "D": "DHRUMIL",
+    "Y": "YASH",
+    "M": "MEET",
+}
+
+
+def _clean_whatsapp_line(line):
+    """Remove WhatsApp timestamp/sender prefix but keep the actual message."""
+    line = str(line).strip()
+    # Example: [23/06, 8:43 pm] 𝐌𝐀𝐍𝐌𝐄𝐄𝐓 ❤‍🔥: D 21/06
+    line = re.sub(r"^\s*\[\d{1,2}/\d{1,2},[^\]]+\]\s*[^:]*:\s*", "", line)
+    return line.strip()
+
+
+def smart_split_blocks(raw_text):
+    """Split pasted text into D dd/mm blocks, even when multiple fields are on one line.
+
+    Supports both:
+      D 03/10\nTotal 1\nM - Y1M1\nN -\nRoti - 14
+    and:
+      D 03/10 Total 1 M - Y1M1 N - Roti - 14
+
+    WhatsApp timestamp/sender prefixes and unrelated chat are ignored.
+    """
+    text = str(raw_text or "").replace("\r", "")
+    # Remove WhatsApp sender prefixes anywhere they begin a line.
+    text = re.sub(r"(?m)^\s*\[\d{1,2}/\d{1,2},[^\]]+\]\s*[^:]*:\s*", "", text)
+
+    # A real block starts wherever D dd/mm occurs at a word boundary.
+    matches = list(re.finditer(r"(?i)(?<![A-Za-z0-9])D\s+(\d{1,2})\s*/\s*(\d{1,2})(?!\d)", text))
+    blocks = []
+    for i, m in enumerate(matches):
+        end_pos = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        segment = text[m.end():end_pos].strip()
+        blocks.append({
+            "day": int(m.group(1)),
+            "month": int(m.group(2)),
+            "lines": [segment] if segment else [],
+        })
+    return blocks
+
+
+def _parse_person_entries(value, fallback_total=None):
+    """Parse D1M4Y1, DY3, YDM1, and bare m/d/y forms."""
+    text_value = re.sub(r"\s+", "", str(value or "")).upper()
+    text_value = re.sub(r"[^DMY0-9.]", "", text_value)
+    if not text_value:
+        return {}
+
+    # Shared tiffin: DY1 / YD3 / YDM1 / MYD3 etc.
+    shared = re.fullmatch(r"([DMY]{2,3})(\d+(?:\.\d+)?)?", text_value)
+    if shared and len(set(shared.group(1))) == len(shared.group(1)):
+        people = [SMART_PERSONS[c] for c in shared.group(1)]
+        qty = float(shared.group(2)) if shared.group(2) else None
+        if qty is None:
+            qty = float(fallback_total or 1)
+        per_person = qty / len(people)
+        return {person: per_person for person in people}
+
+    # Separate tiffins: D1M1Y1. Bare single person uses the block total.
+    matches = list(re.finditer(r"([DMY])(\d+(?:\.\d+)?)?", text_value))
+    if not matches:
+        return {}
+
+    result = {}
+    for match in matches:
+        code = match.group(1)
+        qty_text = match.group(2)
+        qty = float(qty_text) if qty_text is not None else None
+        result[SMART_PERSONS[code]] = result.get(SMART_PERSONS[code], 0.0) + (qty if qty is not None else 0.0)
+
+    # If there is exactly one bare person, Total is its quantity.
+    if len(matches) == 1 and matches[0].group(2) is None:
+        person = SMART_PERSONS[matches[0].group(1)]
+        result[person] = float(fallback_total or 1)
+
+    return result
+
+
+def _normalise_qty(value):
+    value = float(value or 0)
+    return int(value) if value.is_integer() else round(value, 2)
+
+
+def parse_smart_log_block(block, year=None):
+    """Parse one D dd/mm block into database-ready rows."""
+    year = int(year or datetime.date.today().year)
+    day = block["day"]
+    month = block["month"]
+
+    try:
+        parsed_date = datetime.date(year, month, day)
+    except ValueError:
+        return None, "Invalid date: %02d/%02d" % (day, month)
+
+    total_tiffin = None
+    shift_values = {"DAY": {}, "NIGHT": {}}
+    roti_amount_input = 0.0
+
+    # Join lines so a single-line WhatsApp paste works exactly like multiline input.
+    content = " ".join(_clean_whatsapp_line(x) for x in block.get("lines", []) if str(x).strip())
+    content = re.sub(r"\s+", " ", content).strip()
+
+    total_match = re.search(r"(?i)\bTOTAL\s*(?:-|:)??\s*(\d+(?:\.\d+)?)", content)
+    if total_match:
+        total_tiffin = float(total_match.group(1))
+
+    # Capture M/N sections until the next M/N/ROTI marker.
+    section_matches = list(re.finditer(
+        r"(?i)(?:^|\s)(M|N)\s*-\s*(.*?)(?=\s+(?:M|N)\s*-|\s+ROTI\s*-|$)",
+        content
+    ))
+    for sm in section_matches:
+        shift = "DAY" if sm.group(1).upper() == "M" else "NIGHT"
+        shift_values[shift] = _parse_person_entries(
+            sm.group(2), fallback_total=total_tiffin
+        )
+
+    roti_match = re.search(r"(?i)\bROTI\s*-\s*(\d+(?:\.\d+)?)", content)
+    if roti_match:
+        roti_amount_input = float(roti_match.group(1))
+
+    tiffin_rate, roti_rate = get_billing_rates()
+
+    # Roti can be written as quantity OR amount.
+    # Example with ₹7 rate:
+    #   Roti - 2  -> 2 rotis -> ₹14
+    #   Roti - 14 -> ₹14     -> 2 rotis
+    #   Roti - 21 -> ₹21     -> 3 rotis
+    # Values greater than the rate and exactly divisible by the rate are treated as amount.
+    if roti_amount_input <= 0:
+        roti_qty = 0
+        roti_amount = 0.0
+    elif (
+        roti_amount_input > roti_rate
+        and abs((roti_amount_input / roti_rate) - round(roti_amount_input / roti_rate)) < 1e-9
+    ):
+        roti_amount = round(roti_amount_input, 2)
+        roti_qty = int(round(roti_amount / roti_rate))
+    else:
+        roti_qty = int(round(roti_amount_input))
+        roti_amount = round(roti_qty * roti_rate, 2)
+
+    rows = []
+    for shift in ("DAY", "NIGHT"):
+        for name, qty in shift_values[shift].items():
+            qty = _normalise_qty(qty)
+            if qty <= 0:
+                continue
+
+            person_roti = 0
+            person_roti_amount = 0.0
+            if shift == "DAY" and roti_qty > 0:
+                # Default roti owner: DHRUMIL if present in Morning, otherwise first Morning person.
+                day_people = list(shift_values["DAY"].keys())
+                owner = "DHRUMIL" if "DHRUMIL" in day_people else (day_people[0] if day_people else None)
+                if name == owner:
+                    person_roti = roti_qty
+                    person_roti_amount = roti_amount
+
+            rows.append({
+                "Date": parsed_date,
+                "Day": parsed_date.strftime("%A").upper(),
+                "Time": datetime.datetime.now().strftime("%H:%M:%S"),
+                "Name": name,
+                "Shift": shift,
+                "Quantity": qty,
+                "Roti": person_roti,
+                "Roti_Amount": person_roti_amount,
+                "Amount": round(qty * tiffin_rate + person_roti_amount, 2),
+                "Payment_Status": "PAYMENT PENDING",
+            })
+
+    if not rows:
+        return None, "No tiffin/person data found"
+
+    return {
+        "date": parsed_date,
+        "total": total_tiffin,
+        "rows": rows,
+        "roti_qty": roti_qty,
+        "roti_amount": roti_amount,
+        "tiffin_rate": tiffin_rate,
+        "roti_rate": roti_rate,
+    }, None
+
+
+def _db_duplicate_keys():
+    """Return existing (full date, name, shift) keys from the database."""
+    df = fetch_all()
+    if df.empty:
+        return set()
+    result = set()
+    for _, row in df.iterrows():
+        d = pd.to_datetime(row.get("date"), errors="coerce")
+        if pd.isna(d):
+            continue
+        result.add((d.date(), str(row.get("name", "")).upper(), str(row.get("shift", "")).upper()))
+    return result
+
+
+def smart_log_parser_page():
+    st.subheader("🧠 LogSync")
+    st.caption("Paste WhatsApp messages. Only blocks beginning with D dd/mm are processed.")
+
+    raw_text = st.text_area(
+        "📋 Paste WhatsApp Messages",
+        height=300,
+        placeholder="Paste your WhatsApp messages here...",
+        key="smart_log_text"
+    )
+
+    if not raw_text.strip():
+        st.info("Paste your WhatsApp log above to start LogSync.")
+        return
+
+    # Use current year for dd/mm input. A year selector is provided for duplicate safety.
+    parse_year = st.number_input(
+        "📅 Year",
+        min_value=2000,
+        max_value=2100,
+        value=datetime.date.today().year,
+        step=1,
+        key="smart_parser_year"
+    )
+
+    blocks = smart_split_blocks(raw_text)
+    if not blocks:
+        st.warning("⚠️ No valid D dd/mm blocks found. Other WhatsApp messages are ignored.")
+        return
+
+    parsed = []
+    errors = []
+    seen_dates = {}
+
+    for block in blocks:
+        result, error = parse_smart_log_block(block, year=parse_year)
+        if error:
+            errors.append(error)
+            continue
+        parsed.append(result)
+
+    # Same date inside the pasted text: take neither occurrence.
+    valid_after_internal_duplicate = []
+    duplicate_pasted_dates = set()
+    for item in parsed:
+        d = item["date"]
+        seen_dates[d] = seen_dates.get(d, 0) + 1
+    for d, count in seen_dates.items():
+        if count > 1:
+            duplicate_pasted_dates.add(d)
+
+    for item in parsed:
+        if item["date"] not in duplicate_pasted_dates:
+            valid_after_internal_duplicate.append(item)
+
+    if duplicate_pasted_dates:
+        for d in sorted(duplicate_pasted_dates):
+            st.error(f"❌ Duplicate date in pasted text: {d.strftime('%d/%m/%Y')} — neither entry will be saved.")
+
+    if errors:
+        for error in errors:
+            st.warning(f"⚠️ {error}")
+
+    if not valid_after_internal_duplicate:
+        return
+
+    existing_keys = _db_duplicate_keys()
+    preview_rows = []
+    save_rows = []
+
+    for item in valid_after_internal_duplicate:
+        for row in item["rows"]:
+            key = (row["Date"], row["Name"].upper(), row["Shift"].upper())
+            if key in existing_keys:
+                status = "Already Exists"
+            else:
+                status = "New"
+                save_rows.append(row)
+            preview_rows.append({
+                # Keep the same column names/structure as View Tiffin Records
+                # so the existing Name / Shift / Day colors apply directly.
+                "date": row["Date"].strftime("%d/%m/%Y"),
+                "day": row["Date"].strftime("%A"),
+                "name": row["Name"],
+                "shift": row["Shift"],
+                "quantity": row["Quantity"],
+                "roti": row["Roti"],
+                "roti_amount": row["Roti_Amount"],
+                "amount": row["Amount"],
+                "payment_status": row.get("Payment_Status", "PENDING"),
+            })
+
+    st.divider()
+    st.subheader("👀 Parsed Preview")
+
+    preview_df = pd.DataFrame(preview_rows)
+    if not preview_df.empty:
+        # Same table structure, number formatting and colors as View Tiffin Records.
+        numeric_cols = ["quantity", "amount", "roti", "roti_amount"]
+        for col in numeric_cols:
+            if col in preview_df.columns:
+                preview_df[col] = preview_df[col].apply(
+                    lambda x: f"{float(x):.2f}" if float(x) % 1 else f"{int(float(x))}"
+                )
+
+        styled_preview = style_table(preview_df)
+        st.dataframe(styled_preview, use_container_width=True, hide_index=True)
+
+    tiffin_rate, roti_rate = get_billing_rates()
+
+    # =========================================================
+    # SMART PARSER TOTALS
+    # =========================================================
+    new_df = pd.DataFrame(save_rows)
+    all_df = pd.DataFrame([r for item in valid_after_internal_duplicate for r in item["rows"]])
+
+    if not all_df.empty:
+        all_df["Quantity"] = pd.to_numeric(all_df["Quantity"], errors="coerce").fillna(0)
+        all_df["Roti"] = pd.to_numeric(all_df["Roti"], errors="coerce").fillna(0)
+        all_df["Roti_Amount"] = pd.to_numeric(all_df["Roti_Amount"], errors="coerce").fillna(0)
+        all_df["Amount"] = pd.to_numeric(all_df["Amount"], errors="coerce").fillna(0)
+
+        # Tiffin-only subtotal excludes roti amount.
+        tiffin_subtotal = round((all_df["Quantity"] * float(tiffin_rate)).sum(), 2)
+        roti_qty_total = round(all_df["Roti"].sum(), 2)
+        roti_amount_total = round(all_df["Roti_Amount"].sum(), 2)
+        grand_total = round(tiffin_subtotal + roti_amount_total, 2)
+
+        st.markdown("### 🧾 Summary Totals")
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("🍱 Tiffin Sub Total", f"₹{tiffin_subtotal:g}")
+        c2.metric("🫓 Roti Qty Total", f"{roti_qty_total:g}")
+        c3.metric("🫓 Roti Amt Total", f"₹{roti_amount_total:g}")
+        c4.metric("💰 Grand Total", f"₹{grand_total:g}")
+
+        # Separate total for each of the 3 people.
+        person_summary = []
+        for person in ("DHRUMIL", "YASH", "MEET"):
+            p = all_df[all_df["Name"].str.upper() == person]
+            qty_total = round(p["Quantity"].sum(), 2) if not p.empty else 0
+            roti_qty_person = round(p["Roti"].sum(), 2) if not p.empty else 0
+            roti_amt_person = round(p["Roti_Amount"].sum(), 2) if not p.empty else 0
+            total_person = round(p["Amount"].sum(), 2) if not p.empty else 0
+            tiffin_subtotal_person = round(qty_total * float(tiffin_rate), 2)
+            person_summary.append({
+                "Name": person,
+                "Tiffin Qty": qty_total,
+                "Tiffin Sub Total": tiffin_subtotal_person,
+                "Roti Qty": roti_qty_person,
+                "Roti Amount": roti_amt_person,
+                "Total": total_person,
+            })
+
+        st.markdown("### 👥 Separate Total — 3 Persons")
+        person_df = pd.DataFrame(person_summary)
+        person_df["Tiffin Qty"] = person_df["Tiffin Qty"].apply(lambda x: int(x) if float(x).is_integer() else round(x, 2))
+        person_df["Tiffin Sub Total"] = person_df["Tiffin Sub Total"].apply(lambda x: f"₹{float(x):g}")
+        person_df["Roti Qty"] = person_df["Roti Qty"].apply(lambda x: int(x) if float(x).is_integer() else round(x, 2))
+        person_df["Roti Amount"] = person_df["Roti Amount"].apply(lambda x: f"₹{float(x):g}")
+        person_df["Total"] = person_df["Total"].apply(lambda x: f"₹{float(x):g}")
+        st.dataframe(style_table(person_df), use_container_width=True, hide_index=True)
+
+    st.caption(f"Global rates: Tiffin ₹{tiffin_rate:g} • Roti ₹{roti_rate:g}")
+
+    if save_rows:
+        st.info(f"🆕 {len(save_rows)} new record(s) ready to save.")
+    else:
+        st.success("✅ No new records to save. All parsed records already exist or were duplicates.")
+
+    if st.button(
+        "💾 SAVE NEW RECORDS",
+        use_container_width=True,
+        type="primary",
+        disabled=not save_rows,
+        key="smart_parser_save"
+    ):
+        insert_data = []
+        for row in save_rows:
+            insert_data.append([
+                row["Date"], row["Day"], row["Time"], row["Name"], row["Shift"],
+                row["Quantity"], row["Roti"], row["Roti_Amount"], row["Amount"], row["Payment_Status"]
+            ])
+        insert_record(insert_data)
+        st.success(f"✅ {len(insert_data)} record(s) saved successfully.")
+        st.rerun()
+
+
 def app():
     if 'logged_in' not in st.session_state:
         st.session_state['logged_in'] = False
@@ -4070,6 +4566,9 @@ def app():
     # -------------------- Add Record --------------------
     elif menu == "Add Tiffin Entry":
         add_tiffin_page()
+
+    elif menu == "LogSync":
+        smart_log_parser_page()
 
     # -------------------- Records --------------------
 
@@ -4298,7 +4797,8 @@ def app():
                 # ✅ AMOUNT CALCULATION
                 # ======================================================
 
-                summary_df["total_amount"] = summary_df["total_tiffin"] * 90
+                tiffin_rate, roti_rate = get_billing_rates()
+                summary_df["total_amount"] = summary_df["total_tiffin"] * tiffin_rate
 
                 summary_df["final_amount"] = (
                         summary_df["total_amount"] +
@@ -4664,11 +5164,12 @@ def app():
 
                 # -------------------------
 
-                roti_amount = edit_roti * 7
+                tiffin_rate, roti_rate = get_billing_rates()
+                roti_amount = edit_roti * roti_rate
 
                 tiffin_amount = round(
 
-                    90 * edit_qty,
+                    tiffin_rate * edit_qty,
 
                     2
 
@@ -5009,7 +5510,7 @@ def app():
 
                 # ✅ Proper Tiffin Amount
                 summary_df["total_tiffin_amount"] = (
-                        pd.to_numeric(summary_df["total_tiffin"], errors="coerce") * 90
+                        pd.to_numeric(summary_df["total_tiffin"], errors="coerce") * tiffin_rate
                 )
 
                 # ✅ Sub Total
