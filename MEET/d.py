@@ -15,6 +15,78 @@ from dateutil.relativedelta import relativedelta
 from streamlit_extras.radial_menu import *
 from streamlit_option_menu import option_menu
 
+# App-wide interface translation for the most common controls and headings.
+# User-entered data, names and notes are intentionally left unchanged.
+_UI_TRANSLATIONS = {
+    "ગુજરાતી": {
+        "Smart Home":"સ્માર્ટ હોમ", "Add Tiffin Entry":"ટિફિન ઉમેરો", "LogSync":"લોગ સિંક",
+        "Tiffin Records":"ટિફિન રેકોર્ડ્સ", "View Records":"રેકોર્ડ જુઓ", "Edit Records":"રેકોર્ડ સંપાદિત કરો",
+        "Remove Records":"રેકોર્ડ દૂર કરો", "EXPENSES":"ખર્ચ", "Settlement":"સેટલમેન્ટ",
+        "Update Payment Status":"ચુકવણી સ્થિતિ અપડેટ કરો", "Export Data":"ડેટા એક્સપોર્ટ કરો",
+        "Settings":"સેટિંગ્સ", "Navigation":"નેવિગેશન", "Recent Activity":"તાજેતરની પ્રવૃત્તિ",
+        "Individual Monthly Snapshot":"વ્યક્તિગત માસિક સારાંશ", "Analytics Overview":"વિશ્લેષણ સારાંશ",
+        "Monthly Summary":"માસિક સારાંશ", "Tiffin Orders by User":"વપરાશકર્તા મુજબ ટિફિન ઓર્ડર",
+        "Date":"તારીખ", "From Date":"શરૂઆતની તારીખ", "To Date":"અંતિમ તારીખ", "Search":"શોધો",
+        "Save User":"વપરાશકર્તા સાચવો", "Edit user settings":"વપરાશકર્તા સેટિંગ્સ સંપાદિત કરો",
+        "Display name":"દર્શાવવાનું નામ", "Active user":"સક્રિય વપરાશકર્તા", "Language":"ભાષા",
+        "Name / accent color":"નામનો રંગ", "Change DP":"DP બદલો", "Save Settings":"સેટિંગ્સ સાચવો",
+        "View Tiffin Records":"ટિફિન રેકોર્ડ જુઓ", "Edit Tiffin Records":"ટિફિન રેકોર્ડ સંપાદિત કરો",
+        "Remove Tiffin Records":"ટિફિન રેકોર્ડ દૂર કરો", "No records available":"કોઈ રેકોર્ડ ઉપલબ્ધ નથી",
+        "Select Record for Edit":"સંપાદન માટે રેકોર્ડ પસંદ કરો", "Confirm Delete":"ડિલીટની પુષ્ટિ કરો",
+        "Cancel":"રદ કરો", "Save":"સાચવો", "Submit":"સબમિટ કરો", "Logout":"લૉગઆઉટ",
+        "Tiffin Quantity":"ટિફિનની સંખ્યા", "Who ordered today?":"આજે કોને ટિફિન લીધું?",
+        "Monthly Summary":"માસિક સારાંશ", "Payment Status":"ચુકવણી સ્થિતિ",
+    },
+    "Hindi": {
+        "Smart Home":"स्मार्ट होम", "Add Tiffin Entry":"टिफिन जोड़ें", "LogSync":"लॉग सिंक",
+        "Tiffin Records":"टिफिन रिकॉर्ड", "View Records":"रिकॉर्ड देखें", "Edit Records":"रिकॉर्ड संपादित करें",
+        "Remove Records":"रिकॉर्ड हटाएँ", "EXPENSES":"खर्च", "Settlement":"सेटलमेंट",
+        "Update Payment Status":"भुगतान स्थिति अपडेट करें", "Export Data":"डेटा एक्सपोर्ट करें",
+        "Settings":"सेटिंग्स", "Navigation":"नेविगेशन", "Recent Activity":"हाल की गतिविधि",
+        "Individual Monthly Snapshot":"व्यक्तिगत मासिक सारांश", "Analytics Overview":"विश्लेषण सारांश",
+        "Monthly Summary":"मासिक सारांश", "Tiffin Orders by User":"उपयोगकर्ता के अनुसार टिफिन ऑर्डर",
+        "Date":"तारीख", "From Date":"शुरुआती तारीख", "To Date":"अंतिम तारीख", "Search":"खोजें",
+        "Save User":"उपयोगकर्ता सहेजें", "Edit user settings":"उपयोगकर्ता सेटिंग्स संपादित करें",
+        "Display name":"प्रदर्शित नाम", "Active user":"सक्रिय उपयोगकर्ता", "Language":"भाषा",
+        "Name / accent color":"नाम का रंग", "Change DP":"DP बदलें", "Save Settings":"सेटिंग्स सहेजें",
+        "View Tiffin Records":"टिफिन रिकॉर्ड देखें", "Edit Tiffin Records":"टिफिन रिकॉर्ड संपादित करें",
+        "Remove Tiffin Records":"टिफिन रिकॉर्ड हटाएँ", "No records available":"कोई रिकॉर्ड उपलब्ध नहीं है",
+        "Select Record for Edit":"संपादन के लिए रिकॉर्ड चुनें", "Confirm Delete":"हटाने की पुष्टि करें",
+        "Cancel":"रद्द करें", "Save":"सहेजें", "Submit":"जमा करें", "Logout":"लॉगआउट",
+        "Tiffin Quantity":"टिफिन की मात्रा", "Who ordered today?":"आज किसने टिफिन लिया?",
+        "Payment Status":"भुगतान स्थिति",
+    },
+}
+
+def _translate_ui_value(value):
+    lang = st.session_state.get("_app_language", "English")
+    mapping = _UI_TRANSLATIONS.get(lang, {})
+    if isinstance(value, str):
+        # Replace longer labels first to avoid translating a substring prematurely.
+        for src in sorted(mapping, key=len, reverse=True):
+            value = value.replace(src, mapping[src])
+        return value
+    if isinstance(value, list):
+        return [_translate_ui_value(v) for v in value]
+    if isinstance(value, tuple):
+        return tuple(_translate_ui_value(v) for v in value)
+    return value
+
+# Wrap visible Streamlit labels once; translation follows the selected app language.
+if not st.session_state.get("_ui_translation_wrapped", False):
+    for _ui_method_name in ("markdown", "caption", "title", "header", "subheader", "write", "info", "warning", "error", "success", "button", "checkbox", "radio", "selectbox", "text_input", "text_area", "date_input", "number_input", "file_uploader", "form_submit_button", "toggle", "multiselect", "metric", "expander"):
+        _original_ui_method = getattr(st, _ui_method_name, None)
+        if _original_ui_method is None:
+            continue
+        def _make_translator(original):
+            def _translated_method(*args, **kwargs):
+                args = tuple(_translate_ui_value(v) for v in args)
+                kwargs = {k: _translate_ui_value(v) for k, v in kwargs.items()}
+                return original(*args, **kwargs)
+            return _translated_method
+        setattr(st, _ui_method_name, _make_translator(_original_ui_method))
+    st.session_state["_ui_translation_wrapped"] = True
+
 st.set_page_config(
     page_title="LUNCHLOGIX",
     page_icon="images/d.png",
@@ -223,7 +295,7 @@ st.markdown(
         padding: 10px;
         font-size: 22px;
         font-weight: bold;
-        animation: colorchange 0.15s infinite;
+        animation: none;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -340,7 +412,7 @@ def get_db():
 # DATABASE STATUS CHECK
 # Checks only every 15 seconds
 # ==========================
-@st.cache_data(ttl=15, show_spinner=False)
+@st.cache_data(ttl=60, show_spinner=False)
 def check_db_connection():
     try:
         conn = get_db()
@@ -409,8 +481,28 @@ DAY_COLORS = {
 }
 
 
+@st.cache_data(ttl=30, show_spinner=False)
+def _load_saved_name_colors():
+    """Load per-user colors from persistent settings; fall back safely if unavailable."""
+    colors = dict(DEFAULT_NAME_COLORS)
+    try:
+        conn = get_db()
+        with conn.cursor() as cur:
+            cur.execute("SELECT username, accent_color FROM app_user_profiles WHERE active=TRUE")
+            for username, color in cur.fetchall():
+                if username and color:
+                    colors[str(username).upper()] = str(color)
+    except Exception:
+        pass
+    return colors
+
+
 def get_name_color(value):
-    return NAME_COLORS.get(str(value).upper())
+    key = str(value).upper()
+    try:
+        return _load_saved_name_colors().get(key, NAME_COLORS.get(key))
+    except Exception:
+        return NAME_COLORS.get(key)
 
 
 def get_payment_color(value):
@@ -980,7 +1072,7 @@ def account_page():
         unsafe_allow_html=True
     )
 
-    names = ["MEET", "YASH", "DHRUMIL"]
+    names = _active_names()
 
     paid_by = st.selectbox("Who Paid?", names)
     date = st.date_input("Date", value=datetime.date.today())
@@ -3130,37 +3222,23 @@ with st.sidebar:
 
             st.markdown("### 📌 Navigation")
 
+            _nav_original_options = [
+                "Smart Home", "Add Tiffin Entry", "LogSync", "Tiffin Records",
+                "EXPENSES", "Settlement", "Update Payment Status", "Export Data", "Settings"
+            ]
             menu = option_menu(
                 menu_title=None,
-                options=[
-                    "Add Tiffin Entry",
-                    "LogSync",
-                    "View Tiffin Records",
-                    "Analytics Dashboard",
-                    "Update Payment Status",
-                    "Export Data",
-                    "Remove Tiffin Records",
-                    "Edit Tiffin Records",
-                    "Add Expense Entry",
-                    "View Expense Records",
-                    "Remove Expenses",
-                    "Edit Expense Details",
-                    "Settings",
-                ],
+                options=[_translate_ui_value(label) for label in _nav_original_options],
 
 icons=[
+    "house-heart",
     "plus-circle",
     "magic",
-    "search",
-    "bar-chart",
+    "collection",
+    "wallet2",
+    "arrow-left-right",
     "credit-card",
     "download",
-    "trash",
-    "pencil-square",
-    "wallet2",
-    "search-heart",
-    "trash3",
-    "pencil",
     "gear",
                 ],
                 default_index=0,
@@ -3183,21 +3261,30 @@ icons=[
                     },
                 },
             )
+            # Keep internal routing names stable even when the sidebar is translated.
+            menu = next((label for label in _nav_original_options if _translate_ui_value(label) == menu), menu)
+            # The sidebar is rendered at module level; persist its choice for app() routing.
+            st.session_state["active_menu"] = menu
 
         else:
             menu = None
+            st.session_state.pop("active_menu", None)
+
+        if st.session_state.get("logged_in", False):
+            st.markdown("---")
+            if st.button("↪️ Logout", use_container_width=True, key="premium_logout"):
+                smart_logout()
     # --------------------
     # Login Status
     # --------------------
     with st.sidebar:
-        db_connected = check_db_connection()
-
-        # Login Status
+        # Do not contact PostgreSQL before login. This keeps the login screen fast.
         is_logged = st.session_state.get("logged_in", False)
+        db_connected = check_db_connection() if is_logged else None
 
         # Database Status
-        db_status = "Connected" if db_connected else "Disconnected"
-        db_color = "green" if db_connected else "red"
+        db_status = ("Connected" if db_connected else "Disconnected") if is_logged else "Login required"
+        db_color = ("green" if db_connected else "red") if is_logged else "gray"
 
         db_statu = "Responded" if is_logged else "Not Responded"
         db_colo = "green" if is_logged else "red"
@@ -3353,8 +3440,9 @@ def database_power(action):
 # =========================
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def get_billing_rates():
-    """Return global tiffin and roti rates stored in PostgreSQL."""
+    """Return cached global tiffin and roti rates; refresh at most every 5 minutes."""
     conn = get_db()
     cur = conn.cursor()
     try:
@@ -3405,6 +3493,7 @@ def save_billing_rates(tiffin_rate, roti_rate):
                 DO UPDATE SET setting_value = EXCLUDED.setting_value
             """, (key, float(value)))
         conn.commit()
+        get_billing_rates.clear()
     finally:
         cur.close()
 
@@ -3658,38 +3747,24 @@ def database_settings_page():
     st.divider()
 
     # =========================
-    # CURRENT STATUS
+    # ON-DEMAND CURRENT STATUS
     # =========================
 
-    state = check_aiven_status()
+    if st.button("🔄 Check Database Status", key="check_database_status_now"):
+        st.session_state["db_status_snapshot"] = check_aiven_status()
 
-    if state == "RUNNING":
-
-        st.success(
-            "🟢 LUNCHLOGIX Database Control • Running"
-        )
-
-
-    elif state in [
-        "REBUILDING",
-        "POWERING_ON",
-        "BUILDING"
-    ]:
-
-        st.warning(
-            f"🟡 LUNCHLOGIX Database Control • {state}"
-        )
-
-
+    if "db_status_snapshot" in st.session_state:
+        state = st.session_state["db_status_snapshot"]
+        if state == "RUNNING":
+            st.success("🟢 LUNCHLOGIX Database Control • Running")
+        elif state in ["REBUILDING", "POWERING_ON", "BUILDING"]:
+            st.warning(f"🟡 LUNCHLOGIX Database Control • {state}")
+        else:
+            st.error(f"🔴 LUNCHLOGIX Database Control • {state}")
     else:
+        st.caption("Database status has not been checked yet. Press the button above to check it.")
 
-        st.error(
-            f"🔴 LUNCHLOGIX Database Control • {state}"
-        )
-
-    st.caption(
-        "LUNCHLOGIX Database Control • MANMEET'S DATABASE"
-    )
+    st.caption("LUNCHLOGIX Database Control • MANMEET'S DATABASE")
 
 
 
@@ -3782,27 +3857,33 @@ def add_tiffin_page():
 
     st.subheader("👥 Who ordered today?")
 
-    names = [
-        "MEET",
-        "YASH",
-        "DHRUMIL"
-    ]
-
-    cols = st.columns(3)
-
+    # Manual-entry user list comes from Settings; newly added active users appear here.
+    names = _active_names()
     selected_names = []
+    try:
+        _profiles_for_avatars = smart_users(True)
+        _avatar_map = {str(r["username"]).upper(): r.get("dp_data") for _, r in _profiles_for_avatars.iterrows()}
+    except Exception:
+        _avatar_map = {}
 
-    for i, name in enumerate(names):
-
-        with cols[i]:
-
-            selected = st.checkbox(
-                f"👤 {name}",
-                key=f"person_{name}"
-            )
-
-            if selected:
-                selected_names.append(name)
+    # Compact WhatsApp-like avatar + name next to the selection checkbox.
+    for start_idx in range(0, len(names), 3):
+        row_names = names[start_idx:start_idx + 3]
+        cols = st.columns(len(row_names))
+        for col, name in zip(cols, row_names):
+            with col:
+                avatar_col, check_col = st.columns([0.8, 2.2])
+                dp_value = _avatar_map.get(name)
+                if dp_value:
+                    try:
+                        avatar_col.image(base64.b64decode(dp_value), width=34)
+                    except Exception:
+                        avatar_col.markdown("👤")
+                else:
+                    avatar_col.markdown("👤")
+                selected = check_col.checkbox(name, key=f"person_{name}")
+                if selected:
+                    selected_names.append(name)
 
     # =========================================================
     # VALIDATION
@@ -4533,6 +4614,844 @@ def smart_log_parser_page():
         st.rerun()
 
 
+
+def smart_track_page():
+    """
+    Compact real-time billing-cycle tracker.
+    Billing cycle follows the existing LUNCHLOGIX convention:
+    10th of a month through the 9th of the following month.
+    """
+    df = fetch_all_with_loader()
+
+    st.markdown("""
+    <style>
+    .smart-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px 0}
+    .smart-title{font-size:1.45rem;font-weight:900;letter-spacing:.2px;margin:0}
+    .smart-sub{font-size:.72rem;opacity:.72;margin-top:1px}
+    .st-card{border:1px solid rgba(148,163,184,.18);border-radius:12px;padding:9px 10px;min-height:67px;background:rgba(15,23,42,.42);box-shadow:0 4px 18px rgba(0,0,0,.10)}
+    .st-k{font-size:.66rem;opacity:.68;text-transform:uppercase;letter-spacing:.7px}
+    .st-v{font-size:1.05rem;font-weight:850;line-height:1.15;margin-top:4px}
+    .st-mini{font-size:.65rem;opacity:.65;margin-top:2px}
+    .track-wrap{margin:7px 0 10px 0;padding:9px 8px 7px 8px;border-radius:12px;border:1px solid rgba(148,163,184,.18);background:rgba(2,6,23,.28)}
+    .track-line{position:relative;height:24px;margin:0 3%}
+    .track-base{position:absolute;left:0;right:0;top:11px;height:2px;background:rgba(148,163,184,.28);border-radius:9px}
+    .track-progress{position:absolute;left:0;top:11px;height:2px;background:linear-gradient(90deg,#38bdf8,#8b5cf6);border-radius:9px}
+    .track-dot{position:absolute;top:5px;width:13px;height:13px;margin-left:-6px;border-radius:50%;background:#0f172a;border:2px solid #94a3b8}
+    .track-dot.active{border-color:#38bdf8;background:#38bdf8;box-shadow:0 0 0 4px rgba(56,189,248,.14)}
+    .track-dot.end{border-color:#8b5cf6}
+    .track-label{display:flex;justify-content:space-between;font-size:.62rem;opacity:.68;margin:2px 3% 0 3%}
+    .track-now{text-align:center;font-size:.68rem;font-weight:800;margin-top:5px}
+    .smart-section{font-size:.86rem;font-weight:850;margin:8px 0 4px 0}
+    .user-chip{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;margin:3px 0;border-radius:8px;background:rgba(148,163,184,.07);border:1px solid rgba(148,163,184,.10);font-size:.72rem}
+    .user-chip b{font-size:.76rem}.user-chip span{opacity:.72}.small-note{font-size:.62rem;opacity:.58}
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="smart-head">
+      <div>
+        <div class="smart-title">📍 Smart Track</div>
+        <div class="smart-sub">Billing cycle • live progress • user • payment • tiffin analytics</div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if df.empty:
+        st.info("No tiffin records available for Smart Track.")
+        return
+
+    df = df.copy()
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df = df.dropna(subset=["date"])
+
+    for col in ["quantity", "roti", "roti_amount", "amount"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+
+    df["name"] = df["name"].astype(str).str.upper()
+    df["payment_status"] = df["payment_status"].astype(str).str.upper()
+
+    today = datetime.date.today()
+    if today.day >= 10:
+        cycle_start = today.replace(day=10)
+        cycle_end = cycle_start + relativedelta(months=1) - relativedelta(days=1)
+    else:
+        cycle_end = today.replace(day=9)
+        cycle_start = cycle_end - relativedelta(months=1) + relativedelta(days=1)
+
+    cycle_df = df[
+        (df["date"].dt.date >= cycle_start) &
+        (df["date"].dt.date <= cycle_end)
+    ].copy()
+
+    total_days = (cycle_end - cycle_start).days + 1
+    elapsed_days = max(0, min(total_days, (today - cycle_start).days + 1))
+    remaining_days = max(0, total_days - elapsed_days)
+    progress = min(100.0, max(0.0, elapsed_days / total_days * 100))
+
+    total_tiffin = cycle_df["quantity"].sum() if not cycle_df.empty else 0
+    total_roti = cycle_df["roti"].sum() if not cycle_df.empty else 0
+    total_payment = cycle_df["amount"].sum() if not cycle_df.empty else 0
+
+    users = sorted([x for x in cycle_df["name"].dropna().unique().tolist() if x and x != "NAN"])
+    user_count = len(users)
+
+    paid_mask = cycle_df["payment_status"].isin(["PAYMENT DONE", "PAID", "DONE"])
+    pending_mask = cycle_df["payment_status"].isin(["PAYMENT PENDING", "PENDING"])
+    paid_amount = cycle_df.loc[paid_mask, "amount"].sum() if not cycle_df.empty else 0
+    pending_amount = cycle_df.loc[pending_mask, "amount"].sum() if not cycle_df.empty else 0
+
+    c1, c2, c3, c4 = st.columns(4)
+    cards = [
+        (c1, "TODAY", today.strftime("%d %b")),
+        (c2, "DAYS LEFT", str(remaining_days)),
+        (c3, "USERS", str(user_count)),
+        (c4, "TOTAL TIFFIN", f"{total_tiffin:g}"),
+    ]
+    for col, label, value in cards:
+        col.markdown(
+            f'<div class="st-card"><div class="st-k">{label}</div><div class="st-v">{value}</div></div>',
+            unsafe_allow_html=True,
+        )
+
+    progress_px = f"{progress:.2f}%"
+    st.markdown(
+        f"""
+        <div class="track-wrap">
+          <div class="track-line">
+            <div class="track-base"></div>
+            <div class="track-progress" style="width:{progress_px};"></div>
+            <div class="track-dot active" style="left:0%;"></div>
+            <div class="track-dot active" style="left:{progress_px};"></div>
+            <div class="track-dot end" style="left:100%;"></div>
+          </div>
+          <div class="track-label">
+            <span>{cycle_start.strftime("%d/%m/%Y")}</span>
+            <span>{cycle_end.strftime("%d/%m/%Y")}</span>
+          </div>
+          <div class="track-now">Day {elapsed_days}/{total_days} • {progress:.0f}% complete • {remaining_days} day(s) remaining</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    p1, p2, p3, p4 = st.columns(4)
+    metric_cards = [
+        (p1, "MONTH PAYMENT", f"₹{total_payment:,.0f}", "all recorded amount"),
+        (p2, "PAID", f"₹{paid_amount:,.0f}", "payment done"),
+        (p3, "PENDING", f"₹{pending_amount:,.0f}", "payment pending"),
+        (p4, "ROTI", f"{total_roti:g}", "cycle quantity"),
+    ]
+    for col, label, value, note in metric_cards:
+        col.markdown(
+            f'<div class="st-card"><div class="st-k">{label}</div><div class="st-v">{value}</div><div class="st-mini">{note}</div></div>',
+            unsafe_allow_html=True,
+        )
+
+    st.markdown('<div class="smart-section">👥 User Track</div>', unsafe_allow_html=True)
+    user_rows = []
+    for person in ("MEET", "YASH", "DHRUMIL"):
+        p = cycle_df[cycle_df["name"] == person]
+        qty = p["quantity"].sum() if not p.empty else 0
+        amt = p["amount"].sum() if not p.empty else 0
+        pending = p.loc[p["payment_status"].isin(["PAYMENT PENDING", "PENDING"]), "amount"].sum() if not p.empty else 0
+        user_rows.append((person, qty, amt, pending))
+
+    if cycle_df.empty:
+        st.caption("No records in the current billing cycle.")
+    else:
+        uc1, uc2, uc3 = st.columns(3)
+        for col, (person, qty, amt, pending) in zip((uc1, uc2, uc3), user_rows):
+            name_color = get_name_color(person) or "#ffffff"
+            col.markdown(
+                f'<div class="user-chip"><b style="color:{name_color};">{person}</b><span>{qty:g} tiffin • ₹{amt:,.0f} • ₹{pending:,.0f} pending</span></div>',
+                unsafe_allow_html=True,
+            )
+
+    st.markdown('<div class="smart-section">📊 Live Analytics</div>', unsafe_allow_html=True)
+    chart_left, chart_right = st.columns(2)
+
+    daily = cycle_df.groupby(cycle_df["date"].dt.date)["quantity"].sum() if not cycle_df.empty else pd.Series(dtype=float)
+    full_dates = pd.date_range(cycle_start, cycle_end)
+    daily = daily.reindex([x.date() for x in full_dates], fill_value=0)
+
+    with chart_left:
+        fig, ax = plt.subplots(figsize=(4.2, 2.0))
+        ax.plot(range(1, len(daily) + 1), daily.values, marker="o", markersize=2.5, linewidth=1.5)
+        ax.axvline(elapsed_days, linestyle="--", linewidth=0.8)
+        ax.set_title("Daily Tiffin", fontsize=9, pad=5)
+        ax.set_xlabel("Cycle day", fontsize=7)
+        ax.set_ylabel("Qty", fontsize=7)
+        ax.tick_params(labelsize=6)
+        ax.grid(alpha=.18, linewidth=.5)
+        fig.tight_layout(pad=.8)
+        st.pyplot(fig, use_container_width=True)
+        plt.close(fig)
+
+    with chart_right:
+        chart_users = [x[0] for x in user_rows]
+        chart_qty = [float(x[1]) for x in user_rows]
+        fig, ax = plt.subplots(figsize=(4.2, 2.0))
+        bars = ax.bar(chart_users, chart_qty)
+        ax.set_title("User Tiffin", fontsize=9, pad=5)
+        ax.set_ylabel("Qty", fontsize=7)
+        ax.tick_params(labelsize=6)
+        ax.grid(axis="y", alpha=.18, linewidth=.5)
+        ax.bar_label(bars, fmt="%.0f", fontsize=6, padding=2)
+        fig.tight_layout(pad=.8)
+        st.pyplot(fig, use_container_width=True)
+        plt.close(fig)
+
+    with st.expander("📅 Day-wise detail", expanded=False):
+        if cycle_df.empty:
+            st.caption("No day-wise data.")
+        else:
+            detail = (
+                cycle_df.groupby(cycle_df["date"].dt.date)
+                .agg(Tiffin=("quantity", "sum"), Roti=("roti", "sum"), Payment=("amount", "sum"), Users=("name", "nunique"))
+                .reset_index()
+            )
+            detail["Date"] = pd.to_datetime(detail["date"]).dt.strftime("%d/%m")
+            detail = detail[["Date", "Tiffin", "Roti", "Payment", "Users"]]
+            detail["Tiffin"] = detail["Tiffin"].apply(lambda x: int(x) if float(x).is_integer() else round(float(x), 2))
+            detail["Roti"] = detail["Roti"].apply(lambda x: int(x) if float(x).is_integer() else round(float(x), 2))
+            detail["Payment"] = detail["Payment"].apply(lambda x: f"₹{float(x):,.0f}")
+            st.dataframe(detail, use_container_width=True, hide_index=True)
+
+    st.markdown(
+        f'<div class="small-note">Live date: {today.strftime("%d/%m/%Y")} • Cycle: {cycle_start.strftime("%d/%m/%Y")} → {cycle_end.strftime("%d/%m/%Y")} • Updated from current tiffin records.</div>',
+        unsafe_allow_html=True,
+    )
+
+
+
+# =========================================================
+# PREMIUM SMART LAYER — preserves existing DB/login flow
+# =========================================================
+
+DEFAULT_USERS = ["MEET", "YASH", "DHRUMIL"]
+SMART_ACCENT_DEFAULT = "#FF6B35"
+DEFAULT_NAME_COLORS = {
+    "MEET": "#FF0033",
+    "YASH": "#bfff00",
+    "DHRUMIL": "#00bfff",
+    "TOTAL": "#9929EA",
+}
+
+def _ensure_smart_tables():
+    # DDL/default inserts are expensive on every Streamlit rerun. Do this once
+    # per session, then let normal page reads use lightweight SELECT queries.
+    if st.session_state.get("_smart_tables_ready", False):
+        return
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS app_user_profiles (
+                username TEXT PRIMARY KEY,
+                display_name TEXT NOT NULL,
+                active BOOLEAN NOT NULL DEFAULT TRUE,
+                language TEXT NOT NULL DEFAULT 'English',
+                theme TEXT NOT NULL DEFAULT 'Dark',
+                accent_color TEXT NOT NULL DEFAULT '#FF6B35',
+                currency TEXT NOT NULL DEFAULT '₹',
+                dp_data TEXT
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS smart_preferences (
+                setting_key TEXT PRIMARY KEY,
+                setting_value TEXT NOT NULL
+            )
+        """)
+        for username in DEFAULT_USERS:
+            cur.execute("""
+                INSERT INTO app_user_profiles (username, display_name, accent_color)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (username) DO NOTHING
+            """, (username, username, DEFAULT_NAME_COLORS[username]))
+            # Migrate untouched legacy default colors to the requested user colors.
+            cur.execute("""
+                UPDATE app_user_profiles
+                SET accent_color=%s
+                WHERE username=%s AND LOWER(accent_color)=LOWER(%s)
+            """, (DEFAULT_NAME_COLORS[username], username, SMART_ACCENT_DEFAULT))
+        defaults = {
+            "language": "English",
+            "theme": "Dark",
+            "accent_color": SMART_ACCENT_DEFAULT,
+            "currency": "₹",
+            "notifications": "true",
+            "confirm_delete": "true",
+            "compact_cards": "true",
+            "auto_refresh": "true",
+            "month_start_day": "10",
+        }
+        for k, v in defaults.items():
+            cur.execute("""
+                INSERT INTO smart_preferences (setting_key, setting_value)
+                VALUES (%s, %s)
+                ON CONFLICT (setting_key) DO NOTHING
+            """, (k, str(v)))
+        conn.commit()
+        st.session_state["_smart_tables_ready"] = True
+    finally:
+        cur.close()
+
+def smart_pref(key, default=None):
+    try:
+        _ensure_smart_tables()
+        cur = get_db().cursor()
+        cur.execute("SELECT setting_value FROM smart_preferences WHERE setting_key=%s", (key,))
+        row = cur.fetchone()
+        cur.close()
+        return row[0] if row else default
+    except Exception:
+        return default
+
+def save_smart_pref(key, value):
+    _ensure_smart_tables()
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            INSERT INTO smart_preferences(setting_key, setting_value)
+            VALUES (%s,%s)
+            ON CONFLICT(setting_key) DO UPDATE SET setting_value=EXCLUDED.setting_value
+        """, (key, str(value)))
+        conn.commit()
+    finally:
+        cur.close()
+
+def smart_users(active_only=True):
+    _ensure_smart_tables()
+    q = "SELECT username, display_name, active, language, theme, accent_color, currency, dp_data FROM app_user_profiles"
+    if active_only:
+        q += " WHERE active=TRUE"
+    q += " ORDER BY username"
+    return pd.read_sql(q, get_db())
+
+def _active_names():
+    try:
+        df = smart_users(True)
+        names = df["username"].astype(str).str.upper().tolist()
+        return names or DEFAULT_USERS.copy()
+    except Exception:
+        return DEFAULT_USERS.copy()
+
+def _current_cycle():
+    today = datetime.date.today()
+    if today.day >= 10:
+        start = today.replace(day=10)
+        end = (today + relativedelta(months=1)).replace(day=9)
+    else:
+        start = (today - relativedelta(months=1)).replace(day=10)
+        end = today.replace(day=9)
+    return start, end
+
+def _smart_card(col, label, value, note="", accent=None, avatar_data=None):
+    accent = accent or SMART_ACCENT_DEFAULT
+    avatar_html = ""
+    if avatar_data:
+        try:
+            avatar_html = f'<img class="snapshot-avatar" src="data:image/png;base64,{avatar_data}" />'
+        except Exception:
+            avatar_html = ""
+    if not avatar_html:
+        initials = str(label)[:1].upper()
+        avatar_html = f'<span class="snapshot-avatar-fallback">{initials}</span>'
+    col.markdown(f"""
+    <div class="premium-card" style="--accent:{accent}">
+      <div class="snapshot-heading">{avatar_html}<div class="premium-label">{label}</div></div>
+      <div class="premium-value">{value}</div>
+      <div class="premium-note">{note}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+def _expense_groups(df):
+    """Build expense events from the existing account_records rows."""
+    if df.empty:
+        return pd.DataFrame()
+    x = df.copy()
+    x["date"] = pd.to_datetime(x["date"], errors="coerce")
+    x["total_amount"] = pd.to_numeric(x["total_amount"], errors="coerce").fillna(0)
+    x["per_person_amount"] = pd.to_numeric(x["per_person_amount"], errors="coerce").fillna(0)
+    x["payment_status"] = x["payment_status"].astype(str).str.upper()
+    # Existing app writes one row per participant. Group the shared expense.
+    group_cols = ["date", "product_name", "place_name", "total_amount"]
+    if "time" in x.columns:
+        # time is useful where multiple same-day expenses have identical descriptions
+        group_cols.append("time")
+    rows = []
+    for key, g in x.groupby(group_cols, dropna=False):
+        payer_rows = g[g["payment_status"].isin(["PAID", "PAYMENT DONE"])]
+        payer = str(payer_rows.iloc[0]["name"]) if not payer_rows.empty else ""
+        participants = g[g["payment_status"] != "NOT INVOLVED"]["name"].astype(str).tolist()
+        share = float(g["per_person_amount"].iloc[0]) if not g.empty else 0
+        total = float(g["total_amount"].iloc[0]) if not g.empty else 0
+        rows.append({
+            "date": g["date"].iloc[0],
+            "product_name": str(g["product_name"].iloc[0]),
+            "place_name": str(g["place_name"].iloc[0]),
+            "total_amount": total,
+            "payer": payer,
+            "participants": participants,
+            "share": share,
+        })
+    return pd.DataFrame(rows)
+
+def premium_dashboard_page():
+    _ensure_smart_tables()
+    start, end = _current_cycle()
+    tdf = fetch_all_with_loader()
+    edf = fetch_account_records_with_loader()
+    if not tdf.empty:
+        tdf["date"] = pd.to_datetime(tdf["date"], errors="coerce")
+        cycle = tdf[(tdf["date"].dt.date >= start) & (tdf["date"].dt.date <= end)].copy()
+    else:
+        cycle = pd.DataFrame()
+
+    eg = _expense_groups(edf)
+    if not eg.empty:
+        expenses_cycle = eg[(eg["date"].dt.date >= start) & (eg["date"].dt.date <= end)]
+    else:
+        expenses_cycle = pd.DataFrame()
+
+    total_tiffin = float(cycle["quantity"].sum()) if not cycle.empty else 0
+    tiffin_amount = float(cycle["amount"].sum()) if not cycle.empty else 0
+    expense_total = float(expenses_cycle["total_amount"].sum()) if not expenses_cycle.empty else 0
+    days = (end - start).days + 1
+    elapsed = max(0, min((datetime.date.today() - start).days + 1, days))
+    remaining = max(0, days - elapsed)
+    progress = (elapsed / days * 100) if days else 0
+
+    st.markdown("""
+    <div class="premium-hero">
+      <div class="hero-kicker">LUNCHLOGIX • PREMIUM</div>
+      <div class="hero-title">Smart Tiffin & Expense</div>
+      <div class="hero-sub">Your daily records, monthly billing and settlement — together.</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    c1,c2,c3,c4 = st.columns(4)
+    _smart_card(c1, "TIFFIN", f"{total_tiffin:g}", "current cycle")
+    _smart_card(c2, "TIFFIN BILL", f"₹{tiffin_amount:,.0f}", f"{start:%d %b} → {end:%d %b}")
+    _smart_card(c3, "EXPENSES", f"₹{expense_total:,.0f}", "outside / shared")
+    _smart_card(c4, "REMAINING", str(remaining), f"days • {progress:.0f}% complete")
+
+    st.markdown(f"""
+    <div class="cycle-track">
+      <div class="cycle-line"><span style="width:{progress:.2f}%"></span></div>
+      <div class="cycle-labels"><b>{start:%d/%m/%Y}</b><b>DAY {elapsed}/{days}</b><b>{end:%d/%m/%Y}</b></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("### 👥 Individual Monthly Snapshot")
+    users = _active_names()
+    try:
+        profile_df = smart_users(True)
+        dp_by_user = {str(r["username"]).upper(): r.get("dp_data") for _, r in profile_df.iterrows()}
+    except Exception:
+        dp_by_user = {}
+    cols = st.columns(max(1, min(3, len(users))))
+    for col, name in zip(cols, users):
+        p = cycle[cycle["name"].astype(str).str.upper() == name] if not cycle.empty else pd.DataFrame()
+        qty = float(p["quantity"].sum()) if not p.empty else 0
+        amt = float(p["amount"].sum()) if not p.empty else 0
+        dp_value = dp_by_user.get(name)
+        _smart_card(col, name, f"{qty:g} tiffin", f"₹{amt:,.0f} tiffin bill", get_name_color(name) or SMART_ACCENT_DEFAULT, dp_value)
+
+    # Combined Analytics Dashboard: summary table and user-wise chart.
+    st.markdown("### 📊 Analytics Overview")
+    if cycle.empty:
+        st.info("No tiffin data in this billing cycle.")
+    else:
+        tiffin_rate, _ = get_billing_rates()
+        analytics_source = cycle.copy()
+        analytics_source["name"] = analytics_source["name"].astype(str).str.upper()
+        analytics = analytics_source.groupby("name", as_index=False).agg(
+            tiffin_qty=("quantity", "sum"),
+            total_roti=("roti", "sum"),
+            roti_amount=("roti_amount", "sum"),
+        )
+        analytics["tiffin_amount"] = analytics["tiffin_qty"] * tiffin_rate
+        analytics["final_amount"] = analytics["tiffin_amount"] + analytics["roti_amount"]
+        total_row = pd.DataFrame([{
+            "name": "TOTAL",
+            "tiffin_qty": analytics["tiffin_qty"].sum(),
+            "tiffin_amount": analytics["tiffin_amount"].sum(),
+            "total_roti": analytics["total_roti"].sum(),
+            "roti_amount": analytics["roti_amount"].sum(),
+            "final_amount": analytics["final_amount"].sum(),
+        }])
+        table_df = pd.concat([analytics, total_row], ignore_index=True)
+        table_df = table_df[["name", "tiffin_qty", "tiffin_amount", "total_roti", "roti_amount", "final_amount"]]
+        table_df.columns = ["Name", "Tiffin Qty", "Tiffin Amount", "Total Roti", "Roti Amount", "Final Amount"]
+        display_df = table_df.copy()
+        for col in ["Tiffin Qty", "Tiffin Amount", "Total Roti", "Roti Amount", "Final Amount"]:
+            display_df[col] = pd.to_numeric(display_df[col], errors="coerce").fillna(0).map(
+                lambda v: f"{v:.2f}" if float(v) % 1 else f"{int(v)}"
+            )
+        st.markdown("#### 🧾 Monthly Summary")
+        try:
+            st.dataframe(style_table(display_df), use_container_width=True, hide_index=True)
+        except Exception:
+            st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+        pie_data = analytics[analytics["tiffin_qty"] > 0].copy()
+        st.markdown("#### 🍱 Tiffin Orders by User")
+        if pie_data.empty:
+            st.info("No positive tiffin quantities to chart.")
+        else:
+            pie_colors = [get_name_color(n) or "#8B5CF6" for n in pie_data["name"]]
+            fig, ax = plt.subplots(figsize=(5, 3.2))
+            ax.pie(
+                pie_data["tiffin_qty"].astype(float).values,
+                labels=pie_data["name"],
+                autopct="%1.1f%%",
+                startangle=90,
+                colors=pie_colors,
+            )
+            ax.axis("equal")
+            fig.tight_layout()
+            st.pyplot(fig, use_container_width=True)
+            plt.close(fig)
+
+    st.markdown("### 🧾 Recent Activity")
+    if not tdf.empty:
+        # Match the View Records table structure, styling and number formatting.
+        recent = tdf.sort_values("date", ascending=False).head(8).copy()
+        if "time" in recent.columns:
+            recent = recent.drop(columns=["time"])
+        if "date" in recent.columns:
+            recent["date"] = pd.to_datetime(recent["date"], errors="coerce").dt.strftime("%d/%m/%Y")
+        for _col in ["quantity", "amount", "roti", "roti_amount"]:
+            if _col in recent.columns:
+                recent[_col] = pd.to_numeric(recent[_col], errors="coerce").fillna(0).map(
+                    lambda v: f"{v:.2f}" if float(v) % 1 else f"{int(v)}"
+                )
+        st.dataframe(style_table(recent), use_container_width=True, hide_index=True)
+
+def smart_expense_page():
+    _ensure_smart_tables()
+    users = _active_names()
+    st.markdown("### 💳 Smart Expense")
+    st.caption("Enter one shared expense. The app calculates who paid, who owes and the final settlement automatically.")
+
+    c1,c2 = st.columns(2)
+    with c1:
+        expense_date = st.date_input("Date", datetime.date.today(), key="smart_exp_date")
+        product = st.text_input("What was it?", placeholder="Dinner, movie, travel…", key="smart_exp_product")
+    with c2:
+        place = st.text_input("Place / Note", placeholder="Restaurant / location", key="smart_exp_place")
+        total = st.number_input("Total Amount (₹)", min_value=0.0, step=10.0, key="smart_exp_total")
+
+    payer = st.selectbox("Who paid?", users, key="smart_exp_payer")
+    participants = st.multiselect("Who was involved?", users, default=users, key="smart_exp_participants")
+
+    if participants and total > 0:
+        share = round(total / len(participants), 2)
+        st.markdown(f"""
+        <div class="expense-preview">
+          <b>₹{total:,.2f}</b> total • <b>₹{share:,.2f}</b> each • paid by <b>{payer}</b>
+        </div>
+        """, unsafe_allow_html=True)
+
+        if st.button("➕ Save Expense", type="primary", use_container_width=True):
+            conn = get_db(); cur = conn.cursor()
+            try:
+                now = datetime.datetime.now().time().replace(microsecond=0)
+                for name in users:
+                    involved = name in participants
+                    status = "PAID" if name == payer and involved else ("PENDING" if involved else "NOT INVOLVED")
+                    cur.execute("""
+                        INSERT INTO account_records
+                        (date, name, product_name, place_name, total_amount, per_person_amount, payment_status)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s)
+                    """, (expense_date, name, product or "Shared Expense", place or "", total, share if involved else 0, status))
+                conn.commit()
+                st.success("Expense saved. Settlement has been recalculated.")
+                st.rerun()
+            except Exception as e:
+                conn.rollback()
+                st.error(f"Could not save expense: {e}")
+            finally:
+                cur.close()
+
+def settlement_page():
+    _ensure_smart_tables()
+    start, end = _current_cycle()
+    edf = fetch_account_records_with_loader()
+    eg = _expense_groups(edf)
+    if not eg.empty:
+        eg = eg[(eg["date"].dt.date >= start) & (eg["date"].dt.date <= end)]
+    users = _active_names()
+    net = {u: 0.0 for u in users}
+
+    for _, e in eg.iterrows() if not eg.empty else []:
+        participants = e["participants"]
+        share = float(e["share"])
+        payer = str(e["payer"]).upper()
+        for u in participants:
+            u = str(u).upper()
+            if u in net:
+                net[u] -= share
+        if payer in net:
+            net[payer] += float(e["total_amount"])
+
+    # Positive = should receive; negative = should pay.
+    st.markdown("### 🤝 Month-End Settlement")
+    st.caption(f"{start:%d/%m/%Y} → {end:%d/%m/%Y} • Positive balance means money to receive.")
+
+    cols = st.columns(max(1, min(3, len(users))))
+    for col, u in zip(cols, users):
+        val = round(net.get(u,0),2)
+        _smart_card(col, u, f"₹{abs(val):,.2f}", "to receive" if val > 0.005 else ("to pay" if val < -0.005 else "settled"), get_name_color(u) or SMART_ACCENT_DEFAULT)
+
+    creditors = [[u,v] for u,v in net.items() if v > .005]
+    debtors = [[u,-v] for u,v in net.items() if v < -.005]
+    transfers = []
+    i=j=0
+    while i < len(debtors) and j < len(creditors):
+        amount = round(min(debtors[i][1], creditors[j][1]),2)
+        if amount > 0:
+            transfers.append((debtors[i][0], creditors[j][0], amount))
+        debtors[i][1] -= amount; creditors[j][1] -= amount
+        if debtors[i][1] <= .005: i += 1
+        if creditors[j][1] <= .005: j += 1
+
+    st.markdown("### 💸 Who Pays Whom")
+    if transfers:
+        for debtor, creditor, amount in transfers:
+            st.markdown(f"""
+            <div class="settle-row"><b>{debtor}</b><span>→</span><b>{creditor}</b><strong>₹{amount:,.2f}</strong></div>
+            """, unsafe_allow_html=True)
+    else:
+        st.success("Everyone is settled for this cycle 🎉")
+
+    if not eg.empty:
+        st.markdown("### 🧾 Expense History")
+        show = eg.copy()
+        show["date"] = show["date"].dt.strftime("%d/%m/%Y")
+        show["participants"] = show["participants"].apply(lambda x: ", ".join(x))
+        show["total_amount"] = show["total_amount"].map(lambda x: f"₹{x:,.2f}")
+        show["share"] = show["share"].map(lambda x: f"₹{x:,.2f}")
+        st.dataframe(show[["date","product_name","place_name","total_amount","payer","participants","share"]],
+                     use_container_width=True, hide_index=True)
+
+def smart_data_page():
+    _ensure_smart_tables()
+    start, end = _current_cycle()
+    tdf = fetch_all_with_loader()
+    edf = fetch_account_records_with_loader()
+    st.markdown("### 📦 Data Center")
+    tab1, tab2 = st.tabs(["🍱 Tiffin Data", "💳 Expense Data"])
+    with tab1:
+        if not tdf.empty:
+            x = tdf.copy()
+            x["date"] = pd.to_datetime(x["date"], errors="coerce")
+            x = x[(x["date"].dt.date >= start) & (x["date"].dt.date <= end)]
+            st.dataframe(x, use_container_width=True, hide_index=True)
+            st.download_button("⬇️ Download Tiffin CSV", x.to_csv(index=False).encode("utf-8"),
+                               f"tiffin_{start}_{end}.csv", "text/csv", use_container_width=True)
+        else: st.info("No tiffin data.")
+    with tab2:
+        if not edf.empty:
+            x = edf.copy()
+            x["date"] = pd.to_datetime(x["date"], errors="coerce")
+            x = x[(x["date"].dt.date >= start) & (x["date"].dt.date <= end)]
+            st.dataframe(x, use_container_width=True, hide_index=True)
+            st.download_button("⬇️ Download Expense CSV", x.to_csv(index=False).encode("utf-8"),
+                               f"expenses_{start}_{end}.csv", "text/csv", use_container_width=True)
+        else: st.info("No expense data.")
+
+def smart_settings_page():
+    # Fast path: table creation is guarded per session, and both settings
+    # datasets are read through one DB connection. Large DP base64 blobs are
+    # deliberately not fetched just to draw the settings list.
+    _ensure_smart_tables()
+    st.markdown("## ⚙️ Premium Settings")
+    st.caption("Fast settings • Tiffin records are entered manually; no automatic tiffin entry runs here.")
+
+    conn = None
+    try:
+        conn = get_db()
+        with conn.cursor() as cur:
+            cur.execute("SELECT username, display_name, active, language, theme, accent_color, currency, dp_data FROM app_user_profiles ORDER BY username")
+            profile_rows = cur.fetchall()
+            profile_cols = [d[0] for d in cur.description]
+            profiles = pd.DataFrame(profile_rows, columns=profile_cols)
+            cur.execute("SELECT setting_key, setting_value FROM smart_preferences")
+            pref_rows = cur.fetchall()
+            prefs = dict(pref_rows)
+    except Exception as exc:
+        st.error(f"Could not load settings: {exc}")
+        return
+    finally:
+        # get_db may return a pooled/shared connection; don't force-close it here.
+        pass
+
+    st.markdown("### 👥 Users")
+    st.caption("Select a user's Name / accent color and save it. That color is used across app tables, user cards, and analytics. User deletion removes the profile only; historical records remain.")
+    for _, row in profiles.iterrows():
+        avatar_col, name_col = st.columns([0.6, 5.4])
+        if row.get("dp_data"):
+            try:
+                avatar_col.image(base64.b64decode(row["dp_data"]), width=42)
+            except Exception:
+                avatar_col.markdown("<div style='width:42px;height:42px;border-radius:50%;background:#64748b;'></div>", unsafe_allow_html=True)
+        else:
+            initials = str(row.get("display_name") or row["username"])[:1].upper()
+            avatar_col.markdown(f"<div style='width:42px;height:42px;border-radius:50%;background:#64748b;color:white;display:flex;align-items:center;justify-content:center;font-weight:700'>{initials}</div>", unsafe_allow_html=True)
+        name_col.markdown(f"**{row['display_name']}**  <small style='color:#94a3b8'>{row['username']}</small>", unsafe_allow_html=True)
+        with st.expander("Edit user settings", expanded=False):
+            c1, c2 = st.columns(2)
+            with c1:
+                new_name = st.text_input("Display name", row["display_name"], key=f"sn_{row['username']}")
+                active = st.toggle("Active user", bool(row["active"]), key=f"sa_{row['username']}")
+                languages = ["English", "ગુજરાતી", "Hindi"]
+                language = st.selectbox("Language", languages, index=languages.index(row["language"]) if row["language"] in languages else 0, key=f"sl_{row['username']}")
+                themes = ["Dark", "Light", "System"]
+                theme = st.selectbox("Theme", themes, index=themes.index(row["theme"]) if row["theme"] in themes else 0, key=f"st_{row['username']}")
+            with c2:
+                color = st.color_picker("Name / accent color", row["accent_color"] or SMART_ACCENT_DEFAULT, key=f"sc_{row['username']}")
+                currencies = ["₹", "$", "€", "£"]
+                currency = st.selectbox("Currency", currencies, index=currencies.index(row["currency"]) if row["currency"] in currencies else 0, key=f"su_{row['username']}")
+                dp = st.file_uploader("Change DP", type=["png", "jpg", "jpeg"], key=f"dp_{row['username']}")
+                if st.button("Save User", key=f"saveu_{row['username']}", type="primary"):
+                    conn = get_db()
+                    try:
+                        with conn.cursor() as cur:
+                            if dp is not None:
+                                dp_data = base64.b64encode(dp.getvalue()).decode()
+                                cur.execute("""UPDATE app_user_profiles SET display_name=%s,active=%s,language=%s,theme=%s,accent_color=%s,currency=%s,dp_data=%s WHERE username=%s""",
+                                            (new_name, active, language, theme, color, currency, dp_data, row["username"]))
+                            else:
+                                cur.execute("""UPDATE app_user_profiles SET display_name=%s,active=%s,language=%s,theme=%s,accent_color=%s,currency=%s WHERE username=%s""",
+                                            (new_name, active, language, theme, color, currency, row["username"]))
+                        conn.commit()
+                    finally:
+                        pass
+                    _load_saved_name_colors.clear()
+                    st.success("User settings saved.")
+                    st.rerun()
+
+            delete_key = f"pending_delete_user_{row['username']}"
+            if st.button("🗑️ Delete User", key=f"deleteu_{row['username']}", use_container_width=True):
+                st.session_state[delete_key] = True
+
+            if st.session_state.get(delete_key, False):
+                st.warning(f"Confirm deletion of {row['username']}. This removes the user profile from the database; existing tiffin/expense history will be kept.")
+                otp = st.text_input("Enter delete OTP", type="password", key=f"delete_otp_{row['username']}", max_chars=4)
+                otp_col1, otp_col2 = st.columns(2)
+                with otp_col1:
+                    if st.button("Confirm Delete", key=f"confirm_delete_{row['username']}", type="primary", use_container_width=True):
+                        if otp == "1795":
+                            conn = get_db()
+                            try:
+                                with conn.cursor() as cur:
+                                    cur.execute("DELETE FROM app_user_profiles WHERE username=%s", (row["username"],))
+                                conn.commit()
+                            finally:
+                                pass
+                            _load_saved_name_colors.clear()
+                            st.session_state.pop(delete_key, None)
+                            st.session_state.pop(f"delete_otp_{row['username']}", None)
+                            st.success(f"{row['username']} profile deleted from the database.")
+                            st.rerun()
+                        else:
+                            st.error("Incorrect OTP. User was not deleted.")
+                with otp_col2:
+                    if st.button("Cancel", key=f"cancel_delete_{row['username']}", use_container_width=True):
+                        st.session_state.pop(delete_key, None)
+                        st.session_state.pop(f"delete_otp_{row['username']}", None)
+                        st.rerun()
+
+    st.markdown("### ➕ Add User")
+    add_col1, add_col2 = st.columns([2, 1])
+    with add_col1:
+        new_user = st.text_input("New user name", placeholder="e.g. RAHUL", key="new_smart_user").strip().upper()
+    with add_col2:
+        st.write("")
+        st.write("")
+        if st.button("Add User", use_container_width=True, type="primary", key="add_smart_user"):
+            if not new_user:
+                st.warning("Enter a user name.")
+            elif len(new_user) > 40 or not re.match(r"^[A-Z0-9 _-]+$", new_user):
+                st.warning("Use only letters, numbers, spaces, _ or -.")
+            else:
+                conn = get_db()
+                try:
+                    with conn.cursor() as cur:
+                        cur.execute("""INSERT INTO app_user_profiles(username, display_name, accent_color) VALUES (%s,%s,%s) ON CONFLICT(username) DO UPDATE SET active=TRUE""", (new_user, new_user, "#8B5CF6"))
+                    conn.commit()
+                finally:
+                    pass
+                _load_saved_name_colors.clear()
+                st.success(f"{new_user} added.")
+                st.rerun()
+
+    st.markdown("### 🧩 App Controls")
+    pref_controls = [
+        ("notifications", "Notifications"),
+        ("confirm_delete", "Confirm before delete"),
+        ("compact_cards", "Compact premium cards"),
+        ("auto_refresh", "Auto refresh data"),
+        ("animation_theme", "Sunset animation theme"),
+        ("show_balance", "Show balance on dashboard"),
+        ("show_tiffin_amount", "Show tiffin amount"),
+        ("show_expense_amount", "Show expense amount"),
+        ("show_month_progress", "Show month progress"),
+        ("compact_tables", "Compact tables"),
+        ("csv_export_enabled", "CSV export enabled"),
+    ]
+    pending = {}
+    with st.form("fast_settings_form"):
+        cols = st.columns(2)
+        for n, (key, label) in enumerate(pref_controls):
+            with cols[n % 2]:
+                pending[key] = st.toggle(label, value=str(prefs.get(key, "true")).lower() == "true", key=f"fast_pref_{key}")
+        c1, c2 = st.columns(2)
+        with c1:
+            app_langs = ["English", "ગુજરાતી", "Hindi"]
+            current_lang = prefs.get("language", "English")
+            pending["language"] = st.selectbox("App language", app_langs, index=app_langs.index(current_lang) if current_lang in app_langs else 0, key="fast_app_language")
+        save_settings = st.form_submit_button("💾 Save Settings", type="primary", use_container_width=True)
+
+    if save_settings:
+        conn = get_db()
+        try:
+            with conn.cursor() as cur:
+                for key, value in pending.items():
+                    cur.execute("""INSERT INTO smart_preferences(setting_key,setting_value) VALUES (%s,%s) ON CONFLICT(setting_key) DO UPDATE SET setting_value=EXCLUDED.setting_value""", (key, str(value).lower() if isinstance(value, bool) else str(value)))
+            conn.commit()
+        finally:
+            pass
+        st.session_state["_app_language"] = pending.get("language", "English")
+        st.success("Settings saved.")
+        st.rerun()
+
+
+def smart_logout():
+    st.session_state["logged_in"] = False
+    for k in ["menu","tiffin_saved_signature"]:
+        st.session_state.pop(k, None)
+    st.rerun()
+
+
+
+st.markdown("""
+<style>
+.premium-hero{padding:24px;border-radius:24px;background:linear-gradient(135deg,rgba(255,107,53,.22),rgba(139,92,246,.18));border:1px solid rgba(255,255,255,.12);box-shadow:0 18px 50px rgba(0,0,0,.18);margin-bottom:18px}
+.hero-kicker{font-size:11px;letter-spacing:2px;font-weight:800;opacity:.7}.hero-title{font-size:30px;font-weight:900;margin-top:5px}.hero-sub{opacity:.72;margin-top:4px}
+.premium-card{border:1px solid rgba(255,255,255,.10);border-left:3px solid var(--accent);border-radius:18px;padding:14px 15px;min-height:94px;background:rgba(10,15,28,.62);box-shadow:0 10px 28px rgba(0,0,0,.12);margin-bottom:12px}
+.snapshot-heading{display:flex;align-items:center;gap:9px;margin-bottom:8px}.snapshot-avatar{width:30px;height:30px;object-fit:cover;border-radius:50%;flex:0 0 30px;border:1px solid rgba(255,255,255,.25)}.snapshot-avatar-fallback{width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:0 0 30px;background:rgba(255,255,255,.15);font-size:13px;font-weight:800}.premium-label{font-size:10px;letter-spacing:1.2px;font-weight:800;opacity:.6}.premium-value{font-size:23px;font-weight:900;margin-top:4px}.premium-note{font-size:11px;opacity:.62;margin-top:2px}
+.cycle-track{padding:12px 4px 18px}.cycle-line{height:7px;border-radius:99px;background:rgba(255,255,255,.10);overflow:hidden}.cycle-line span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#FF6B35,#8B5CF6)}.cycle-labels{display:flex;justify-content:space-between;font-size:10px;opacity:.65;margin-top:6px}
+.expense-preview{padding:16px;border-radius:16px;background:rgba(255,107,53,.10);border:1px solid rgba(255,107,53,.28);margin:12px 0}
+.settle-row{display:grid;grid-template-columns:1fr auto 1fr auto;gap:12px;align-items:center;padding:14px 16px;margin:7px 0;border-radius:15px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+</style>
+""", unsafe_allow_html=True)
+
 def app():
     if 'logged_in' not in st.session_state:
         st.session_state['logged_in'] = False
@@ -4540,6 +5459,40 @@ def app():
     if not st.session_state['logged_in']:
         login()
         return
+
+    if "_app_language" not in st.session_state:
+        try:
+            _lang_conn = get_db()
+            with _lang_conn.cursor() as _lang_cur:
+                _lang_cur.execute("SELECT setting_value FROM smart_preferences WHERE setting_key='language'")
+                _lang_row = _lang_cur.fetchone()
+            st.session_state["_app_language"] = _lang_row[0] if _lang_row and _lang_row[0] in ("English", "ગુજરાતી", "Hindi") else "English"
+        except Exception:
+            st.session_state["_app_language"] = "English"
+
+    # Persisted background animation preference: OFF means a plain black background.
+    try:
+        _theme_conn = get_db()
+        with _theme_conn.cursor() as _theme_cur:
+            _theme_cur.execute("SELECT setting_value FROM smart_preferences WHERE setting_key='animation_theme'")
+            _theme_row = _theme_cur.fetchone()
+        _animation_enabled = str(_theme_row[0]).lower() == "true" if _theme_row else True
+    except Exception:
+        _animation_enabled = True
+    if not _animation_enabled:
+        st.markdown("""<style>
+        html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stAppViewContainer"] > .main,
+        [data-testid="stHeader"], [data-testid="stToolbar"] {background:#000000 !important;background-image:none !important;}
+        [data-testid="stAppViewContainer"]::before,[data-testid="stAppViewContainer"]::after,
+        [data-testid="stApp"]::before,[data-testid="stApp"]::after,
+        .sun,.moon,.stars,.clouds,.cloud1,.cloud2,.cloud3,.cloud4,.cloud5,.cloud6,
+        .sunset,.sunrise,.sunset-animation,.background-animation,.animated-background,
+        [class*="sun"],[class*="moon"],[class*="star"],[class*="cloud"],[class*="sky"] {
+            display:none !important; visibility:hidden !important; opacity:0 !important;
+            animation:none !important; transition:none !important; background-image:none !important;
+        }
+        [data-testid="stAppViewContainer"] * {background-image:none !important;}
+        </style>""", unsafe_allow_html=True)
 
     # PNG file load & encode
     with open("images/icons8-dinner-64.png", "rb") as f:
@@ -4557,11 +5510,51 @@ def app():
         unsafe_allow_html=True
     )
 
-    if menu == "Remove Tiffin Records":
-        delete_tiffin_page()
+    # Load billing rates once per app run so every page can safely use them.
+    tiffin_rate, roti_rate = get_billing_rates()
 
-    elif menu == "Remove Expenses":
-        delete_account_page()
+    # Sidebar navigation is created outside app(); read its selected item from session state.
+    menu = st.session_state.get("active_menu", "Smart Home")
+
+    # Keep view/edit/delete workflows together under one Tiffin Records page.
+    if menu == "Tiffin Records":
+        tiffin_action = st.radio(
+            "Tiffin records action",
+            ["View Records", "Edit Records", "Remove Records"],
+            horizontal=True,
+            key="unified_tiffin_action",
+        )
+        menu = {
+            "View Records": "View Tiffin Records",
+            "Edit Records": "Edit Tiffin Records",
+            "Remove Records": "Remove Tiffin Records",
+        }[tiffin_action]
+
+    if menu == "Smart Home":
+        premium_dashboard_page()
+
+    elif menu == "EXPENSES":
+        st.markdown("## 💳 EXPENSES")
+        st.caption("Manage expenses manually. Nothing is saved, edited, or deleted unless you choose the relevant action.")
+        expense_section = st.radio(
+            "Expense section",
+            ["Smart Expenses", "Edit Expenses", "Remove Expense"],
+            horizontal=True,
+            key="expenses_subpage",
+            label_visibility="collapsed",
+        )
+        if expense_section == "Edit Expenses":
+            edit_account_page()
+        elif expense_section == "Remove Expense":
+            delete_account_page()
+        elif expense_section == "Smart Expenses":
+            smart_expense_page()
+
+    elif menu == "Settlement":
+        settlement_page()
+
+    elif menu == "Remove Tiffin Records":
+        delete_tiffin_page()
 
     # -------------------- Add Record --------------------
     elif menu == "Add Tiffin Entry":
@@ -4696,271 +5689,6 @@ def app():
     # -------------------- Chart --------------------
 
 
-    elif menu == "Analytics Dashboard":
-
-        img_base64 = load_image("images/chart.png")
-
-        st.markdown(
-
-            f"""
-
-            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem;"><img src="data:image/png;base64,{img_base64}" width="30" /><span>Analytics Dashboard</span>
-
-            </div>
-
-            """,
-
-            unsafe_allow_html=True
-
-        )
-
-        df = fetch_all_with_loader()
-        if df.empty:
-
-            st.info("No records to plot.")
-
-
-        else:
-
-            # ✅ Date convert
-
-            df['date'] = pd.to_datetime(df['date'], errors='coerce')
-
-            # ✅ Remove zero quantity
-
-            df = df[df["quantity"] > 0]
-
-            today = date.today()
-
-            if today.day >= 10:
-                from_date_default = today.replace(day=10)
-                to_date_default = from_date_default + relativedelta(months=1) - relativedelta(days=1)
-            else:
-                to_date_default = today.replace(day=9)
-                from_date_default = to_date_default - relativedelta(months=1) + relativedelta(days=1)
-
-            col1, col2 = st.columns(2)
-
-            with col1:
-                from_date = st.date_input(
-                    "From Date",
-                    value=from_date_default,
-                    key="analytics_from_date"
-                )
-
-            with col2:
-                to_date = st.date_input(
-                    "To Date",
-                    value=to_date_default,
-                    key="analytics_to_date"
-                )
-
-            # Apply Filter
-            df = df[
-                (df["date"] >= pd.to_datetime(from_date)) &
-                (df["date"] <= pd.to_datetime(to_date))
-                ]
-
-            if df.empty:
-                st.warning("No data found for selected billing cycle.")
-                st.stop()
-            # ✅ Apply filter
-
-            df = df[
-
-                (df['date'] >= pd.to_datetime(from_date)) &
-
-                (df['date'] <= pd.to_datetime(to_date))
-
-                ]
-
-            if df.empty:
-
-                st.info("No orders found for selected date range.")
-
-
-            else:
-                # ======================================================
-                # ✅ SUMMARY
-                # ======================================================
-
-                summary_df = (
-                    df.groupby("name", as_index=False)
-                    .agg(
-                        total_tiffin=("quantity", "sum"),
-                        total_roti=("roti", "sum"),
-                        total_roti_amount=("roti_amount", "sum")
-                    )
-                )
-
-                # ======================================================
-                # ✅ AMOUNT CALCULATION
-                # ======================================================
-
-                tiffin_rate, roti_rate = get_billing_rates()
-                summary_df["total_amount"] = summary_df["total_tiffin"] * tiffin_rate
-
-                summary_df["final_amount"] = (
-                        summary_df["total_amount"] +
-                        summary_df["total_roti_amount"]
-                )
-
-                # ======================================================
-                # ✅ TOTAL ROW
-                # ======================================================
-
-                total_row = pd.DataFrame({
-                    "name": ["TOTAL"],
-                    "total_tiffin": [summary_df["total_tiffin"].sum()],
-                    "total_roti": [summary_df["total_roti"].sum()],
-                    "total_roti_amount": [summary_df["total_roti_amount"].sum()],
-                    "total_amount": [summary_df["total_amount"].sum()],
-                    "final_amount": [summary_df["final_amount"].sum()]
-                })
-
-                summary_df = pd.concat(
-                    [summary_df, total_row],
-                    ignore_index=True
-                )
-
-                # ======================================================
-                # ✅ COLUMN ORDER
-                # ======================================================
-
-                summary_df = summary_df[
-                    [
-                        "name",
-                        "total_tiffin",
-                        "total_amount",
-                        "total_roti",
-                        "total_roti_amount",
-                        "final_amount"
-                    ]
-                ]
-
-                summary_df.columns = [
-                    "Name",
-                    "Tiffin Qty",
-                    "Tiffin Amount",
-                    "Total Roti",
-                    "Roti Amount",
-                    "Final Amount"
-                ]
-
-                # ======================================================
-                # ✅ KEEP RAW COPY FOR CHARTS
-                # ======================================================
-
-                summary_df_raw = summary_df.copy()
-
-                # ======================================================
-                # ✅ DISPLAY COPY FOR TABLE
-                # ======================================================
-
-                display_df = summary_df.copy()
-
-                numeric_cols = [
-                    "Tiffin Qty",
-                    "Tiffin Amount",
-                    "Total Roti",
-                    "Roti Amount",
-                    "Final Amount"
-                ]
-
-                for col in numeric_cols:
-                    display_df[col] = display_df[col].apply(
-                        lambda x: f"{x:.2f}" if float(x) % 1 else f"{int(x)}"
-                    )
-
-                # ======================================================
-                # ✅ COLOR MAP
-                # ======================================================
-
-                color_map = {
-                    "MEET": "#FF0033",
-                    "YASH": "#bfff00",
-                    "DHRUMIL": "#00bfff",
-                    "TOTAL": "#9929EA"
-                }
-
-
-                # ======================================================
-                # ✅ SHOW SUMMARY TABLE
-                # ======================================================
-
-                st.markdown("### 📝 Summary")
-
-                try:
-                    styled_df = style_table(display_df)
-
-                    st.dataframe(
-                        styled_df,
-                        use_container_width=True
-                    )
-
-                except Exception:
-                    st.dataframe(
-                        display_df,
-                        use_container_width=True
-                    )
-
-                # ======================================================
-                # ✅ PIE CHART
-                # ======================================================
-
-                st.markdown("### 📊 Tiffin Orders Distribution")
-
-                pie_data = summary_df_raw[
-                    summary_df_raw["Name"] != "TOTAL"
-                    ].copy()
-
-                # Convert to numeric
-                pie_data["Tiffin Qty"] = pd.to_numeric(
-                    pie_data["Tiffin Qty"],
-                    errors="coerce"
-                )
-
-                # Remove invalid values
-                pie_data = pie_data.dropna(subset=["Tiffin Qty"])
-
-                # Keep only positive values
-                pie_data = pie_data[
-                    pie_data["Tiffin Qty"] > 0
-                    ]
-
-                if pie_data.empty:
-                    st.info("No data available for pie chart.")
-                else:
-
-                    values = pie_data["Tiffin Qty"].astype(float).values
-
-                    pie_colors = [
-                        color_map.get(
-                            str(name).upper(),
-                            "#FFFFFF"
-                        )
-                        for name in pie_data["Name"]
-                    ]
-
-                    fig, ax = plt.subplots(
-                        figsize=(6, 6)
-                    )
-
-                    ax.pie(
-                        values,
-                        labels=pie_data["Name"],
-                        autopct="%1.1f%%",
-                        startangle=90,
-                        colors=pie_colors
-                    )
-
-                    ax.axis("equal")
-
-                    ax.set_title(
-                        "📊 Tiffin Orders by User"
-                    )
-
-                    st.pyplot(fig)
     # -------------------- Edit --------------------
 
     elif menu == "Edit Tiffin Records":
@@ -5763,14 +6491,14 @@ def app():
                     )
                 # -------------------- Delete --------------------
 
-    elif menu == "Add Expense Entry":
-        account_page()
-    elif menu == "View Expense Records":
-        account_records_page()
-    elif menu == "Edit Expense Details":
-        edit_account_page()
     elif menu == "Settings":
-        database_settings_page()
+        smart_settings_page()
+        st.divider()
+        if st.button("🛠️ Open Advanced Database Control", key="open_advanced_db_control", use_container_width=True):
+            st.session_state["show_advanced_db_control"] = not st.session_state.get("show_advanced_db_control", False)
+        if st.session_state.get("show_advanced_db_control", False):
+            st.caption("Advanced controls load only when opened. Database status is checked only when requested or during a start/stop operation.")
+            database_settings_page()
 
 
 if __name__ == "__main__":
