@@ -10,6 +10,8 @@ import base64
 import time
 import requests
 import re
+import uuid
+import hashlib
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from streamlit_extras.radial_menu import *
@@ -23,7 +25,7 @@ _UI_TRANSLATIONS = {
         "Tiffin Records":"ટિફિન રેકોર્ડ્સ", "View Records":"રેકોર્ડ જુઓ", "Edit Records":"રેકોર્ડ સંપાદિત કરો",
         "Remove Records":"રેકોર્ડ દૂર કરો", "EXPENSES":"ખર્ચ", "Settlement":"સેટલમેન્ટ",
         "Update Payment Status":"ચુકવણી સ્થિતિ અપડેટ કરો", "Export Data":"ડેટા એક્સપોર્ટ કરો",
-        "Settings":"સેટિંગ્સ", "Navigation":"નેવિગેશન", "Recent Activity":"તાજેતરની પ્રવૃત્તિ",
+        "Settings":"સેટિંગ્સ", "Data Center":"ડેટા સેન્ટર", "Navigation":"નેવિગેશન", "Recent Activity":"તાજેતરની પ્રવૃત્તિ",
         "Individual Monthly Snapshot":"વ્યક્તિગત માસિક સારાંશ", "Analytics Overview":"વિશ્લેષણ સારાંશ",
         "Monthly Summary":"માસિક સારાંશ", "Tiffin Orders by User":"વપરાશકર્તા મુજબ ટિફિન ઓર્ડર",
         "Date":"તારીખ", "From Date":"શરૂઆતની તારીખ", "To Date":"અંતિમ તારીખ", "Search":"શોધો",
@@ -42,7 +44,7 @@ _UI_TRANSLATIONS = {
         "Tiffin Records":"टिफिन रिकॉर्ड", "View Records":"रिकॉर्ड देखें", "Edit Records":"रिकॉर्ड संपादित करें",
         "Remove Records":"रिकॉर्ड हटाएँ", "EXPENSES":"खर्च", "Settlement":"सेटलमेंट",
         "Update Payment Status":"भुगतान स्थिति अपडेट करें", "Export Data":"डेटा एक्सपोर्ट करें",
-        "Settings":"सेटिंग्स", "Navigation":"नेविगेशन", "Recent Activity":"हाल की गतिविधि",
+        "Settings":"सेटिंग्स", "Data Center":"डेटा सेंटर", "Navigation":"नेविगेशन", "Recent Activity":"हाल की गतिविधि",
         "Individual Monthly Snapshot":"व्यक्तिगत मासिक सारांश", "Analytics Overview":"विश्लेषण सारांश",
         "Monthly Summary":"मासिक सारांश", "Tiffin Orders by User":"उपयोगकर्ता के अनुसार टिफिन ऑर्डर",
         "Date":"तारीख", "From Date":"शुरुआती तारीख", "To Date":"अंतिम तारीख", "Search":"खोजें",
@@ -153,11 +155,11 @@ st.markdown("""
 <style>
 
 /* ================================
-   GLOBAL TOP SPACING - 20px
+   GLOBAL TOP SPACING - default 0px; configurable from Settings
    ================================ */
 
 [data-testid="stAppViewContainer"] .main .block-container {
-    padding-top: 20px !important;
+    padding-top: 0px !important;
 }
 
 
@@ -322,11 +324,6 @@ st.markdown("""
     footer {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
-# petoc = "tiffin_db"
-# lemox = "postgres"
-# ternak = "1234"
-# owert = "localhost"
-# xoper = 5432
 def show_loader(target):
     """Render the supplied loader inside a placeholder."""
     target.markdown(
@@ -349,16 +346,21 @@ def fetch_all_with_loader():
         loader_box.empty()
 
 
+@st.cache_data(ttl=15, show_spinner=False)
+def fetch_account_records():
+    """Cached account/expense read; writes clear this cache immediately."""
+    return pd.read_sql(
+        "SELECT * FROM account_records ORDER BY date DESC, time DESC",
+        get_db(),
+    )
+
+
 def fetch_account_records_with_loader():
-    """Fetch account records while showing the reusable loader."""
+    """Fetch cached account records while keeping the existing loader UI."""
     loader_box = st.empty()
     show_loader(loader_box)
     try:
-        conn = get_db()
-        return pd.read_sql(
-            "SELECT * FROM account_records ORDER BY date DESC, time DESC",
-            conn,
-        )
+        return fetch_account_records()
     finally:
         loader_box.empty()
 
@@ -384,28 +386,62 @@ def run_with_loader(func, *args, **kwargs):
 
 
 TABLE_NAME = "tiffin"
-petoc = "defaultdb"
-lemox = "avnadmin"
-ternak = "AVNS_LovPCygG-7HQB0xs0Su"
-owert = "pg-e6a0b32-manmeet2756-50e1.d.aivencloud.com"
-xoper = 19632
+
+
+def _secret_value(*keys, default=None):
+    """Read DB secrets from Streamlit secrets without hard-coding credentials."""
+    try:
+        secrets = st.secrets
+        postgres_section = secrets.get("postgres", {})
+        for key in keys:
+            if key in secrets:
+                return secrets[key]
+            if isinstance(postgres_section, dict) and key in postgres_section:
+                return postgres_section[key]
+    except Exception:
+        pass
+    return default
 
 
 @st.cache_resource
 def get_db():
-    return psycopg2.connect(
-        host=owert,
-        database=petoc,
-        user=lemox,
-        password=ternak,
-        port=int(xoper),
+    db_url = _secret_value("DATABASE_URL", "DB_URL", "POSTGRES_URL")
+    common = dict(
         sslmode="require",
         connect_timeout=5,
         keepalives=1,
         keepalives_idle=30,
         keepalives_interval=10,
-        keepalives_count=5
+        keepalives_count=5,
     )
+    if db_url:
+        return psycopg2.connect(str(db_url), **common)
+
+    host = _secret_value("DB_HOST", "PGHOST", "POSTGRES_HOST")
+    database = _secret_value("DB_NAME", "PGDATABASE", "POSTGRES_DB")
+    user = _secret_value("DB_USER", "PGUSER", "POSTGRES_USER")
+    password = _secret_value("DB_PASSWORD", "PGPASSWORD", "POSTGRES_PASSWORD")
+    port = _secret_value("DB_PORT", "PGPORT", "POSTGRES_PORT", default=5432)
+
+    missing = [name for name, value in {
+        "DB_HOST": host, "DB_NAME": database,
+        "DB_USER": user, "DB_PASSWORD": password
+    }.items() if not value]
+    if missing:
+        raise RuntimeError(
+            "Database secrets missing: " + ", ".join(missing) +
+            ". Add them to Streamlit Secrets."
+        )
+
+    return psycopg2.connect(
+        host=str(host),
+        database=str(database),
+        user=str(user),
+        password=str(password),
+        port=int(port),
+        **common,
+    )
+
 
 
 # ==========================
@@ -992,6 +1028,7 @@ def delete_account_page():
                 """, (from_date, to_date))
                 deleted_count = cursor.rowcount
                 conn.commit()
+                fetch_account_records.clear()
                 st.success(f"✅ Deleted {deleted_count} Account record(s) from {from_date} to {to_date}.")
 
     else:  # Delete by Name
@@ -1128,6 +1165,7 @@ def account_page():
             ))
 
         conn.commit()
+        fetch_account_records.clear()
         cursor.close()
         fetch_all.clear()
         loader_box.empty()
@@ -1349,6 +1387,7 @@ def edit_account_page():
         )
 
         conn.commit()
+        fetch_account_records.clear()
         cursor.close()
 
         st.success("✅ Record updated successfully!")
@@ -3224,7 +3263,7 @@ with st.sidebar:
 
             _nav_original_options = [
                 "Smart Home", "Add Tiffin Entry", "LogSync", "Tiffin Records",
-                "EXPENSES", "Settlement", "Update Payment Status", "Export Data", "Settings"
+                "EXPENSES", "Settlement", "Update Payment Status", "Export Data", "Data Center", "Settings"
             ]
             menu = option_menu(
                 menu_title=None,
@@ -3239,6 +3278,7 @@ icons=[
     "arrow-left-right",
     "credit-card",
     "download",
+    "database",
     "gear",
                 ],
                 default_index=0,
@@ -3280,10 +3320,10 @@ icons=[
     with st.sidebar:
         # Do not contact PostgreSQL before login. This keeps the login screen fast.
         is_logged = st.session_state.get("logged_in", False)
-        db_connected = check_db_connection() if is_logged else None
+        db_connected = True if is_logged else None
 
         # Database Status
-        db_status = ("Connected" if db_connected else "Disconnected") if is_logged else "Login required"
+        db_status = ("Ready" if db_connected else "Disconnected") if is_logged else "Login required"
         db_color = ("green" if db_connected else "red") if is_logged else "gray"
 
         db_statu = "Responded" if is_logged else "Not Responded"
@@ -4268,26 +4308,25 @@ def smart_split_blocks(raw_text):
     return blocks
 
 
-def _parse_person_entries(value, fallback_total=None):
-    """Parse D1M4Y1, DY3, YDM1, and bare m/d/y forms."""
+def _parse_person_entries(value, fallback_total=None, person_map=None):
+    """Parse legacy D/Y/M plus one-letter Settings nicknames, e.g. D1B1."""
+    person_map = person_map or _smart_person_map()
     text_value = re.sub(r"\s+", "", str(value or "")).upper()
-    text_value = re.sub(r"[^DMY0-9.]", "", text_value)
+    text_value = re.sub(r"[^A-Z0-9.]", "", text_value)
     if not text_value:
         return {}
 
-    # Shared tiffin: DY1 / YD3 / YDM1 / MYD3 etc.
-    shared = re.fullmatch(r"([DMY]{2,3})(\d+(?:\.\d+)?)?", text_value)
-    if shared and len(set(shared.group(1))) == len(shared.group(1)):
-        people = [SMART_PERSONS[c] for c in shared.group(1)]
+    shared = re.fullmatch(r"([A-Z]{2,3})(\d+(?:\.\d+)?)?", text_value)
+    if shared and len(set(shared.group(1))) == len(shared.group(1)) and all(c in person_map for c in shared.group(1)):
+        people = [person_map[c] for c in shared.group(1)]
         qty = float(shared.group(2)) if shared.group(2) else None
         if qty is None:
             qty = float(fallback_total or 1)
         per_person = qty / len(people)
         return {person: per_person for person in people}
 
-    # Separate tiffins: D1M1Y1. Bare single person uses the block total.
-    matches = list(re.finditer(r"([DMY])(\d+(?:\.\d+)?)?", text_value))
-    if not matches:
+    matches = list(re.finditer(r"([A-Z])(\d+(?:\.\d+)?)?", text_value))
+    if not matches or any(m.group(1) not in person_map for m in matches):
         return {}
 
     result = {}
@@ -4295,11 +4334,11 @@ def _parse_person_entries(value, fallback_total=None):
         code = match.group(1)
         qty_text = match.group(2)
         qty = float(qty_text) if qty_text is not None else None
-        result[SMART_PERSONS[code]] = result.get(SMART_PERSONS[code], 0.0) + (qty if qty is not None else 0.0)
+        person = person_map[code]
+        result[person] = result.get(person, 0.0) + (qty if qty is not None else 0.0)
 
-    # If there is exactly one bare person, Total is its quantity.
     if len(matches) == 1 and matches[0].group(2) is None:
-        person = SMART_PERSONS[matches[0].group(1)]
+        person = person_map[matches[0].group(1)]
         result[person] = float(fallback_total or 1)
 
     return result
@@ -4310,7 +4349,7 @@ def _normalise_qty(value):
     return int(value) if value.is_integer() else round(value, 2)
 
 
-def parse_smart_log_block(block, year=None):
+def parse_smart_log_block(block, year=None, person_map=None):
     """Parse one D dd/mm block into database-ready rows."""
     year = int(year or datetime.date.today().year)
     day = block["day"]
@@ -4341,7 +4380,7 @@ def parse_smart_log_block(block, year=None):
     for sm in section_matches:
         shift = "DAY" if sm.group(1).upper() == "M" else "NIGHT"
         shift_values[shift] = _parse_person_entries(
-            sm.group(2), fallback_total=total_tiffin
+            sm.group(2), fallback_total=total_tiffin, person_map=person_map
         )
 
     roti_match = re.search(r"(?i)\bROTI\s*-\s*(\d+(?:\.\d+)?)", content)
@@ -4457,12 +4496,13 @@ def smart_log_parser_page():
         st.warning("⚠️ No valid D dd/mm blocks found. Other WhatsApp messages are ignored.")
         return
 
+    person_map = _smart_person_map()
     parsed = []
     errors = []
     seen_dates = {}
 
     for block in blocks:
-        result, error = parse_smart_log_block(block, year=parse_year)
+        result, error = parse_smart_log_block(block, year=parse_year, person_map=person_map)
         if error:
             errors.append(error)
             continue
@@ -4562,9 +4602,9 @@ def smart_log_parser_page():
         c3.metric("🫓 Roti Amt Total", f"₹{roti_amount_total:g}")
         c4.metric("💰 Grand Total", f"₹{grand_total:g}")
 
-        # Separate total for each of the 3 people.
+        # Separate total for every active user, including nickname users.
         person_summary = []
-        for person in ("DHRUMIL", "YASH", "MEET"):
+        for person in _active_names():
             p = all_df[all_df["Name"].str.upper() == person]
             qty_total = round(p["Quantity"].sum(), 2) if not p.empty else 0
             roti_qty_person = round(p["Roti"].sum(), 2) if not p.empty else 0
@@ -4580,7 +4620,7 @@ def smart_log_parser_page():
                 "Total": total_person,
             })
 
-        st.markdown("### 👥 Separate Total — 3 Persons")
+        st.markdown("### 👥 Separate Total — Users")
         person_df = pd.DataFrame(person_summary)
         person_df["Tiffin Qty"] = person_df["Tiffin Qty"].apply(lambda x: int(x) if float(x).is_integer() else round(x, 2))
         person_df["Tiffin Sub Total"] = person_df["Tiffin Sub Total"].apply(lambda x: f"₹{float(x):g}")
@@ -4864,6 +4904,9 @@ def _ensure_smart_tables():
                 setting_value TEXT NOT NULL
             )
         """)
+        cur.execute("ALTER TABLE app_user_profiles ADD COLUMN IF NOT EXISTS nickname TEXT")
+        cur.execute("ALTER TABLE account_records ADD COLUMN IF NOT EXISTS expense_group_id TEXT")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_account_records_expense_group ON account_records(expense_group_id)")
         for username in DEFAULT_USERS:
             cur.execute("""
                 INSERT INTO app_user_profiles (username, display_name, accent_color)
@@ -4886,6 +4929,7 @@ def _ensure_smart_tables():
             "compact_cards": "true",
             "auto_refresh": "true",
             "month_start_day": "10",
+            "top_heading_spacing": "0",
         }
         for k, v in defaults.items():
             cur.execute("""
@@ -4923,13 +4967,30 @@ def save_smart_pref(key, value):
     finally:
         cur.close()
 
+@st.cache_data(ttl=60, show_spinner=False)
 def smart_users(active_only=True):
     _ensure_smart_tables()
-    q = "SELECT username, display_name, active, language, theme, accent_color, currency, dp_data FROM app_user_profiles"
+    q = "SELECT username, display_name, nickname, active, language, theme, accent_color, currency, dp_data FROM app_user_profiles"
     if active_only:
         q += " WHERE active=TRUE"
     q += " ORDER BY username"
     return pd.read_sql(q, get_db())
+
+def _smart_person_map():
+    """Return LogSync code -> real username, including Settings nicknames."""
+    mapping = dict(SMART_PERSONS)
+    try:
+        profile_df = smart_users(True)
+        for _, row in profile_df.iterrows():
+            username = str(row.get("username") or "").strip().upper()
+            nickname = str(row.get("nickname") or "").strip().upper()
+            if username and nickname and re.fullmatch(r"[A-Z]", nickname):
+                if nickname not in mapping or mapping.get(nickname) == username:
+                    mapping[nickname] = username
+    except Exception:
+        pass
+    return mapping
+
 
 def _active_names():
     try:
@@ -4977,11 +5038,21 @@ def _expense_groups(df):
     x["total_amount"] = pd.to_numeric(x["total_amount"], errors="coerce").fillna(0)
     x["per_person_amount"] = pd.to_numeric(x["per_person_amount"], errors="coerce").fillna(0)
     x["payment_status"] = x["payment_status"].astype(str).str.upper()
-    # Existing app writes one row per participant. Group the shared expense.
-    group_cols = ["date", "product_name", "place_name", "total_amount"]
-    if "time" in x.columns:
-        # time is useful where multiple same-day expenses have identical descriptions
-        group_cols.append("time")
+    # New shared expenses have one group id, so two participants still count
+    # as ONE expense. Legacy rows keep the old date/product/place/time fallback.
+    if "expense_group_id" in x.columns and x["expense_group_id"].notna().any():
+        x["_group_key"] = x["expense_group_id"].fillna("").astype(str)
+        legacy = x["_group_key"].eq("")
+        if legacy.any():
+            legacy_cols = ["date", "product_name", "place_name", "total_amount"]
+            if "time" in x.columns:
+                legacy_cols.append("time")
+            x.loc[legacy, "_group_key"] = x.loc[legacy, legacy_cols].astype(str).agg("|".join, axis=1)
+        group_cols = ["_group_key"]
+    else:
+        group_cols = ["date", "product_name", "place_name", "total_amount"]
+        if "time" in x.columns:
+            group_cols.append("time")
     rows = []
     for key, g in x.groupby(group_cols, dropna=False):
         payer_rows = g[g["payment_status"].isin(["PAID", "PAYMENT DONE"])]
@@ -5132,6 +5203,51 @@ def premium_dashboard_page():
                 )
         st.dataframe(style_table(recent), use_container_width=True, hide_index=True)
 
+def _expense_signature(expense_date, product, place, total, payer, participants):
+    participants_key = ",".join(sorted(str(x).strip().upper() for x in participants))
+    raw = "|".join([
+        str(expense_date),
+        str(product or "").strip().upper(),
+        str(place or "").strip().upper(),
+        f"{float(total):.2f}",
+        str(payer or "").strip().upper(),
+        participants_key,
+    ])
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _expense_already_exists(conn, expense_date, product, place, total, payer, participants):
+    """Block an exact duplicate shared expense already in PostgreSQL."""
+    product = (product or "Shared Expense").strip()
+    place = (place or "").strip()
+    participants = {str(x).strip().upper() for x in participants}
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT name, payment_status
+            FROM account_records
+            WHERE date=%s
+              AND COALESCE(product_name,'')=%s
+              AND COALESCE(place_name,'')=%s
+              AND ROUND(COALESCE(total_amount,0)::numeric,2)=ROUND(%s::numeric,2)
+        """, (expense_date, product, place, float(total)))
+        rows = cur.fetchall()
+
+    if not rows:
+        return False
+
+    existing_participants = {
+        str(name).strip().upper()
+        for name, status in rows
+        if str(status).upper() != "NOT INVOLVED"
+    }
+    existing_payer = next(
+        (str(name).strip().upper() for name, status in rows
+         if str(status).upper() in ("PAID", "PAYMENT DONE")),
+        ""
+    )
+    return existing_participants == participants and existing_payer == str(payer).strip().upper()
+
+
 def smart_expense_page():
     _ensure_smart_tables()
     users = _active_names()
@@ -5149,6 +5265,9 @@ def smart_expense_page():
     payer = st.selectbox("Who paid?", users, key="smart_exp_payer")
     participants = st.multiselect("Who was involved?", users, default=users, key="smart_exp_participants")
 
+    signature = _expense_signature(expense_date, product, place, total, payer, participants)
+    already_saved_in_session = st.session_state.get("smart_expense_saved_signature") == signature
+
     if participants and total > 0:
         share = round(total / len(participants), 2)
         st.markdown(f"""
@@ -5157,23 +5276,40 @@ def smart_expense_page():
         </div>
         """, unsafe_allow_html=True)
 
-        if st.button("➕ Save Expense", type="primary", use_container_width=True):
-            conn = get_db(); cur = conn.cursor()
+        if already_saved_in_session:
+            st.success("🔒 This exact expense is already saved. Change an expense field to create a new entry.")
+
+        if st.button("➕ Save Expense", type="primary", use_container_width=True, disabled=already_saved_in_session, key="smart_expense_save"):
+            conn = get_db()
+            cur = conn.cursor()
             try:
-                now = datetime.datetime.now().time().replace(microsecond=0)
+                # Lock before INSERT so Enter/double-click cannot duplicate it.
+                st.session_state["smart_expense_saved_signature"] = signature
+
+                if _expense_already_exists(conn, expense_date, product, place, total, payer, participants):
+                    st.warning("⚠️ This exact expense already exists. Nothing was added.")
+                    st.rerun()
+
+                expense_group_id = str(uuid.uuid4())
+                product_value = product.strip() or "Shared Expense"
+                place_value = place.strip()
+
                 for name in users:
                     involved = name in participants
                     status = "PAID" if name == payer and involved else ("PENDING" if involved else "NOT INVOLVED")
                     cur.execute("""
                         INSERT INTO account_records
-                        (date, name, product_name, place_name, total_amount, per_person_amount, payment_status)
-                        VALUES (%s,%s,%s,%s,%s,%s,%s)
-                    """, (expense_date, name, product or "Shared Expense", place or "", total, share if involved else 0, status))
+                        (date, name, product_name, place_name, total_amount,
+                         per_person_amount, payment_status, expense_group_id)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+                    """, (expense_date, name, product_value, place_value, total, share if involved else 0, status, expense_group_id))
                 conn.commit()
-                st.success("Expense saved. Settlement has been recalculated.")
+                fetch_account_records.clear()
+                st.success("Expense saved once. All participants are linked to the same expense.")
                 st.rerun()
             except Exception as e:
                 conn.rollback()
+                st.session_state.pop("smart_expense_saved_signature", None)
                 st.error(f"Could not save expense: {e}")
             finally:
                 cur.close()
@@ -5277,7 +5413,7 @@ def smart_settings_page():
     try:
         conn = get_db()
         with conn.cursor() as cur:
-            cur.execute("SELECT username, display_name, active, language, theme, accent_color, currency, dp_data FROM app_user_profiles ORDER BY username")
+            cur.execute("SELECT username, display_name, nickname, active, language, theme, accent_color, currency, dp_data FROM app_user_profiles ORDER BY username")
             profile_rows = cur.fetchall()
             profile_cols = [d[0] for d in cur.description]
             profiles = pd.DataFrame(profile_rows, columns=profile_cols)
@@ -5308,6 +5444,12 @@ def smart_settings_page():
             c1, c2 = st.columns(2)
             with c1:
                 new_name = st.text_input("Display name", row["display_name"], key=f"sn_{row['username']}")
+                nickname_default = str(row.get("nickname") or "").strip().upper()
+                nickname = st.text_input(
+                    "Nickname / LogSync Code", nickname_default, max_chars=1,
+                    placeholder="e.g. B",
+                    help="Use one unique letter. Example: B = BIREN, then LogSync accepts D1B1."
+                ).strip().upper()
                 active = st.toggle("Active user", bool(row["active"]), key=f"sa_{row['username']}")
                 languages = ["English", "ગુજરાતી", "Hindi"]
                 language = st.selectbox("Language", languages, index=languages.index(row["language"]) if row["language"] in languages else 0, key=f"sl_{row['username']}")
@@ -5319,20 +5461,36 @@ def smart_settings_page():
                 currency = st.selectbox("Currency", currencies, index=currencies.index(row["currency"]) if row["currency"] in currencies else 0, key=f"su_{row['username']}")
                 dp = st.file_uploader("Change DP", type=["png", "jpg", "jpeg"], key=f"dp_{row['username']}")
                 if st.button("Save User", key=f"saveu_{row['username']}", type="primary"):
+                    if nickname and not re.fullmatch(r"[A-Z]", nickname):
+                        st.error("Nickname must be exactly one English letter (A-Z).")
+                        st.stop()
+                    used_codes = {
+                        str(other.get("nickname") or "").strip().upper()
+                        for _, other in profiles.iterrows()
+                        if str(other.get("username") or "").strip().upper() != str(row["username"]).upper()
+                        and str(other.get("nickname") or "").strip()
+                    }
+                    if nickname in {"D", "Y", "M"} and nickname != str(row.get("nickname") or "").strip().upper():
+                        st.error("D, Y and M are reserved for the original LogSync codes.")
+                        st.stop()
+                    if nickname and nickname in used_codes:
+                        st.error(f"Nickname '{nickname}' is already assigned to another user.")
+                        st.stop()
                     conn = get_db()
                     try:
                         with conn.cursor() as cur:
                             if dp is not None:
                                 dp_data = base64.b64encode(dp.getvalue()).decode()
-                                cur.execute("""UPDATE app_user_profiles SET display_name=%s,active=%s,language=%s,theme=%s,accent_color=%s,currency=%s,dp_data=%s WHERE username=%s""",
-                                            (new_name, active, language, theme, color, currency, dp_data, row["username"]))
+                                cur.execute("""UPDATE app_user_profiles SET display_name=%s,nickname=%s,active=%s,language=%s,theme=%s,accent_color=%s,currency=%s,dp_data=%s WHERE username=%s""",
+                                            (new_name, nickname or None, active, language, theme, color, currency, dp_data, row["username"]))
                             else:
-                                cur.execute("""UPDATE app_user_profiles SET display_name=%s,active=%s,language=%s,theme=%s,accent_color=%s,currency=%s WHERE username=%s""",
-                                            (new_name, active, language, theme, color, currency, row["username"]))
+                                cur.execute("""UPDATE app_user_profiles SET display_name=%s,nickname=%s,active=%s,language=%s,theme=%s,accent_color=%s,currency=%s WHERE username=%s""",
+                                            (new_name, nickname or None, active, language, theme, color, currency, row["username"]))
                         conn.commit()
                     finally:
                         pass
                     _load_saved_name_colors.clear()
+                    smart_users.clear()
                     st.success("User settings saved.")
                     st.rerun()
 
@@ -5355,6 +5513,7 @@ def smart_settings_page():
                             finally:
                                 pass
                             _load_saved_name_colors.clear()
+                            smart_users.clear()
                             st.session_state.pop(delete_key, None)
                             st.session_state.pop(f"delete_otp_{row['username']}", None)
                             st.success(f"{row['username']} profile deleted from the database.")
@@ -5388,6 +5547,7 @@ def smart_settings_page():
                 finally:
                     pass
                 _load_saved_name_colors.clear()
+                smart_users.clear()
                 st.success(f"{new_user} added.")
                 st.rerun()
 
@@ -5404,13 +5564,21 @@ def smart_settings_page():
         ("show_month_progress", "Show month progress"),
         ("compact_tables", "Compact tables"),
         ("csv_export_enabled", "CSV export enabled"),
+        ("top_heading_spacing", "Top heading spacing (px)"),
     ]
     pending = {}
     with st.form("fast_settings_form"):
         cols = st.columns(2)
         for n, (key, label) in enumerate(pref_controls):
             with cols[n % 2]:
-                pending[key] = st.toggle(label, value=str(prefs.get(key, "true")).lower() == "true", key=f"fast_pref_{key}")
+                if key == "top_heading_spacing":
+                    try:
+                        spacing_default = max(0, min(100, int(prefs.get(key, "0"))))
+                    except Exception:
+                        spacing_default = 0
+                    pending[key] = st.number_input(label, min_value=0, max_value=100, value=spacing_default, step=1, key=f"fast_pref_{key}", help="0 = minimum top spacing.")
+                else:
+                    pending[key] = st.toggle(label, value=str(prefs.get(key, "true")).lower() == "true", key=f"fast_pref_{key}")
         c1, c2 = st.columns(2)
         with c1:
             app_langs = ["English", "ગુજરાતી", "Hindi"]
@@ -5493,6 +5661,13 @@ def app():
         }
         [data-testid="stAppViewContainer"] * {background-image:none !important;}
         </style>""", unsafe_allow_html=True)
+
+    # Top heading spacing is configurable from Settings.
+    try:
+        _top_spacing = max(0, min(100, int(smart_pref("top_heading_spacing", 0))))
+    except Exception:
+        _top_spacing = 0
+    st.markdown(f"""<style>[data-testid="stAppViewContainer"] .main .block-container {{ padding-top: {_top_spacing}px !important; }}</style>""", unsafe_allow_html=True)
 
     # PNG file load & encode
     with open("images/icons8-dinner-64.png", "rb") as f:
@@ -6362,10 +6537,22 @@ def app():
                             'border': 1
                         })
 
+                        summary_number_format = workbook.add_format({
+                            'num_format': '0.##',
+                            'border': 1
+                        })
+
                         total_format = workbook.add_format({
                             'bold': True,
                             'font_color': '#9929EA',
                             'border': 1
+                        })
+
+                        total_number_format = workbook.add_format({
+                            'bold': True,
+                            'font_color': '#9929EA',
+                            'border': 1,
+                            'num_format': '0.##'
                         })
 
                         # ---------- Write Summary Table ----------
@@ -6383,19 +6570,43 @@ def app():
 
                             for col_num, cell_data in enumerate(row_data):
 
-                                if str(row_data[0]).upper() == "TOTAL":
-                                    worksheet.write(
-                                        start_row + 2 + row_num,
-                                        col_num,
-                                        cell_data,
-                                        total_format
-                                    )
-                                else:
-                                    worksheet.write(
-                                        start_row + 2 + row_num,
-                                        col_num,
-                                        cell_data
-                                    )
+                                is_total = str(row_data[0]).upper() == "TOTAL"
+                                if col_num > 0:
+                                    try:
+                                        numeric_value = float(cell_data)
+                                        cell_format = total_number_format if is_total else summary_number_format
+                                        worksheet.write(
+                                            start_row + 2 + row_num,
+                                            col_num,
+                                            numeric_value,
+                                            cell_format
+                                        )
+                                        continue
+                                    except (TypeError, ValueError):
+                                        pass
+
+                                worksheet.write(
+                                    start_row + 2 + row_num,
+                                    col_num,
+                                    cell_data,
+                                    total_format if is_total else None
+                                )
+
+                        # ---------- Pie chart: Tiffin share by user ----------
+                        chart_rows = max(0, len(summary_df) - 1)  # exclude TOTAL row
+                        chart_data_start = start_row + 2
+                        if chart_rows > 0:
+                            chart = workbook.add_chart({"type": "pie"})
+                            chart.add_series({
+                                "name": "Tiffin Distribution",
+                                "categories": ["Tiffin Records", chart_data_start, 0, chart_data_start + chart_rows - 1, 0],
+                                "values": ["Tiffin Records", chart_data_start, 1, chart_data_start + chart_rows - 1, 1],
+                                "data_labels": {"percentage": True, "category": True},
+                            })
+                            chart.set_title({"name": "Tiffin Share by User"})
+                            chart.set_style(10)
+                            chart.set_legend({"position": "right"})
+                            worksheet.insert_chart(1, len(filtered_df.columns) + 2, chart, {"x_scale": 1.05, "y_scale": 1.05})
 
                         # ---------- Main Table Name Coloring ----------
 
@@ -6490,6 +6701,9 @@ def app():
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     )
                 # -------------------- Delete --------------------
+
+    elif menu == "Data Center":
+        smart_data_page()
 
     elif menu == "Settings":
         smart_settings_page()
