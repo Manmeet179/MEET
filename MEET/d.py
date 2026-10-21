@@ -7,13 +7,11 @@ import bcrypt
 import psycopg2
 from io import BytesIO
 import base64
-import os
 import time
 import requests
 import re
 from datetime import date
 from dateutil.relativedelta import relativedelta
-from psycopg2.pool import ThreadedConnectionPool
 from streamlit_extras.radial_menu import *
 from streamlit_option_menu import option_menu
 
@@ -324,6 +322,11 @@ st.markdown("""
     footer {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
+# petoc = "tiffin_db"
+# lemox = "postgres"
+# ternak = "1234"
+# owert = "localhost"
+# xoper = 5432
 def show_loader(target):
     """Render the supplied loader inside a placeholder."""
     target.markdown(
@@ -381,73 +384,28 @@ def run_with_loader(func, *args, **kwargs):
 
 
 TABLE_NAME = "tiffin"
+petoc = "defaultdb"
+lemox = "avnadmin"
+ternak = "AVNS_LovPCygG-7HQB0xs0Su"
+owert = "pg-e6a0b32-manmeet2756-50e1.d.aivencloud.com"
+xoper = 19632
 
 
-def cfg(key, default=""):
-    """Read configuration from Streamlit Secrets first, then environment variables."""
-    try:
-        val = st.secrets.get(key, default)
-        if val:
-            return str(val)
-    except Exception:
-        pass
-    return os.getenv(key, default)
-
-
-def github_is_configured():
-    return bool(
-        cfg("GITHUB_TOKEN")
-        and cfg("GITHUB_OWNER")
-        and cfg("GITHUB_REPO")
-    )
-
-
-def _db_secret_values():
-    keys = ["DB_HOST", "DB_NAME", "DB_USER", "DB_PASSWORD", "DB_PORT"]
-    missing = [k for k in keys if not cfg(k)]
-    if missing:
-        raise RuntimeError(
-            "Missing Streamlit Secrets: " + ", ".join(missing)
-        )
-    return {
-        "host": cfg("DB_HOST"),
-        "dbname": cfg("DB_NAME"),
-        "user": cfg("DB_USER"),
-        "password": cfg("DB_PASSWORD"),
-        "port": int(cfg("DB_PORT")),
-        "sslmode": cfg("DB_SSLMODE", "require"),
-    }
-
-
-def db_connect():
-    """Create one PostgreSQL connection from Streamlit Secrets."""
-    params = _db_secret_values()
+@st.cache_resource
+def get_db():
     return psycopg2.connect(
-        **params,
+        host=owert,
+        database=petoc,
+        user=lemox,
+        password=ternak,
+        port=int(xoper),
+        sslmode="require",
         connect_timeout=5,
         keepalives=1,
         keepalives_idle=30,
         keepalives_interval=10,
-        keepalives_count=5,
+        keepalives_count=5
     )
-
-
-@st.cache_resource(show_spinner=False)
-def db_pool():
-    """Optional shared connection pool for future high-concurrency DB work."""
-    params = _db_secret_values()
-    return ThreadedConnectionPool(
-        1,
-        5,
-        **params,
-        connect_timeout=5,
-    )
-
-
-@st.cache_resource(show_spinner=False)
-def get_db():
-    """Backward-compatible DB accessor used throughout the existing app."""
-    return db_connect()
 
 
 # ==========================
