@@ -1,10 +1,11 @@
 streamlit
 pandas
 matplotlib
-openpyxl
-XlsxWriter
-python-dateutil
 bcrypt
 psycopg2-binary
+requests
+python-dateutil
 streamlit-extras
 streamlit-option-menu
+extra-streamlit-components
+streamlit-autorefresh

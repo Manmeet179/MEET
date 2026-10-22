@@ -10,10 +10,122 @@ import base64
 import time
 import requests
 import re
+import os
+import hmac
+import hashlib
+from datetime import date, datetime, timedelta
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from streamlit_extras.radial_menu import *
 from streamlit_option_menu import option_menu
+
+# Persistent login cookie + inactivity timer dependencies:
+# pip install extra-streamlit-components streamlit-autorefresh
+try:
+    import extra_streamlit_components as stx
+except ImportError:
+    stx = None
+try:
+    from streamlit_autorefresh import st_autorefresh
+except ImportError:
+    st_autorefresh = None
+
+_SESSION_COOKIE_NAME = "lunchlogix_session"
+_SESSION_TIMEOUT_SECONDS = 120  # 2 minutes
+_SESSION_SECRET = os.environ.get("LUNCHLOGIX_SESSION_SECRET", "change-this-secret-before-deployment")
+_COOKIE_MANAGER = None
+
+def _cookie_manager():
+    global _COOKIE_MANAGER
+    if stx is None:
+        return None
+    if _COOKIE_MANAGER is None:
+        _COOKIE_MANAGER = stx.CookieManager(key="lunchlogix_cookie_manager")
+    return _COOKIE_MANAGER
+
+def _make_session_cookie():
+    issued = str(int(time.time()))
+    signature = hmac.new(_SESSION_SECRET.encode(), issued.encode(), hashlib.sha256).hexdigest()
+    return f"{issued}.{signature}"
+
+def _valid_session_cookie(value):
+    try:
+        issued, signature = value.split(".", 1)
+        expected = hmac.new(_SESSION_SECRET.encode(), issued.encode(), hashlib.sha256).hexdigest()
+        age = int(time.time()) - int(issued)
+        return hmac.compare_digest(signature, expected) and 0 <= age <= _SESSION_TIMEOUT_SECONDS
+    except Exception:
+        return False
+
+def _set_login_cookie():
+    manager = _cookie_manager()
+    if manager is not None:
+        manager.set(_SESSION_COOKIE_NAME, _make_session_cookie(), expires_at=datetime.now() + timedelta(seconds=_SESSION_TIMEOUT_SECONDS))
+
+def _clear_login_cookie():
+    manager = _cookie_manager()
+    if manager is not None:
+        try:
+            manager.delete(_SESSION_COOKIE_NAME)
+        except Exception:
+            pass
+
+def _restore_login_from_cookie():
+    """Restore login after browser refresh using a signed, short-lived cookie."""
+    if st.session_state.get("logged_in"):
+        return
+    manager = _cookie_manager()
+    if manager is None:
+        return
+    try:
+        value = manager.get(_SESSION_COOKIE_NAME)
+        if value and _valid_session_cookie(value):
+            st.session_state["logged_in"] = True
+            st.session_state["_last_activity"] = time.time()
+            st.session_state["_activity_snapshot"] = _activity_snapshot()
+        elif value:
+            _clear_login_cookie()
+    except Exception:
+        # Cookie manager can be briefly empty on the first browser render.
+        pass
+
+def _activity_snapshot():
+    """Fingerprint user-controlled widget state, excluding our timer internals."""
+    excluded = {"_last_activity", "_activity_snapshot", "_activity_refresh", "_cookie_manager"}
+    pairs = []
+    for key, value in st.session_state.items():
+        if key in excluded or str(key).startswith("lunchlogix_cookie_manager"):
+            continue
+        try:
+            pairs.append((str(key), repr(value)))
+        except Exception:
+            pairs.append((str(key), type(value).__name__))
+    return hashlib.sha256(repr(sorted(pairs)).encode("utf-8", errors="replace")).hexdigest()
+
+def _manage_login_session():
+    """Restore cookie session, detect UI interaction, and expire after 2 idle minutes."""
+    if "logged_in" not in st.session_state:
+        st.session_state["logged_in"] = False
+    _restore_login_from_cookie()
+    if not st.session_state.get("logged_in"):
+        return
+
+    now = time.time()
+    current_snapshot = _activity_snapshot()
+    previous_snapshot = st.session_state.get("_activity_snapshot")
+    if previous_snapshot is not None and current_snapshot != previous_snapshot:
+        st.session_state["_last_activity"] = now
+        _set_login_cookie()
+    st.session_state["_activity_snapshot"] = current_snapshot
+
+    last_activity = st.session_state.setdefault("_last_activity", now)
+    if now - last_activity >= _SESSION_TIMEOUT_SECONDS:
+        smart_logout()
+        return
+
+    # Periodically rerun to check idle timeout. This timer does not itself count as activity.
+    if st_autorefresh is not None:
+        st_autorefresh(interval=5000, limit=None, key="_activity_refresh")
 
 # App-wide interface translation for the most common controls and headings.
 # User-entered data, names and notes are intentionally left unchanged.
@@ -1091,8 +1203,11 @@ def login():
                 bcrypt.checkpw(password.encode(), LOGIN_PASS_HASH):
 
             st.session_state["logged_in"] = True
+            st.session_state["_last_activity"] = time.time()
+            st.session_state["_activity_snapshot"] = _activity_snapshot()
+            _set_login_cookie()
             st.success("Logged in successfully!")
-            st.rerun()  # 🔥 IMPORTANT FIX
+            st.rerun()  # Keep the authenticated session across refreshes
         else:
             st.error("Invalid credentials")
 
@@ -5669,8 +5784,9 @@ def smart_settings_page():
 
 
 def smart_logout():
+    _clear_login_cookie()
     st.session_state["logged_in"] = False
-    for k in ["menu","tiffin_saved_signature"]:
+    for k in ["menu", "tiffin_saved_signature", "_last_activity", "_activity_snapshot"]:
         st.session_state.pop(k, None)
     st.rerun()
 
@@ -5689,10 +5805,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def app():
-    if 'logged_in' not in st.session_state:
-        st.session_state['logged_in'] = False
+    _manage_login_session()
 
-    if not st.session_state['logged_in']:
+    if not st.session_state.get('logged_in', False):
         login()
         return
 
