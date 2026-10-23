@@ -11,15 +11,18 @@ STORAGE_KEY = "simple_login_session_v1"
 
 st.set_page_config(page_title="Login App", page_icon="🔐", layout="centered")
 
-# Re-run every 5 seconds to enforce the timeout while the page is open.
+# Check inactivity periodically while the app is open.
 st_autorefresh(interval=5000, key="session_watchdog")
 
-# Browser JS executes asynchronously. A short-lived "loading" result is normal
-# on first render, so show the login form until a stored session is available.
+# IMPORTANT:
+# On browser refresh, Streamlit may briefly receive 0/None while JavaScript is
+# still reading localStorage. Do not show the login page during that short
+# hydration period, otherwise a logged-in user appears logged out.
 browser_snapshot = st_javascript(
     """
     (() => {
       const KEY = "simple_login_session_v1";
+
       if (!window.__loginActivityListenerInstalled) {
         const markActivity = () => {
           try {
@@ -35,15 +38,22 @@ browser_snapshot = st_javascript(
         );
         window.__loginActivityListenerInstalled = true;
       }
-      try { return localStorage.getItem(KEY) || "__EMPTY__"; }
-      catch (e) { return "__ERROR__"; }
+
+      try {
+        const stored = localStorage.getItem(KEY);
+        return stored === null ? "__EMPTY__" : stored;
+      } catch (e) {
+        return "__ERROR__";
+      }
     })()
     """,
     key="read_login_storage",
 )
 
 def parse_snapshot(value):
-    if not isinstance(value, str) or value in ("", "__EMPTY__", "__ERROR__", "0", "None"):
+    if not isinstance(value, str) or value in ("", "0", "None"):
+        return None  # JS read has not completed yet
+    if value in ("__EMPTY__", "__ERROR__"):
         return {}
     try:
         result = json.loads(value)
@@ -52,54 +62,62 @@ def parse_snapshot(value):
         return {}
 
 session = parse_snapshot(browser_snapshot)
+
+# Wait for the browser's localStorage read to finish before deciding to show
+# the login screen. This is what prevents refresh from looking like a logout.
+if session is None:
+    st.title("Checking session…")
+    st.stop()
+
 now_ms = int(time.time() * 1000)
 logged_in = bool(session.get("logged_in"))
 last_activity = int(session.get("last_activity") or 0)
 
 if logged_in and (not last_activity or now_ms - last_activity >= INACTIVITY_SECONDS * 1000):
-    st_javascript(
+    clear_result = st_javascript(
         """
         (() => {
           localStorage.removeItem("simple_login_session_v1");
-          return "expired";
+          return "__CLEARED__";
         })()
         """,
         key="clear_expired_session",
     )
-    session = {}
-    logged_in = False
+    st.session_state["_expired_clearing"] = True
+    st.info("Session expired due to 2 minutes of inactivity. Please log in again.")
+    st.stop()
 
-# If login/logout just happened, wait for the browser-side storage update before
-# deciding which screen to render.
+# Wait for login/logout writes to complete and then let the browser storage
+# determine which screen to show. No immediate st.rerun() is used because it
+# can interrupt the browser-side write before it finishes.
 if st.session_state.get("_login_pending"):
     if logged_in:
         st.session_state["_login_pending"] = False
     else:
-        st.info("Logging in…")
+        st.title("Logging in…")
         st.stop()
 
 if st.session_state.get("_logout_pending"):
     if not logged_in:
         st.session_state["_logout_pending"] = False
     else:
-        st.info("Logging out…")
+        st.title("Logging out…")
         st.stop()
 
 if logged_in:
     st.title("Hello")
-
     if st.button("Logout", type="primary"):
         st.session_state["_logout_pending"] = True
         st_javascript(
             """
             (() => {
               localStorage.removeItem("simple_login_session_v1");
-              return "logged out";
+              return "__LOGGED_OUT__";
             })()
             """,
             key=f"manual_logout_{now_ms}",
         )
-        st.rerun()
+        st.stop()
 else:
     st.title("Login")
     with st.form("login_form"):
@@ -117,12 +135,12 @@ else:
                     logged_in: true,
                     last_activity: Date.now()
                   }));
-                  return "saved";
+                  return "__SAVED__";
                 })()
                 """,
                 key=f"save_login_session_{now_ms}",
             )
-            st.rerun()
+            st.stop()
         else:
             st.error("Invalid Login ID or Password.")
 
