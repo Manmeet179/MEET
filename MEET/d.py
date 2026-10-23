@@ -90,7 +90,7 @@ if not st.session_state.get("_ui_translation_wrapped", False):
 st.set_page_config(
     page_title="LUNCHLOGIX",
     page_icon="images/d.png",
-    layout="wide",
+    layout="centered",
     initial_sidebar_state="collapsed",
     menu_items={
         'Get help': None,
@@ -401,28 +401,13 @@ def run_with_loader(func, *args, **kwargs):
 TABLE_NAME = "tiffin"
 petoc = "defaultdb"
 lemox = "avnadmin"
-# Keep credentials out of source control. Configure DB_PASSWORD in
-# Streamlit Cloud -> App settings -> Secrets, or set it as an environment variable.
-def _get_db_password():
-    try:
-        value = st.secrets.get("DB_PASSWORD", "")
-    except Exception:
-        value = ""
-    import os
-    return value or os.environ.get("DB_PASSWORD", "")
-
-ternak = _get_db_password()
+ternak = "AVNS_LovPCygG-7HQB0xs0Su"
 owert = "pg-e6a0b32-manmeet2756-50e1.d.aivencloud.com"
 xoper = 19632
 
 
 @st.cache_resource
 def _connect_db():
-    if not ternak:
-        raise RuntimeError(
-            "Database password is not configured. Add DB_PASSWORD to "
-            "Streamlit Cloud Secrets."
-        )
     return psycopg2.connect(
         host=owert,
         database=petoc,
@@ -2643,25 +2628,7 @@ div[data-baseweb="input"] > div {
 """, unsafe_allow_html=True)
 
 
-# =========================================================
-# ☀️ 🌕 ⭐ ☁️ SKY OBJECTS
-# =========================================================
-
-st.markdown("""
-<div class="sun">☀️</div>
-
-<div class="moon">🌕</div>
-
-<div class="stars"></div>
-
-<div class="clouds cloud1"></div>
-<div class="clouds cloud2"></div>
-<div class="clouds cloud3"></div>
-<div class="clouds cloud4"></div>
-<div class="clouds cloud5"></div>
-<div class="clouds cloud6"></div>
-""", unsafe_allow_html=True)
-
+# Sky objects removed: premium static backgrounds are controlled from Settings.
 
 st.markdown("""
 <style>
@@ -4996,9 +4963,9 @@ def _animation_pref():
         with get_db().cursor() as cur:
             cur.execute("SELECT setting_value FROM smart_preferences WHERE setting_key='animation_theme'")
             row = cur.fetchone()
-        return str(row[0]).lower() == "true" if row else True
+        return str(row[0]).lower() == "true" if row else False
     except Exception:
-        return True
+        return False
 
 
 def smart_pref(key, default=None):
@@ -5647,7 +5614,6 @@ def smart_settings_page():
         ("confirm_delete", "Confirm before delete"),
         ("compact_cards", "Compact premium cards"),
         ("auto_refresh", "Auto refresh data"),
-        ("animation_theme", "Sunset animation theme"),
         ("show_balance", "Show balance on dashboard"),
         ("show_tiffin_amount", "Show tiffin amount"),
         ("show_expense_amount", "Show expense amount"),
@@ -5666,6 +5632,9 @@ def smart_settings_page():
             app_langs = ["English", "ગુજરાતી", "Hindi"]
             current_lang = prefs.get("language", "English")
             pending["language"] = st.selectbox("App language", app_langs, index=app_langs.index(current_lang) if current_lang in app_langs else 0, key="fast_app_language")
+            ui_themes = ["Midnight Premium", "Ocean Blue", "Graphite", "Light Minimal"]
+            current_ui_theme = prefs.get("ui_theme", "Midnight Premium")
+            pending["ui_theme"] = st.selectbox("App appearance", ui_themes, index=ui_themes.index(current_ui_theme) if current_ui_theme in ui_themes else 0, key="fast_ui_theme", help="Changes the app background and card style.")
         save_settings = st.form_submit_button("💾 Save Settings", type="primary", use_container_width=True)
 
     if save_settings:
@@ -5721,23 +5690,30 @@ def app():
         except Exception:
             st.session_state["_app_language"] = "English"
 
-    # Persisted background animation preference (cached). OFF = plain black background.
-    _animation_enabled = _animation_pref()
+    # Premium static UI theme, selected from Settings. Decorative sky animation is removed.
+    _ui_theme = smart_pref("ui_theme", "Midnight Premium")
+    _theme_backgrounds = {
+        "Midnight Premium": ("#080d18", "rgba(17, 25, 42, .94)", "#8B5CF6"),
+        "Ocean Blue": ("#071827", "rgba(10, 39, 61, .94)", "#38BDF8"),
+        "Graphite": ("#17191f", "rgba(37, 39, 46, .96)", "#F59E0B"),
+        "Light Minimal": ("#f3f6fb", "rgba(255, 255, 255, .96)", "#2563EB"),
+    }
+    _bg, _card_bg, _accent = _theme_backgrounds.get(_ui_theme, _theme_backgrounds["Midnight Premium"])
+    _light_theme = _ui_theme == "Light Minimal"
+    _text_color = "#172033" if _light_theme else "#F1F5F9"
+    st.markdown(f"""<style>
+    html, body, .stApp, [data-testid=\"stAppViewContainer\"], [data-testid=\"stAppViewContainer\"] > .main {{
+      background: {_bg} !important; background-image: none !important; color: {_text_color} !important;
+    }}
+    .stApp::before, .stApp::after, [data-testid=\"stAppViewContainer\"]::before, [data-testid=\"stAppViewContainer\"]::after,
+    .sun, .moon, .stars, .clouds, [class*=\"sun\"], [class*=\"moon\"], [class*=\"star\"], [class*=\"cloud\"], [class*=\"sky\"] {{
+      display:none !important; visibility:hidden !important; opacity:0 !important; animation:none !important; background-image:none !important;
+    }}
+    .premium-card, [data-testid=\"stMetric\"], div[data-testid=\"stExpander\"] {{ background: {_card_bg} !important; color: {_text_color} !important; border: 1px solid {_accent}33 !important; border-radius: 18px !important; }}
+    div.stButton > button, div.stDownloadButton > button {{ border-radius: 12px !important; font-weight: 700 !important; border: 1px solid {_accent} !important; }}
+    [data-testid=\"stSidebar\"] {{ background: {_bg} !important; }}
+    </style>""", unsafe_allow_html=True)
 
-    if not _animation_enabled:
-        st.markdown("""<style>
-        html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stAppViewContainer"] > .main,
-        [data-testid="stHeader"], [data-testid="stToolbar"] {background:#000000 !important;background-image:none !important;}
-        [data-testid="stAppViewContainer"]::before,[data-testid="stAppViewContainer"]::after,
-        [data-testid="stApp"]::before,[data-testid="stApp"]::after,
-        .sun,.moon,.stars,.clouds,.cloud1,.cloud2,.cloud3,.cloud4,.cloud5,.cloud6,
-        .sunset,.sunrise,.sunset-animation,.background-animation,.animated-background,
-        [class*="sun"],[class*="moon"],[class*="star"],[class*="cloud"],[class*="sky"] {
-            display:none !important; visibility:hidden !important; opacity:0 !important;
-            animation:none !important; transition:none !important; background-image:none !important;
-        }
-        [data-testid="stAppViewContainer"] * {background-image:none !important;}
-        </style>""", unsafe_allow_html=True)
 
     # Load billing rates once per app run so every page can safely use them.
     tiffin_rate, roti_rate = get_billing_rates()
@@ -6772,110 +6748,6 @@ def app():
         if st.session_state.get("show_advanced_db_control", False):
             st.caption("Advanced controls load only when opened. Database status is checked only when requested or during a start/stop operation.")
             database_settings_page()
-
-
-
-# ========================= PREMIUM UI LAYER =========================
-# CSS-only presentation layer: keeps existing pages, widgets and workflows.
-st.markdown("""
-<style>
-:root {
-  --ll-bg: #0b1020;
-  --ll-panel: rgba(17, 25, 46, .82);
-  --ll-border: rgba(148, 163, 184, .20);
-  --ll-text: #eef2ff;
-  --ll-muted: #a6b1c8;
-  --ll-accent: #8b5cf6;
-  --ll-accent2: #22d3ee;
-}
-html, body, [class*="css"] { font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
-.stApp {
-  background:
-    radial-gradient(ellipse at 8% 0%, rgba(34,211,238,.13), transparent 34%),
-    radial-gradient(ellipse at 92% 8%, rgba(139,92,246,.17), transparent 36%),
-    linear-gradient(145deg, #080d1a 0%, #10172b 48%, #0b1020 100%) !important;
-  color: var(--ll-text);
-}
-[data-testid="stAppViewContainer"] .main .block-container,
-[data-testid="stMainBlockContainer"] {
-  max-width: 1440px;
-  padding: 1.8rem clamp(1rem, 3vw, 2.5rem) 5rem !important;
-}
-h1, h2, h3, h4 { color: #f8fafc !important; letter-spacing: -.025em; }
-h1 { font-size: clamp(1.8rem, 3vw, 2.7rem) !important; font-weight: 800 !important; }
-h2, h3 { font-weight: 750 !important; }
-p, label, .stMarkdown, [data-testid="stCaptionContainer"] { color: #d5dcef; }
-[data-testid="stVerticalBlockBorderWrapper"],
-[data-testid="stExpander"],
-div[data-testid="stMetric"],
-div[data-testid="stForm"],
-div[data-testid="stDataFrame"],
-div[data-testid="stTable"] {
-  border: 1px solid var(--ll-border) !important;
-  border-radius: 18px !important;
-}
-[data-testid="stVerticalBlockBorderWrapper"] {
-  background: linear-gradient(145deg, rgba(22,32,56,.78), rgba(12,19,36,.78));
-  box-shadow: 0 12px 36px rgba(0,0,0,.15);
-}
-div[data-testid="stMetric"] {
-  background: linear-gradient(145deg, rgba(30,41,70,.88), rgba(17,25,46,.9));
-  padding: 1rem 1.15rem !important;
-  box-shadow: 0 10px 28px rgba(0,0,0,.12);
-}
-[data-testid="stMetricLabel"] { color: #aebbd3 !important; font-weight: 600; }
-[data-testid="stMetricValue"] { color: #f8fafc !important; font-weight: 800; }
-.stButton > button, .stDownloadButton > button, [data-testid="stFormSubmitButton"] > button {
-  background: linear-gradient(105deg, #7c3aed, #4f46e5) !important;
-  color: white !important; border: 1px solid rgba(196,181,253,.28) !important;
-  border-radius: 12px !important; min-height: 2.65rem;
-  padding: .55rem 1rem !important; font-weight: 700 !important;
-  box-shadow: 0 7px 18px rgba(79,70,229,.20);
-  transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
-}
-.stButton > button:hover, .stDownloadButton > button:hover,
-[data-testid="stFormSubmitButton"] > button:hover {
-  filter: brightness(1.12); transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(79,70,229,.30);
-}
-.stButton > button:focus, input:focus, textarea:focus { outline-color: #a78bfa !important; }
-input, textarea, [data-baseweb="select"] > div {
-  background-color: rgba(8,14,29,.82) !important;
-  color: #f8fafc !important; border-color: rgba(148,163,184,.30) !important;
-  border-radius: 11px !important;
-}
-[data-testid="stSidebar"] {
-  background: linear-gradient(180deg, #0c1326 0%, #101a32 100%) !important;
-  border-right: 1px solid rgba(148,163,184,.16);
-}
-[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p { color: #dbe4f6; }
-[data-testid="stSidebar"] .stButton > button {
-  background: rgba(30,41,70,.72) !important; box-shadow: none;
-}
-[data-testid="stTabs"] button {
-  border-radius: 10px 10px 0 0 !important; font-weight: 650 !important;
-}
-[data-testid="stTabs"] button[aria-selected="true"] {
-  color: #c4b5fd !important; border-bottom-color: #8b5cf6 !important;
-}
-[data-testid="stDataFrame"] { background: rgba(15,23,42,.72); overflow: hidden; }
-[data-testid="stAlert"] { border-radius: 14px !important; }
-hr { border-color: rgba(148,163,184,.20) !important; }
-a { color: #67e8f9 !important; }
-footer { visibility: hidden; }
-@media (max-width: 768px) {
-  [data-testid="stAppViewContainer"] .main .block-container,
-  [data-testid="stMainBlockContainer"] { padding: 1rem .8rem 4rem !important; }
-  h1 { font-size: 1.7rem !important; }
-  div[data-testid="stMetric"] { padding: .75rem !important; }
-}
-/* Respect users who prefer reduced motion; premium look remains static. */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
-}
-</style>
-""", unsafe_allow_html=True)
-
 
 
 if __name__ == "__main__":
