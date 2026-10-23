@@ -6896,5 +6896,3 @@ if __name__ == "__main__":
     except FileNotFoundError:
         st.error("📂 Required file is missing.")
 
-    except Exception as e:
-        st.error("⚠️ Something went wrong.")
