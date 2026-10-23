@@ -2628,7 +2628,25 @@ div[data-baseweb="input"] > div {
 """, unsafe_allow_html=True)
 
 
-# Sky objects removed: premium static backgrounds are controlled from Settings.
+# =========================================================
+# ☀️ 🌕 ⭐ ☁️ SKY OBJECTS
+# =========================================================
+
+st.markdown("""
+<div class="sun">☀️</div>
+
+<div class="moon">🌕</div>
+
+<div class="stars"></div>
+
+<div class="clouds cloud1"></div>
+<div class="clouds cloud2"></div>
+<div class="clouds cloud3"></div>
+<div class="clouds cloud4"></div>
+<div class="clouds cloud5"></div>
+<div class="clouds cloud6"></div>
+""", unsafe_allow_html=True)
+
 
 st.markdown("""
 <style>
@@ -4963,9 +4981,9 @@ def _animation_pref():
         with get_db().cursor() as cur:
             cur.execute("SELECT setting_value FROM smart_preferences WHERE setting_key='animation_theme'")
             row = cur.fetchone()
-        return str(row[0]).lower() == "true" if row else False
+        return str(row[0]).lower() == "true" if row else True
     except Exception:
-        return False
+        return True
 
 
 def smart_pref(key, default=None):
@@ -5614,6 +5632,7 @@ def smart_settings_page():
         ("confirm_delete", "Confirm before delete"),
         ("compact_cards", "Compact premium cards"),
         ("auto_refresh", "Auto refresh data"),
+        ("animation_theme", "Sunset animation theme"),
         ("show_balance", "Show balance on dashboard"),
         ("show_tiffin_amount", "Show tiffin amount"),
         ("show_expense_amount", "Show expense amount"),
@@ -5632,9 +5651,6 @@ def smart_settings_page():
             app_langs = ["English", "ગુજરાતી", "Hindi"]
             current_lang = prefs.get("language", "English")
             pending["language"] = st.selectbox("App language", app_langs, index=app_langs.index(current_lang) if current_lang in app_langs else 0, key="fast_app_language")
-            ui_themes = ["Midnight Premium", "Ocean Blue", "Graphite", "Light Minimal"]
-            current_ui_theme = prefs.get("ui_theme", "Midnight Premium")
-            pending["ui_theme"] = st.selectbox("App appearance", ui_themes, index=ui_themes.index(current_ui_theme) if current_ui_theme in ui_themes else 0, key="fast_ui_theme", help="Changes the app background and card style.")
         save_settings = st.form_submit_button("💾 Save Settings", type="primary", use_container_width=True)
 
     if save_settings:
@@ -5690,30 +5706,23 @@ def app():
         except Exception:
             st.session_state["_app_language"] = "English"
 
-    # Premium static UI theme, selected from Settings. Decorative sky animation is removed.
-    _ui_theme = smart_pref("ui_theme", "Midnight Premium")
-    _theme_backgrounds = {
-        "Midnight Premium": ("#080d18", "rgba(17, 25, 42, .94)", "#8B5CF6"),
-        "Ocean Blue": ("#071827", "rgba(10, 39, 61, .94)", "#38BDF8"),
-        "Graphite": ("#17191f", "rgba(37, 39, 46, .96)", "#F59E0B"),
-        "Light Minimal": ("#f3f6fb", "rgba(255, 255, 255, .96)", "#2563EB"),
-    }
-    _bg, _card_bg, _accent = _theme_backgrounds.get(_ui_theme, _theme_backgrounds["Midnight Premium"])
-    _light_theme = _ui_theme == "Light Minimal"
-    _text_color = "#172033" if _light_theme else "#F1F5F9"
-    st.markdown(f"""<style>
-    html, body, .stApp, [data-testid=\"stAppViewContainer\"], [data-testid=\"stAppViewContainer\"] > .main {{
-      background: {_bg} !important; background-image: none !important; color: {_text_color} !important;
-    }}
-    .stApp::before, .stApp::after, [data-testid=\"stAppViewContainer\"]::before, [data-testid=\"stAppViewContainer\"]::after,
-    .sun, .moon, .stars, .clouds, [class*=\"sun\"], [class*=\"moon\"], [class*=\"star\"], [class*=\"cloud\"], [class*=\"sky\"] {{
-      display:none !important; visibility:hidden !important; opacity:0 !important; animation:none !important; background-image:none !important;
-    }}
-    .premium-card, [data-testid=\"stMetric\"], div[data-testid=\"stExpander\"] {{ background: {_card_bg} !important; color: {_text_color} !important; border: 1px solid {_accent}33 !important; border-radius: 18px !important; }}
-    div.stButton > button, div.stDownloadButton > button {{ border-radius: 12px !important; font-weight: 700 !important; border: 1px solid {_accent} !important; }}
-    [data-testid=\"stSidebar\"] {{ background: {_bg} !important; }}
-    </style>""", unsafe_allow_html=True)
+    # Persisted background animation preference (cached). OFF = plain black background.
+    _animation_enabled = _animation_pref()
 
+    if not _animation_enabled:
+        st.markdown("""<style>
+        html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stAppViewContainer"] > .main,
+        [data-testid="stHeader"], [data-testid="stToolbar"] {background:#000000 !important;background-image:none !important;}
+        [data-testid="stAppViewContainer"]::before,[data-testid="stAppViewContainer"]::after,
+        [data-testid="stApp"]::before,[data-testid="stApp"]::after,
+        .sun,.moon,.stars,.clouds,.cloud1,.cloud2,.cloud3,.cloud4,.cloud5,.cloud6,
+        .sunset,.sunrise,.sunset-animation,.background-animation,.animated-background,
+        [class*="sun"],[class*="moon"],[class*="star"],[class*="cloud"],[class*="sky"] {
+            display:none !important; visibility:hidden !important; opacity:0 !important;
+            animation:none !important; transition:none !important; background-image:none !important;
+        }
+        [data-testid="stAppViewContainer"] * {background-image:none !important;}
+        </style>""", unsafe_allow_html=True)
 
     # Load billing rates once per app run so every page can safely use them.
     tiffin_rate, roti_rate = get_billing_rates()
