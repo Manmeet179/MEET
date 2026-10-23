@@ -10,10 +10,128 @@ import base64
 import time
 import requests
 import re
+import os
+import json
+import hmac
+import hashlib
+import secrets
+import streamlit.components.v1 as components
+from streamlit_cookies_controller import CookieController
+from streamlit_autorefresh import st_autorefresh
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from streamlit_extras.radial_menu import *
 from streamlit_option_menu import option_menu
+
+# -----------------------------------------------------------------------------
+# Persistent login + idle timeout
+# Install: streamlit-cookies-controller and streamlit-autorefresh
+# Configure LUNCHLOGIX_SESSION_SECRET in Streamlit secrets or environment for
+# stable, signed browser sessions across app workers/restarts.
+# -----------------------------------------------------------------------------
+_IDLE_SECONDS = 120
+_COOKIE_NAME = "ll_session_v1"
+try:
+    _SESSION_SECRET = str(st.secrets["LUNCHLOGIX_SESSION_SECRET"]).encode("utf-8")
+except Exception:
+    _SESSION_SECRET = os.getenv("LUNCHLOGIX_SESSION_SECRET", "").encode("utf-8")
+if not _SESSION_SECRET:
+    # Safe fallback for development. Set a secret in Streamlit Cloud for stable
+    # sessions across server restarts and multiple workers.
+    _SESSION_SECRET = secrets.token_bytes(32)
+
+_cookies = CookieController()
+
+
+def _make_session_cookie(last_activity: float) -> str:
+    payload = json.dumps({"exp": int(last_activity + _IDLE_SECONDS), "iat": int(last_activity)},
+                         separators=(",", ":"), sort_keys=True).encode("utf-8")
+    encoded = base64.urlsafe_b64encode(payload).decode("ascii").rstrip("=")
+    signature = hmac.new(_SESSION_SECRET, encoded.encode("ascii"), hashlib.sha256).hexdigest()
+    return encoded + "." + signature
+
+
+def _read_session_cookie(value):
+    if not value or not isinstance(value, str) or "." not in value:
+        return None
+    encoded, signature = value.rsplit(".", 1)
+    expected = hmac.new(_SESSION_SECRET, encoded.encode("ascii"), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(signature, expected):
+        return None
+    try:
+        payload = encoded + "=" * (-len(encoded) % 4)
+        data = json.loads(base64.urlsafe_b64decode(payload.encode("ascii")))
+        if int(data.get("exp", 0)) <= time.time():
+            return None
+        return float(data.get("iat", 0))
+    except Exception:
+        return None
+
+
+def _set_login_cookie(last_activity=None):
+    last_activity = float(last_activity or time.time())
+    _cookies.set(_COOKIE_NAME, _make_session_cookie(last_activity), max_age=_IDLE_SECONDS,
+                 path="/", secure=True, samesite="Lax")
+
+
+def _clear_login_cookie():
+    try:
+        _cookies.remove(_COOKIE_NAME, path="/")
+    except Exception:
+        try:
+            _cookies.set(_COOKIE_NAME, "", max_age=0, path="/", secure=True, samesite="Lax")
+        except Exception:
+            pass
+
+
+def _widget_activity_changed():
+    """Detect changes to Streamlit widget state without treating auto-refresh as activity."""
+    current = {}
+    for key, value in st.session_state.items():
+        if key.startswith("_") or key in {"_ll_widget_snapshot", "_ll_last_activity"}:
+            continue
+        try:
+            json.dumps(value, default=str)
+            current[key] = repr(value)
+        except Exception:
+            current[key] = type(value).__name__
+    previous = st.session_state.get("_ll_widget_snapshot")
+    st.session_state["_ll_widget_snapshot"] = current
+    return previous is not None and current != previous
+
+
+def _initialize_persistent_login():
+    """Restore signed login after browser refresh and enforce 120s idle timeout."""
+    if "_ll_login_bootstrapped" not in st.session_state:
+        cookie_value = _cookies.get(_COOKIE_NAME)
+        cookie_activity = _read_session_cookie(cookie_value)
+        if cookie_activity is not None:
+            st.session_state["logged_in"] = True
+            st.session_state["_ll_last_activity"] = cookie_activity
+        else:
+            st.session_state["logged_in"] = False
+            st.session_state.pop("_ll_last_activity", None)
+        st.session_state["_ll_login_bootstrapped"] = True
+
+    if not st.session_state.get("logged_in", False):
+        return
+
+    now = time.time()
+    last_activity = float(st.session_state.get("_ll_last_activity", now))
+    if now - last_activity >= _IDLE_SECONDS:
+        smart_logout(show_message=False)
+        return
+
+    # Any changed Streamlit widget value is treated as user activity. The
+    # 5-second rerun below only checks expiry; it does not itself reset activity.
+    if _widget_activity_changed():
+        last_activity = now
+        st.session_state["_ll_last_activity"] = last_activity
+        _set_login_cookie(last_activity)
+
+    # Keep checking the idle deadline even if the user leaves the page untouched.
+    st_autorefresh(interval=5000, key="_ll_idle_watchdog")
+
 
 # App-wide interface translation for the most common controls and headings.
 # User-entered data, names and notes are intentionally left unchanged.
@@ -1091,8 +1209,12 @@ def login():
                 bcrypt.checkpw(password.encode(), LOGIN_PASS_HASH):
 
             st.session_state["logged_in"] = True
+            st.session_state["_ll_last_activity"] = time.time()
+            st.session_state["_ll_login_bootstrapped"] = True
+            st.session_state.pop("_ll_widget_snapshot", None)
+            _set_login_cookie(st.session_state["_ll_last_activity"])
             st.success("Logged in successfully!")
-            st.rerun()  # 🔥 IMPORTANT FIX
+            st.rerun()  # Preserve login across refresh using the signed cookie
         else:
             st.error("Invalid credentials")
 
@@ -5668,10 +5790,16 @@ def smart_settings_page():
         st.rerun()
 
 
-def smart_logout():
+def smart_logout(show_message=False):
     st.session_state["logged_in"] = False
-    for k in ["menu","tiffin_saved_signature"]:
+    st.session_state.pop("_ll_last_activity", None)
+    st.session_state.pop("_ll_widget_snapshot", None)
+    st.session_state["_ll_login_bootstrapped"] = True
+    _clear_login_cookie()
+    for k in ["menu", "tiffin_saved_signature", "active_menu"]:
         st.session_state.pop(k, None)
+    if show_message:
+        st.info("You have been logged out due to inactivity.")
     st.rerun()
 
 
@@ -5689,10 +5817,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def app():
-    if 'logged_in' not in st.session_state:
-        st.session_state['logged_in'] = False
+    _initialize_persistent_login()
 
-    if not st.session_state['logged_in']:
+    if not st.session_state.get("logged_in", False):
         login()
         return
 
