@@ -10,3 +10,4 @@ streamlit-option-menu
 extra-streamlit-components
 streamlit-autorefresh
 streamlit-cookies-controller
+streamlit-javascript
