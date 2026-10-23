@@ -16,7 +16,7 @@ import hmac
 import hashlib
 import secrets
 import streamlit.components.v1 as components
-from streamlit_cookies_controller import CookieController
+import extra_streamlit_components as stx
 from streamlit_autorefresh import st_autorefresh
 from datetime import date
 from dateutil.relativedelta import relativedelta
@@ -40,7 +40,7 @@ if not _SESSION_SECRET:
     # sessions across server restarts and multiple workers.
     _SESSION_SECRET = secrets.token_bytes(32)
 
-_cookies = CookieController()
+_cookies = stx.CookieManager(key="ll_cookie_manager")
 
 
 def _make_session_cookie(last_activity: float) -> str:
@@ -69,19 +69,18 @@ def _read_session_cookie(value):
 
 
 def _set_login_cookie(last_activity=None):
+    """Set a signed browser cookie using extra-streamlit-components' CookieManager API."""
     last_activity = float(last_activity or time.time())
-    _cookies.set(_COOKIE_NAME, _make_session_cookie(last_activity), max_age=_IDLE_SECONDS,
-                 path="/", secure=True, samesite="Lax")
+    expires_at = datetime.datetime.now() + datetime.timedelta(seconds=_IDLE_SECONDS)
+    _cookies.set(cookie=_COOKIE_NAME, val=_make_session_cookie(last_activity), expires_at=expires_at)
 
 
 def _clear_login_cookie():
     try:
-        _cookies.remove(_COOKIE_NAME, path="/")
+        _cookies.delete(cookie=_COOKIE_NAME)
     except Exception:
-        try:
-            _cookies.set(_COOKIE_NAME, "", max_age=0, path="/", secure=True, samesite="Lax")
-        except Exception:
-            pass
+        # Session state is still cleared even if the browser component is unavailable.
+        pass
 
 
 def _widget_activity_changed():
@@ -6896,3 +6895,5 @@ if __name__ == "__main__":
     except FileNotFoundError:
         st.error("📂 Required file is missing.")
 
+    except Exception as e:
+        st.error("⚠️ Something went wrong.")
