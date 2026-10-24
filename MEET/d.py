@@ -3901,26 +3901,34 @@ def add_tiffin_page():
     selected_names = []
     try:
         _profiles_for_avatars = smart_users(True)
-        _avatar_map = {str(r["username"]).upper(): r.get("dp_data") for _, r in _profiles_for_avatars.iterrows()}
+        _profile_map = {str(r["username"]).upper(): r for _, r in _profiles_for_avatars.iterrows()}
     except Exception:
-        _avatar_map = {}
+        _profile_map = {}
 
-    # Compact WhatsApp-like avatar + name next to the selection checkbox.
-    for start_idx in range(0, len(names), 3):
-        row_names = names[start_idx:start_idx + 3]
+    # Compact premium cards with per-user emoji and colors, plus adjustable name/checkbox sizing.
+    for start_idx in range(0, len(names), 2):
+        row_names = names[start_idx:start_idx + 2]
         cols = st.columns(len(row_names))
         for col, name in zip(cols, row_names):
             with col:
-                avatar_col, check_col = st.columns([0.8, 2.2])
-                dp_value = _avatar_map.get(name)
-                if dp_value:
-                    try:
-                        avatar_col.image(base64.b64decode(dp_value), width=34)
-                    except Exception:
-                        avatar_col.markdown("👤")
-                else:
-                    avatar_col.markdown("👤")
-                selected = check_col.checkbox(name, key=f"person_{name}")
+                prof = _profile_map.get(name, {})
+                card_bg = str(prof.get("card_bg_color") or "#172033")
+                name_color = str(prof.get("name_text_color") or prof.get("accent_color") or "#FFFFFF")
+                accent = str(prof.get("accent_color") or "#64748b")
+                emoji = str(prof.get("user_emoji") or "👤")
+                font_size = max(12, min(28, int(prof.get("name_font_size") or 16)))
+                check_size = max(14, min(30, int(prof.get("checkbox_size") or 18)))
+                padding = max(2, min(18, int(prof.get("card_padding") or 8)))
+                card_html = (
+                    f'<div style="background:{card_bg};border:1px solid {accent};border-left:4px solid {accent};'
+                    f'border-radius:13px;padding:{padding}px 10px;margin-bottom:4px;color:{name_color};'
+                    f'display:flex;align-items:center;gap:8px;font-size:{font_size}px;font-weight:700">'
+                    f'<span style="font-size:{font_size+4}px">{emoji}</span><span>{name}</span></div>'
+                    f'<style>div[data-testid="stCheckbox"] label p{{font-size:{font_size}px!important}} '
+                    f'div[data-testid="stCheckbox"] input{{transform:scale({check_size/18:.2f});transform-origin:left center}}</style>'
+                )
+                st.markdown(card_html, unsafe_allow_html=True)
+                selected = st.checkbox(f"Select {name}", key=f"person_{name}", label_visibility="collapsed")
                 if selected:
                     selected_names.append(name)
 
@@ -4931,6 +4939,12 @@ def _ensure_smart_tables():
             )
         """)
         cur.execute("ALTER TABLE app_user_profiles ADD COLUMN IF NOT EXISTS nickname TEXT")
+        cur.execute("ALTER TABLE app_user_profiles ADD COLUMN IF NOT EXISTS user_emoji TEXT NOT NULL DEFAULT '👤'")
+        cur.execute("ALTER TABLE app_user_profiles ADD COLUMN IF NOT EXISTS card_bg_color TEXT NOT NULL DEFAULT '#172033'")
+        cur.execute("ALTER TABLE app_user_profiles ADD COLUMN IF NOT EXISTS name_text_color TEXT NOT NULL DEFAULT '#FFFFFF'")
+        cur.execute("ALTER TABLE app_user_profiles ADD COLUMN IF NOT EXISTS name_font_size INTEGER NOT NULL DEFAULT 16")
+        cur.execute("ALTER TABLE app_user_profiles ADD COLUMN IF NOT EXISTS checkbox_size INTEGER NOT NULL DEFAULT 18")
+        cur.execute("ALTER TABLE app_user_profiles ADD COLUMN IF NOT EXISTS card_padding INTEGER NOT NULL DEFAULT 8")
         cur.execute("""
             CREATE TABLE IF NOT EXISTS smart_preferences (
                 setting_key TEXT PRIMARY KEY,
@@ -5486,7 +5500,7 @@ def smart_settings_page():
     try:
         conn = get_db()
         with conn.cursor() as cur:
-            cur.execute("SELECT username, display_name, active, language, theme, accent_color, currency, dp_data, nickname FROM app_user_profiles ORDER BY username")
+            cur.execute("SELECT username, display_name, active, language, theme, accent_color, currency, dp_data, nickname, user_emoji, card_bg_color, name_text_color, name_font_size, checkbox_size, card_padding FROM app_user_profiles ORDER BY username")
             profile_rows = cur.fetchall()
             profile_cols = [d[0] for d in cur.description]
             profiles = pd.DataFrame(profile_rows, columns=profile_cols)
@@ -5533,6 +5547,14 @@ def smart_settings_page():
                 color = st.color_picker("Name / accent color", row["accent_color"] or SMART_ACCENT_DEFAULT, key=f"sc_{row['username']}")
                 currencies = ["₹", "$", "€", "£"]
                 currency = st.selectbox("Currency", currencies, index=currencies.index(row["currency"]) if row["currency"] in currencies else 0, key=f"su_{row['username']}")
+                emoji_choices = ["👤", "🔵", "🟠", "🟢", "🟣", "⭐", "🍱", "💼", "🧑", "👨", "👩", "🐼", "🦊", "🚀", "💎"]
+                old_emoji = str(row.get("user_emoji") or "👤")
+                user_emoji = st.selectbox("User emoji / icon", emoji_choices, index=emoji_choices.index(old_emoji) if old_emoji in emoji_choices else 0, key=f"emoji_{row['username']}")
+                card_bg = st.color_picker("User card background", str(row.get("card_bg_color") or "#172033"), key=f"cardbg_{row['username']}")
+                name_text = st.color_picker("Name text color", str(row.get("name_text_color") or "#FFFFFF"), key=f"nametext_{row['username']}")
+                name_size = st.slider("Name font size", 12, 28, int(row.get("name_font_size") or 16), key=f"namesize_{row['username']}")
+                checkbox_size = st.slider("Checkbox size", 14, 30, int(row.get("checkbox_size") or 18), key=f"checksize_{row['username']}")
+                card_padding = st.slider("Card compactness", 2, 18, int(row.get("card_padding") or 8), key=f"cardpad_{row['username']}")
                 dp = st.file_uploader("Change DP", type=["png", "jpg", "jpeg"], key=f"dp_{row['username']}")
                 if st.button("Save User", key=f"saveu_{row['username']}", type="primary"):
                     nick_clean = re.sub(r"[^A-Z]", "", (nickname or "").upper())[:3]
@@ -5549,11 +5571,11 @@ def smart_settings_page():
                         with conn.cursor() as cur:
                             if dp is not None:
                                 dp_data = base64.b64encode(dp.getvalue()).decode()
-                                cur.execute("""UPDATE app_user_profiles SET display_name=%s,active=%s,language=%s,theme=%s,accent_color=%s,currency=%s,nickname=%s,dp_data=%s WHERE username=%s""",
-                                            (new_name, active, language, theme, color, currency, nick_clean, dp_data, row["username"]))
+                                cur.execute("""UPDATE app_user_profiles SET display_name=%s,active=%s,language=%s,theme=%s,accent_color=%s,currency=%s,nickname=%s,dp_data=%s,user_emoji=%s,card_bg_color=%s,name_text_color=%s,name_font_size=%s,checkbox_size=%s,card_padding=%s WHERE username=%s""",
+                                            (new_name, active, language, theme, color, currency, nick_clean, dp_data, user_emoji, card_bg, name_text, name_size, checkbox_size, card_padding, row["username"]))
                             else:
-                                cur.execute("""UPDATE app_user_profiles SET display_name=%s,active=%s,language=%s,theme=%s,accent_color=%s,currency=%s,nickname=%s WHERE username=%s""",
-                                            (new_name, active, language, theme, color, currency, nick_clean, row["username"]))
+                                cur.execute("""UPDATE app_user_profiles SET display_name=%s,active=%s,language=%s,theme=%s,accent_color=%s,currency=%s,nickname=%s,user_emoji=%s,card_bg_color=%s,name_text_color=%s,name_font_size=%s,checkbox_size=%s,card_padding=%s WHERE username=%s""",
+                                            (new_name, active, language, theme, color, currency, nick_clean, user_emoji, card_bg, name_text, name_size, checkbox_size, card_padding, row["username"]))
                         conn.commit()
                     finally:
                         pass
@@ -5683,8 +5705,8 @@ st.markdown("""
 .premium-card{border:1px solid rgba(255,255,255,.10);border-left:3px solid var(--accent);border-radius:18px;padding:14px 15px;min-height:94px;background:rgba(10,15,28,.62);box-shadow:0 10px 28px rgba(0,0,0,.12);margin-bottom:12px}
 .snapshot-heading{display:flex;align-items:center;gap:9px;margin-bottom:8px}.snapshot-avatar{width:30px;height:30px;object-fit:cover;border-radius:50%;flex:0 0 30px;border:1px solid rgba(255,255,255,.25)}.snapshot-avatar-fallback{width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:0 0 30px;background:rgba(255,255,255,.15);font-size:13px;font-weight:800}.premium-label{font-size:10px;letter-spacing:1.2px;font-weight:800;opacity:.6}.premium-value{font-size:23px;font-weight:900;margin-top:4px}.premium-note{font-size:11px;opacity:.62;margin-top:2px}
 .cycle-track{padding:12px 4px 18px}.cycle-line{height:7px;border-radius:99px;background:rgba(255,255,255,.10);overflow:hidden}.cycle-line span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#FF6B35,#8B5CF6)}.cycle-labels{display:flex;justify-content:space-between;font-size:10px;opacity:.65;margin-top:6px}
-.expense-preview{padding:16px;border-radius:16px;background:rgba(255,107,53,.10);border:1px solid rgba(255,107,53,.28);margin:12px 0}
-.settle-row{display:grid;grid-template-columns:1fr auto 1fr auto;gap:12px;align-items:center;padding:14px 16px;margin:7px 0;border-radius:15px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+.expense-preview{padding:18px;border-radius:18px;background:linear-gradient(135deg,rgba(255,107,53,.15),rgba(139,92,246,.10));border:1px solid rgba(255,107,53,.30);box-shadow:0 10px 28px rgba(0,0,0,.10);margin:12px 0}.expense-preview b:first-child{font-size:1.35rem}
+.settle-row{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:16px;margin:9px 0;border-radius:17px;background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(16,185,129,.09));border:1px solid rgba(148,163,184,.24);box-shadow:0 8px 24px rgba(0,0,0,.10)}.settle-row strong{padding:8px 11px;border-radius:11px;background:rgba(16,185,129,.14);white-space:nowrap}
 </style>
 """, unsafe_allow_html=True)
 
@@ -5706,7 +5728,16 @@ def app():
         except Exception:
             st.session_state["_app_language"] = "English"
 
-    # Persisted background animation preference (cached). OFF = plain black background.
+    # Automatic day/night contrast based on local app time; smooth CSS transitions avoid low-contrast text.
+    _india_tz = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+    _now = datetime.datetime.now(_india_tz).time()
+    _day_mode = datetime.time(6, 15) <= _now < datetime.time(18, 15)
+    if _day_mode:
+        st.markdown("<style>:root{color-scheme:light}.stApp,[data-testid='stAppViewContainer']{background:linear-gradient(180deg,#dff3ff,#f7fbff)!important;color:#111827!important;transition:background 2s ease,color 2s ease}.stApp p,.stApp label,.stApp h1,.stApp h2,.stApp h3,.stApp h4,.stApp span,.stApp li,.stApp [data-testid='stMarkdownContainer']{color:#111827}.stApp input,.stApp textarea,.stApp [data-baseweb='select']>div{color:#111827!important;background:#fff!important}</style>", unsafe_allow_html=True)
+    else:
+        st.markdown("<style>:root{color-scheme:dark}.stApp,[data-testid='stAppViewContainer']{background:linear-gradient(180deg,#080d1b,#171326)!important;color:#f8fafc!important;transition:background 2s ease,color 2s ease}.stApp p,.stApp label,.stApp h1,.stApp h2,.stApp h3,.stApp h4,.stApp span,.stApp li,.stApp [data-testid='stMarkdownContainer']{color:#f8fafc}.stApp input,.stApp textarea,.stApp [data-baseweb='select']>div{color:#f8fafc!important;background:#151a2a!important}</style>", unsafe_allow_html=True)
+
+    # Persisted background animation preference (cached).
     _animation_enabled = _animation_pref()
 
     if not _animation_enabled:
